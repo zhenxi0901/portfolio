@@ -7,7 +7,7 @@ import "./globals.css";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://zhenxi0901.github.io";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://portfolio-emsghin2iq-as.a.run.app";
 const description =
   "Li ZhenXi runs cloud platforms in production and benchmarks AI infrastructure: Kubernetes on Google Cloud, CI/CD, observability and LLM serving.";
 

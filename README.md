@@ -3,6 +3,8 @@
 A personal site that is itself a small production service. The front end shows the work; the
 back end, the pipeline and the monitoring are the work.
 
+**Live:** https://portfolio-emsghin2iq-as.a.run.app (Cloud Run, asia-southeast1)
+
 ```
 Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_next/*, /img/*)
                                     └──> JSON API               (/api/status, /api/ask, /api/contact)
