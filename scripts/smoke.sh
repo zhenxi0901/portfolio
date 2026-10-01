@@ -23,5 +23,6 @@ asset_immutable() {
   [ -n "$a" ] && curl -fsSI "$BASE$a" | grep -qi immutable
 }
 check "hashed assets immutable"     "asset_immutable"
+check "pages sent compressed"       "curl -fsS -o /dev/null -D - -H 'Accept-Encoding: br, gzip' $BASE/ | grep -qi '^content-encoding: br'"
 check "metrics exposed"             "curl -fsS $BASE/metrics | grep -q portfolio_build_info"
 exit $fail
