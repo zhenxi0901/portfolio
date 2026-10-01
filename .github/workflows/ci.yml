@@ -66,10 +66,7 @@ jobs:
         run: |
           docker run -d --name site -p 8080:8080 portfolio:${{ github.sha }}
           for i in $(seq 1 20); do curl -fsS localhost:8080/api/health && break; sleep 1; done
-          curl -fsS localhost:8080/ | grep -q "Li ZhenXi"
-          curl -fsS localhost:8080/api/status | grep -q '"status":"ok"'
-          curl -fsS -X POST localhost:8080/api/ask -H 'Content-Type: application/json' \
-            -d '{"question":"How did you cut the cloud bill?"}' | grep -q "15%"
+          bash scripts/smoke.sh http://localhost:8080
       - name: Block on critical vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:

@@ -57,4 +57,5 @@ jobs:
         run: |
           URL=$(gcloud run services describe portfolio --region ${{ vars.GCP_REGION }} --format 'value(status.url)')
           curl -fsS "$URL/api/health"
-          curl -fsS "$URL/api/status" | grep -q "${SHA:0:7}"
+          curl -fsS "$URL/api/status" | grep "${SHA:0:7}" >/dev/null
+          bash scripts/smoke.sh "$URL"
