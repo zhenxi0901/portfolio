@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - run: npx eslint src
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Knowledge file and Go parity fixtures are current
+        run: |
+          node scripts/gen-parity.mts
+          cp out/knowledge.json ../api/internal/ask/testdata/knowledge.json
+          git diff --exit-code -- ../api/internal/ask/testdata || {
+            echo "::error::Run the parity script and commit api/internal/ask/testdata"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with: { name: site, path: web/out, retention-days: 3 }
+
+  api:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: api } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.27", cache-dependency-path: api/go.sum }
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      - run: go test -race -count=1 -coverpkg=./... -coverprofile=cover.out ./...
+      - run: go tool cover -func=cover.out | tail -1
+
+  image:
+    needs: [web, api]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: portfolio:${{ github.sha }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the container
+        run: |
+          docker run -d --name site -p 8080:8080 portfolio:${{ github.sha }}
+          for i in $(seq 1 20); do curl -fsS localhost:8080/healthz && break; sleep 1; done
+          curl -fsS localhost:8080/ | grep -q "Li ZhenXi"
+          curl -fsS localhost:8080/api/status | grep -q '"status":"ok"'
+          curl -fsS -X POST localhost:8080/api/ask -H 'Content-Type: application/json' \
+            -d '{"question":"How did you cut the cloud bill?"}' | grep -q "15%"
+      - name: Block on critical vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: portfolio:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

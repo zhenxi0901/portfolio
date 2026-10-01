@@ -1,0 +1,39 @@
+groups:
+  - name: portfolio-slo
+    rules:
+      # SLO: 99.5% of requests succeed over 30 days. Fast-burn page at 14.4x (2% of budget in 1h).
+      - record: portfolio:error_ratio:rate5m
+        expr: |
+          sum(rate(http_requests_total{code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1e-9)
+      - record: portfolio:error_ratio:rate1h
+        expr: |
+          sum(rate(http_requests_total{code=~"5.."}[1h])) / clamp_min(sum(rate(http_requests_total[1h])), 1e-9)
+
+      - alert: PortfolioDown
+        expr: up{job="portfolio"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: The portfolio server is not answering scrapes.
+
+      - alert: PortfolioErrorBudgetFastBurn
+        expr: portfolio:error_ratio:rate5m > (14.4 * 0.005) and portfolio:error_ratio:rate1h > (14.4 * 0.005)
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: 5xx ratio is burning the 99.5% availability budget 14x too fast.
+
+      - alert: PortfolioSlowP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route!~"/metrics|/healthz|/readyz"}[5m]))) > 0.5
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: p95 latency has been above 500 ms for 10 minutes.
+
+      - alert: PortfolioRateLimitSpike
+        expr: sum(rate(ratelimit_rejections_total[5m])) > 1
+        for: 5m
+        labels: { severity: info }
+        annotations:
+          summary: More than one request a second is being rate limited. Possible abuse of /api/ask or /api/contact.

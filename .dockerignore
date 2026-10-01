@@ -1,0 +1,9 @@
+**/node_modules
+web/.next
+web/out
+**/.git
+**/.env*
+infra/**/.terraform
+infra/**/*.tfstate*
+*.md
+!web/**/*.md

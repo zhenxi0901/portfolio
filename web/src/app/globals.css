@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* next-themes toggles the `dark` class on <html>; Tailwind's dark: variant follows it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * One neutral family (zinc) and one accent (acid lime), both modes.
+ * --accent is for fills, --accent-ink is for accent strokes and text on the surface,
+ * so the lime stays legible on the light background.
+ */
+:root {
+  --bg: #f6f6f4;
+  --surface: #fdfdfc;
+  --surface-2: #efefec;
+  --ink: #0d0d10;
+  --ink-2: #4b4b53;
+  --ink-3: #6b6b73;
+  --line: #e2e2de;
+  --line-strong: #cfcfca;
+  --accent: #b5f23d;
+  --accent-ink: #3f6212;
+  --on-accent: #0d0d10;
+  --good: #0a8a0a;
+  --critical: #c53030;
+  --shadow: 0 1px 0 rgba(13, 13, 16, 0.04), 0 12px 32px -16px rgba(13, 13, 16, 0.18);
+}
+
+.dark {
+  --bg: #0a0a0c;
+  --surface: #111114;
+  --surface-2: #17171b;
+  --ink: #f2f2f0;
+  --ink-2: #b4b4bb;
+  --ink-3: #8e8e97;
+  --line: #222227;
+  --line-strong: #303036;
+  --accent: #c2f75c;
+  --accent-ink: #c2f75c;
+  --on-accent: #0d0d10;
+  --good: #22c55e;
+  --critical: #f87171;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+  --color-good: var(--good);
+  --color-critical: var(--critical);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --shadow-soft: var(--shadow);
+  --animate-marquee: marquee var(--duration, 40s) linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - var(--gap, 3rem) / 2)); }
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+html.dark { color-scheme: dark; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--accent); color: var(--on-accent); }
+
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Film grain on a fixed, non-interactive layer only (never on scrolling content). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.dark body::after { opacity: 0.05; }
+
+/*
+ * Scroll reveals. Content is visible by default; it only starts hidden once the inline
+ * script in <head> has marked the page as scripted (html.js), and a 4 s fallback animation
+ * forces it visible even if hydration never happens.
+ */
+html.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(var(--reveal-y, 18px));
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s);
+  animation: reveal-fallback 0.01s linear 4s forwards;
+}
+html.js [data-reveal][data-shown] {
+  opacity: 1;
+  transform: none;
+}
+@keyframes reveal-fallback {
+  to { opacity: 1; transform: none; }
+}
+
+/* Children that animate when their reveal container is shown. */
+.grow-x {
+  transform-origin: left;
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--grow-delay, 0.1s);
+}
+html.js [data-reveal]:not([data-shown]) .grow-x { transform: scaleX(0); }
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
+
+/* Kinetic name: CSS only, so the headline renders with or without JavaScript. */
+.kinetic-letter {
+  display: inline-block;
+  animation: letter-rise 0.9s cubic-bezier(0.2, 0.9, 0.25, 1.15) backwards;
+  animation-delay: calc(var(--i) * 45ms + 60ms);
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.25, 1.4), color 0.25s;
+}
+.kinetic-letter:hover {
+  transform: translateY(-0.12em) rotate(var(--r, -5deg));
+  color: var(--accent-ink);
+}
+@keyframes letter-rise {
+  from { opacity: 0; transform: translateY(0.6em) rotate(6deg); }
+}
+
+/* Dotted canvas behind the hero and a few tiles. */
+.dot-grid {
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  html.js [data-reveal] { opacity: 1; transform: none; }
+  html.js [data-reveal]:not([data-shown]) .grow-x { transform: none; }
+  html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 0; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  body::after, [data-print-hide] { display: none !important; }
+  body { background: #fff; color: #111; }
+}
