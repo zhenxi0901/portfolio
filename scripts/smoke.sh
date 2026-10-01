@@ -7,8 +7,7 @@ check() { # name, command
   if eval "$2" >/dev/null 2>&1; then echo "  ok    $1"; else echo "  FAIL  $1"; fail=1; fi
 }
 echo "Smoke test against $BASE"
-check "healthz"                     "curl -fsS $BASE/healthz"
-check "readyz"                      "curl -fsS $BASE/readyz"
+check "health (/api/health)"         "curl -fsS $BASE/api/health | grep -q ok"
 check "home page has the name"      "curl -fsS $BASE/ | grep -q 'Li ZhenXi'"
 check "knowledge.json served"       "curl -fsS $BASE/knowledge.json | grep -q case-reaper"
 check "résumé PDF served"           "curl -fsS -o /dev/null -w '%{content_type}' $BASE/Li_ZhenXi_Resume.pdf | grep -q pdf"

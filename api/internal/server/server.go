@@ -69,6 +69,16 @@ func (s *Server) Handler() http.Handler {
 		}
 		_, _ = w.Write([]byte("ready"))
 	})
+	// Cloud Run's front end reserves some paths ending in "z" (/healthz, /readyz), so they work for
+	// container probes but never reach the app from outside. External checks use /api/health.
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		if s.ask.FactCount() == 0 {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not ready"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
 	mux.Handle("GET /metrics", promhttp.HandlerFor(s.reg, promhttp.HandlerOpts{}))
 	mux.HandleFunc("GET /api/status", s.handleStatus)
 

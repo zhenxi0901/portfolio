@@ -38,7 +38,7 @@ func newTestServer(t *testing.T) (*httptest.Server, Config) {
 
 func TestHealthAndStatic(t *testing.T) {
 	ts, _ := newTestServer(t)
-	for path, want := range map[string]int{"/healthz": 200, "/readyz": 200, "/": 200, "/nope": 404, "/api/nope": 404} {
+	for path, want := range map[string]int{"/healthz": 200, "/readyz": 200, "/api/health": 200, "/": 200, "/nope": 404, "/api/nope": 404} {
 		resp, err := http.Get(ts.URL + path)
 		must(t, err)
 		resp.Body.Close()
