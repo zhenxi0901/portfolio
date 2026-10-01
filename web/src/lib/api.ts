@@ -53,5 +53,6 @@ export const api = {
   ask: (question: string) =>
     request<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }), timeoutMs: 20000 }),
   contact: (payload: { name: string; email: string; message: string; company: string }) =>
-    request<{ ok: boolean }>("/api/contact", { method: "POST", body: JSON.stringify(payload) }),
+    // The server delivers to the webhook (up to 6 s with retries) before it answers.
+    request<{ ok: boolean }>("/api/contact", { method: "POST", body: JSON.stringify(payload), timeoutMs: 12000 }),
 };

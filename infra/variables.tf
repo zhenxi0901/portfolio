@@ -33,6 +33,12 @@ variable "github_repo" {
   default     = "zhenxi0901/portfolio"
 }
 
+variable "enable_contact_webhook" {
+  description = "Forward contact-form messages to the webhook in the portfolio-contact-webhook secret. Add a secret version first: Cloud Run will not start a revision that reads an empty secret."
+  type        = bool
+  default     = false
+}
+
 variable "enable_llm" {
   description = "Wire an OpenAI-compatible LLM into the Ask console (key goes in Secret Manager)."
   type        = bool

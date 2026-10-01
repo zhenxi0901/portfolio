@@ -70,12 +70,27 @@ Without it, the console answers with retrieval alone, and if the API is unreacha
 
 ```bash
 cd infra
+cp example.tfvars terraform.tfvars   # fill in; ignored by git
 terraform init
-terraform apply -var project_id=<your-personal-project> -var github_repo=<you>/<repo>
+terraform apply
 # then set repository variables GCP_PROJECT, GCP_REGION, WIF_PROVIDER, DEPLOYER_SA from `terraform output`
 ```
 
-Pushes to `main` that pass CI build, push and deploy automatically (`.github/workflows/deploy.yml`).
+Pushes to `main` that pass CI build, push and deploy automatically (`.github/workflows/deploy.yml`), and the
+deploy finishes by running `scripts/smoke.sh` against the live URL.
+
+### Contact form messages
+
+On Cloud Run the container's disk is scratch space, so messages are delivered to a Discord (or Slack) webhook
+before the visitor is told they were sent; if delivery fails, the form asks them to email instead. Terraform
+creates an empty `portfolio-contact-webhook` secret. Add the webhook URL as a version (it is read from the
+terminal, so it never lands in shell history or Terraform state), then turn forwarding on:
+
+```bash
+read -rsp "Webhook URL: " URL && printf %s "$URL" | gcloud secrets versions add portfolio-contact-webhook --data-file=- && unset URL
+# set enable_contact_webhook = true in terraform.tfvars, then
+terraform apply
+```
 
 ## Editing content
 

@@ -71,6 +71,22 @@ resource "google_secret_manager_secret_iam_member" "runtime_reads_llm_key" {
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
 
+# Discord/Slack webhook for contact-form messages. Terraform creates the empty secret and never
+# sees the URL: add it as a secret version yourself, then set enable_contact_webhook (README).
+resource "google_secret_manager_secret" "contact_webhook" {
+  secret_id = "portfolio-contact-webhook"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_secret_manager_secret_iam_member" "runtime_reads_contact_webhook" {
+  secret_id = google_secret_manager_secret.contact_webhook.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.runtime.email}"
+}
+
 resource "google_cloud_run_v2_service" "portfolio" {
   name                = "portfolio"
   location            = var.region
@@ -123,6 +139,18 @@ resource "google_cloud_run_v2_service" "portfolio" {
           value = env.value
         }
       }
+      dynamic "env" {
+        for_each = var.enable_contact_webhook ? [1] : []
+        content {
+          name = "CONTACT_WEBHOOK_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.contact_webhook.secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
       startup_probe {
         http_get { path = "/readyz" }
         period_seconds    = 2
@@ -135,11 +163,14 @@ resource "google_cloud_run_v2_service" "portfolio" {
     }
   }
 
-  # CI deploys new images by digest; Terraform owns everything else.
+  # CI deploys new images by digest; Terraform owns everything else. `gcloud run deploy` also
+  # writes a service-level scaling block of zeros (same as unset; the real limits are in
+  # template.scaling), which would otherwise show as drift after every deploy.
   lifecycle {
-    ignore_changes = [template[0].containers[0].image, client, client_version]
+    ignore_changes = [template[0].containers[0].image, client, client_version, scaling]
   }
-  depends_on = [google_project_service.apis]
+  # A revision that reads a secret fails unless the runtime identity can already read it.
+  depends_on = [google_project_service.apis, google_secret_manager_secret_iam_member.runtime_reads_contact_webhook]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "public" {
