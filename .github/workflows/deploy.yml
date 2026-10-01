@@ -1,0 +1,60 @@
+name: deploy
+
+# Promotes a commit that passed CI to Cloud Run. Keyless: GitHub OIDC -> Workload Identity Federation.
+# Needs repository variables GCP_PROJECT, GCP_REGION, WIF_PROVIDER, DEPLOYER_SA (from `terraform output`).
+on:
+  workflow_run:
+    workflows: [ci]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Skips (rather than fails) until the GCP repository variables from `terraform output` are set.
+    if: ${{ vars.GCP_PROJECT != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/portfolio/site
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.SHA }}" }
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.SHA }}
+          build-args: |
+            VERSION=main
+            COMMIT=${{ env.SHA }}
+          cache-from: type=gha
+      - name: Deploy the exact digest that was built
+        run: |
+          gcloud run deploy portfolio \
+            --region ${{ vars.GCP_REGION }} \
+            --image "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}" \
+            --quiet
+      - name: Verify
+        run: |
+          URL=$(gcloud run services describe portfolio --region ${{ vars.GCP_REGION }} --format 'value(status.url)')
+          curl -fsS "$URL/healthz"
+          curl -fsS "$URL/api/status" | grep -q "${SHA:0:7}"

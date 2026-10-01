@@ -1,0 +1,68 @@
+{
+  "uid": "portfolio",
+  "title": "Portfolio site: golden signals",
+  "tags": ["portfolio", "sre"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Availability (5m)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2,
+        "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.99 }, { "color": "green", "value": 0.995 } ] } } },
+      "targets": [ { "refId": "A", "expr": "1 - portfolio:error_ratio:rate5m" } ]
+    },
+    {
+      "id": 2, "type": "stat", "title": "p95 latency (5m)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3 } },
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route!~\"/metrics|/healthz|/readyz\"}[5m])))" } ]
+    },
+    {
+      "id": 3, "type": "stat", "title": "LLM tokens (1h)",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "targets": [ { "refId": "A", "expr": "sum by (kind) (increase(ask_llm_tokens_total[1h]))", "legendFormat": "{{kind}}" } ]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Heap in use",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [ { "refId": "A", "expr": "go_memstats_heap_alloc_bytes{job=\"portfolio\"}" } ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Requests per second by route",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "targets": [ { "refId": "A", "expr": "sum by (route) (rate(http_requests_total[1m]))", "legendFormat": "{{route}}" } ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "p95 latency by route",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))", "legendFormat": "{{route}}" } ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Ask answers by mode",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "targets": [ { "refId": "A", "expr": "sum by (mode, cached) (rate(ask_requests_total[5m]))", "legendFormat": "{{mode}} cached={{cached}}" } ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Rate-limited requests and contact submissions",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom" },
+      "targets": [
+        { "refId": "A", "expr": "sum by (route) (rate(ratelimit_rejections_total[5m]))", "legendFormat": "limited {{route}}" },
+        { "refId": "B", "expr": "sum by (result) (rate(contact_submissions_total[5m]))", "legendFormat": "contact {{result}}" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: portfolio
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["site:8080"]

@@ -1,0 +1,112 @@
+[
+  {
+    "question": "How did ZhenXi cut the cloud bill?",
+    "answer": "How I cut cloud spend by about 15%: Drop metrics nobody reads (Monitoring, done): Turned off three GKE metric packages after confirming 0 of 27 alerts and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape. Right-size Cloud SQL (Database, done): 4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal. Size pods to need, scale nodes to load (Compute, done): Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter.",
+    "sources": [
+      "cost-review",
+      "case-reaper"
+    ]
+  },
+  {
+    "question": "What did the final-year project find?",
+    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 - now. Contributed a Go benchmark adapter to ARIES, the lab's open-source agent-serving framework. Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100. Found and fixed a Docker race that dropped runs under load.",
+    "sources": [
+      "role-ntu-hyscale-lab"
+    ]
+  },
+  {
+    "question": "Which GPUs has ZhenXi used?",
+    "answer": "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. CI/CD: GitHub Actions, Jenkins, Cloud Build. AI infrastructure: LLM serving with SGLang, LLM benchmarking, A100 GPUs, Vertex AI, RAG, MCP, PyTorch.",
+    "sources": [
+      "skills",
+      "path-tunnels"
+    ]
+  },
+  {
+    "question": "What happens when a build has a critical CVE?",
+    "answer": "A pipeline where failed merges never deploy (Primustech, 2026). I own the Cloud Build delivery pipeline: build once, promote by digest, approve before release. Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds.",
+    "sources": [
+      "case-pipeline"
+    ]
+  },
+  {
+    "question": "Tell me about the ICCV paper",
+    "answer": "Co-author of PVChat: Personalized Video Chat with One-Shot Learning, published at ICCV 2025. The first video LLM that learns a person from a single reference video, so it can answer identity-aware questions about them.",
+    "sources": [
+      "pvchat"
+    ]
+  },
+  {
+    "question": "k8s migration",
+    "answer": "One VM to a GKE platform (Primustech, 2026). Moved a live building-operations platform off a single Docker Compose VM and onto Kubernetes. The IoT platform behind the company's facility-management product ran on one Docker Compose VM: one failure domain, hand-run deploys and no autoscaling. Migrated the production database, cut the public domain over, then turned on deletion protection and passed a restore drill.",
+    "sources": [
+      "case-gke",
+      "role-primustech"
+    ]
+  },
+  {
+    "question": "Where did ZhenXi study?",
+    "answer": "Bachelor of Computer Science at Nanyang Technological University, Jul 2023 - Jun 2027. Exchange semesters at Tsinghua University and Luleå University of Technology.",
+    "sources": [
+      "education"
+    ]
+  },
+  {
+    "question": "Does ZhenXi know Terraform?",
+    "answer": "A pipeline where failed merges never deploy (Primustech, 2026). Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds. Made releases and Terraform applies approval-gated and serialised per component, then moved the repository from Bitbucket to GitHub with full history.",
+    "sources": [
+      "case-pipeline",
+      "role-primustech"
+    ]
+  },
+  {
+    "question": "What is AiBE?",
+    "answer": "Running an agentic AI platform (Primustech, 2026). Infrastructure for AiBE, the company's multi-agent and RAG platform for building operations. AiBE's agent and RAG services needed repeatable deploys, locked-down secrets and numbers on speed and cost. Deployed and operated the multi-agent API and the RAG services on Cloud Run with models on Vertex AI.",
+    "sources": [
+      "case-aibe",
+      "role-primustech"
+    ]
+  },
+  {
+    "question": "ZooKeeper quorum alerts",
+    "answer": "Alerts that mean something (Primustech, 2026). The cluster could lose ZooKeeper quorum, stall consumers or silently drop telemetry without anyone being told. Versioned Grafana SRE dashboards and Cloud Monitoring alerts for ZooKeeper quorum loss, stalled consumers and crash loops. Fixed a ZooKeeper leader-election livelock that appeared after a node was replaced, and kept every alert and dashboard in Terraform with zero drift.",
+    "sources": [
+      "case-observability"
+    ]
+  },
+  {
+    "question": "SCADA and PLC experience",
+    "answer": "Control Systems Intern at ENGIE South East Asia, May 2025 - Jan 2026. Configured BMS-room networks and firewalls for multi-building projects across sites. Mapped and validated 800+ BACnet/OPC points from DDCs and PLCs into SCADA. Programmed Siemens S7-1200 PLC logic and linked site data to central monitoring.",
+    "sources": [
+      "role-engie-south-east-asia",
+      "skills"
+    ]
+  },
+  {
+    "question": "How does traffic reach the cluster?",
+    "answer": "How internet traffic reaches the cluster: load balancer, WAF, ingress, Services, pods and the database. Browser (HTTPS 443): One public hostname. Any other host, or the raw IP, gets a 404 by design.",
+    "sources": [
+      "path-user",
+      "path-partner"
+    ]
+  },
+  {
+    "question": "What do you monitor?",
+    "answer": "The signals I alert on, chosen by failure mode: Is data still arriving? I watch rate(bridge_writes) ~ 0 for 10 min and missing data counts as breaching. A dead bridge emits nothing at all, so silence itself has to page.",
+    "sources": [
+      "monitoring"
+    ]
+  },
+  {
+    "question": "How does a command reach the HVAC plant?",
+    "answer": "How a start or stop command reaches HVAC equipment safely. Operator action (server RPC): Starting or stopping plant becomes a server-side RPC inside the platform. Device MQTT transport (ClusterIP only): Never exposed outside the cluster.",
+    "sources": [
+      "path-command"
+    ]
+  },
+  {
+    "question": "zzqx plorf",
+    "answer": "I couldn't find that in what this site knows. Try asking about Primustech, the GKE migration, the cloud bill, the final-year project or the ICCV paper.",
+    "sources": []
+  }
+]

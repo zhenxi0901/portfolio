@@ -1,0 +1,42 @@
+# Local production-like stack: the site, plus Prometheus and Grafana watching it.
+#   docker compose up --build
+#   site http://localhost:8080 | Prometheus http://localhost:9090 | Grafana http://localhost:3001
+services:
+  site:
+    build:
+      context: .
+      args:
+        VERSION: compose
+        COMMIT: local
+    ports: ["8080:8080"]
+    environment:
+      REGION: local
+      # Optional LLM for the Ask console, any OpenAI-compatible endpoint:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      CONTACT_WEBHOOK_URL: ${CONTACT_WEBHOOK_URL:-}
+    read_only: true
+    tmpfs: ["/tmp"]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+    ports: ["9090:9090"]
+    depends_on: [site]
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/portfolio.json
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3001:3000"]
+    depends_on: [prometheus]
