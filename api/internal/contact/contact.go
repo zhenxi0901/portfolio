@@ -6,9 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,20 +21,32 @@ import (
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
 )
 
+// Delivery has to finish inside the form's 8 s request timeout, cold start included.
+const (
+	deliverTimeout = 6 * time.Second
+	attemptTimeout = 3 * time.Second
+	maxAttempts    = 3
+)
+
 // Service appends messages to a JSONL file and, if configured, forwards them to a chat webhook.
 // No IP address is stored. On Cloud Run the file is per-instance scratch space, so the webhook
 // is the durable channel there.
 type Service struct {
-	dir     string
-	webhook string
-	m       *metrics.Metrics
-	log     *slog.Logger
-	mu      sync.Mutex
-	client  *http.Client
+	dir       string
+	webhook   string
+	m         *metrics.Metrics
+	log       *slog.Logger
+	mu        sync.Mutex
+	client    *http.Client
+	retryWait time.Duration
 }
 
 func NewService(dir, webhook string, m *metrics.Metrics, log *slog.Logger) *Service {
-	return &Service{dir: dir, webhook: webhook, m: m, log: log, client: &http.Client{Timeout: 5 * time.Second}}
+	return &Service{
+		dir: dir, webhook: webhook, m: m, log: log,
+		client:    &http.Client{Timeout: attemptTimeout},
+		retryWait: 300 * time.Millisecond,
+	}
 }
 
 type Message struct {
@@ -74,10 +88,18 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 		s.reply(w, http.StatusInternalServerError, "error", map[string]any{"error": "Could not save your message."})
 		return
 	}
+	// Deliver before replying. On Cloud Run an instance gets almost no CPU once the response is
+	// written, so a send left running in the background could stall, and the visitor would be
+	// told "sent" for a message nobody receives. If delivery fails they are told to email instead.
+	// WithoutCancel: a visitor closing the tab mid-send should not abort a send that is underway.
 	if s.webhook != "" {
-		go s.forward(msg)
+		if err := s.forward(context.WithoutCancel(r.Context()), msg); err != nil {
+			s.log.Error("contact: webhook delivery failed", "err", err)
+			s.reply(w, http.StatusBadGateway, "undelivered", map[string]any{"error": "Could not deliver your message."})
+			return
+		}
 	}
-	s.log.Info("contact: message received", "chars", utf8.RuneCountInString(msg.Message))
+	s.log.Info("contact: message received", "chars", utf8.RuneCountInString(msg.Message), "forwarded", s.webhook != "")
 	s.reply(w, http.StatusAccepted, "accepted", map[string]any{"ok": true})
 }
 
@@ -114,23 +136,75 @@ func (s *Service) store(m Message) error {
 	return json.NewEncoder(f).Encode(m)
 }
 
-// forward posts to a Slack- or Discord-style webhook ("text" and "content" cover both).
-func (s *Service) forward(m Message) {
-	text := fmt.Sprintf("New message from %s <%s>:\n%s", m.Name, m.Email, m.Message)
-	body, _ := json.Marshal(map[string]string{"text": text, "content": text})
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// forward posts the message to the webhook, retrying network errors, 429s and 5xx responses
+// with a short backoff. A 4xx other than 429 means the payload was refused, so it is final.
+func (s *Service) forward(ctx context.Context, m Message) error {
+	body, err := json.Marshal(webhookPayload(s.webhook, m))
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, deliverTimeout)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, s.webhook, bytes.NewReader(body))
+	wait := s.retryWait
+	for attempt := 1; ; attempt++ {
+		retry, err := s.post(ctx, body)
+		if err == nil || !retry || attempt == maxAttempts {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(wait):
+		}
+		wait *= 2
+	}
+}
+
+func (s *Service) post(ctx context.Context, body []byte) (retry bool, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.webhook, bytes.NewReader(body))
+	if err != nil {
+		return false, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
-		s.log.Warn("contact: webhook failed", "err", err)
-		return
+		return true, err
 	}
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4<<10))
 	resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		s.log.Warn("contact: webhook rejected", "status", resp.StatusCode)
+	switch {
+	case resp.StatusCode < 300:
+		return false, nil
+	case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500:
+		return true, fmt.Errorf("webhook answered %d", resp.StatusCode)
+	default:
+		return false, fmt.Errorf("webhook answered %d", resp.StatusCode)
 	}
+}
+
+// webhookPayload formats the message for Discord or, for any other URL, as Slack-style
+// {"text": ...}, which Slack, Mattermost and Google Chat all accept.
+func webhookPayload(webhook string, m Message) any {
+	host := ""
+	if u, err := url.Parse(webhook); err == nil {
+		host = u.Hostname()
+	}
+	if host == "discord.com" || host == "discordapp.com" || strings.HasSuffix(host, ".discord.com") {
+		// Plain content is capped at 2,000 characters and messages may be 4,000, so the message
+		// goes in an embed (4,096). The content line carries no visitor input, and mentions are
+		// disabled so "@everyone" in a message pings nobody.
+		return map[string]any{
+			"content":          "New message from the portfolio site",
+			"allowed_mentions": map[string]any{"parse": []string{}},
+			"embeds": []map[string]any{{
+				"title":       m.Name,
+				"description": m.Message,
+				"fields":      []map[string]any{{"name": "Reply to", "value": m.Email}},
+				"timestamp":   m.Received.Format(time.RFC3339),
+			}},
+		}
+	}
+	return map[string]string{"text": fmt.Sprintf("New message from %s <%s>:\n%s", m.Name, m.Email, m.Message)}
 }
 
 func (s *Service) reply(w http.ResponseWriter, code int, result string, body map[string]any) {
