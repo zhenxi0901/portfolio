@@ -18,7 +18,7 @@
     "answer": "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. CI/CD: GitHub Actions, Jenkins, Cloud Build. AI infrastructure: LLM serving with SGLang, LLM benchmarking, A100 GPUs, Vertex AI, RAG, MCP, PyTorch.",
     "sources": [
       "skills",
-      "aibe-ask-documents"
+      "ai-ask-documents"
     ]
   },
   {
@@ -26,7 +26,7 @@
     "answer": "A pipeline where failed merges never deploy (Primustech, 2026). I own the Cloud Build delivery pipeline: build once, promote by digest, approve before release. Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds.",
     "sources": [
       "case-pipeline",
-      "aibe-ask-building"
+      "ai-ask-building"
     ]
   },
   {
@@ -60,18 +60,19 @@
     ]
   },
   {
-    "question": "What is AiBE?",
-    "answer": "AiBE is Primustech's agentic AI platform for building operations: an operations agent that reads live building data, and Scholar, which answers from documents. I deploy and run it on Google Cloud. The operations agent is an Agno team on Cloud Run using Gemini on Vertex AI, with Grok through OpenRouter; it pulls live readings from Atlas over GraphQL and aggregates them in DuckDB.",
+    "question": "What products do you run?",
+    "answer": "At Primustech I run three products: Building IoT platform (Kubernetes on GKE): Collects live data from building systems (sensors, HVAC, meters) and serves the dashboards and alarms facility teams use. Operations agent (AI agents on Cloud Run): An AI assistant that answers a facility manager's questions from the IoT platform's live data. Document assistant (RAG on Cloud Run): Answers questions from a company's own documents, such as rate schedules and HR policies, and cites them.",
     "sources": [
-      "aibe"
+      "products",
+      "ai-products"
     ]
   },
   {
     "question": "How does the document RAG pipeline work?",
-    "answer": "Scholar's document pipeline: upload a PDF, spreadsheet, deck or image, and it becomes searchable for RAG. An upload: Someone adds a document to a knowledge base: PDF, Word, PowerPoint, Excel, CSV or an image. Heavy lifting, elsewhere: A much larger image, with the document parsers, runs as a Cloud Run Job on a schedule and drains the queue. Searchable: The vectors go to Milvus and the document's metadata to MongoDB.",
+    "answer": "The document assistant's pipeline: upload a PDF, spreadsheet, deck or image, and it becomes searchable for RAG. An upload: Someone adds a document to a knowledge base: PDF, Word, PowerPoint, Excel, CSV or an image. Heavy lifting, elsewhere: A much larger image, with the document parsers, runs as a Cloud Run Job on a schedule and drains the queue. Searchable: The vectors go to Milvus and the document's metadata to MongoDB.",
     "sources": [
-      "aibe-add-document",
-      "aibe-ask-documents"
+      "ai-add-document",
+      "ai-ask-documents"
     ]
   },
   {

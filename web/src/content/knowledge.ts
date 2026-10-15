@@ -10,7 +10,8 @@ import {
   publication,
   signals,
 } from "@/content/profile";
-import { aibeOverview, journeys, measures } from "@/content/aibe";
+import { aiOverview, journeys, measures } from "@/content/ai-platform";
+import { productOrder, products } from "@/content/products";
 
 // Facts the "Ask" console retrieves from. Built from profile.ts so there is one source of truth;
 // exported at build time as /knowledge.json, which the Go API loads too.
@@ -79,17 +80,25 @@ export function buildKnowledge(): Fact[] {
   });
 
   facts.push({
-    id: "aibe",
-    title: "What AiBE is",
+    id: "products",
+    title: "The three products I run",
+    anchor: "work",
+    lead: "At Primustech I run three products:",
+    text: productOrder.map((k) => `${products[k].name} (${products[k].runs}): ${products[k].what}`).join(" "),
+  });
+
+  facts.push({
+    id: "ai-products",
+    title: "The AI products I run",
     anchor: "ai",
-    text: aibeOverview,
+    text: aiOverview,
   });
 
   // The lead already opens the answer, so the text is the steps alone (a repeated lead would be
   // quoted twice when it is more than one sentence).
   for (const j of journeys) {
     facts.push({
-      id: `aibe-${j.id}`,
+      id: `ai-${j.id}`,
       title: j.name,
       anchor: "ai",
       lead: j.about,

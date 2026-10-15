@@ -5,6 +5,7 @@ import type { CaseStudy } from "@/content/profile";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Reveal } from "@/components/motion/reveal";
+import { ProductTag } from "@/components/site/product-tag";
 
 export function CaseCard({
   study,
@@ -31,9 +32,14 @@ export function CaseCard({
       >
         <header className="flex items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-xs text-ink-3">
-              {study.org}, {study.year}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {study.products.map((p) => (
+                <ProductTag key={p} p={p} />
+              ))}
+              <span className="font-mono text-xs text-ink-3">
+                {study.org}, {study.year}
+              </span>
+            </div>
             <h3 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.03em] sm:text-[1.7rem]">{study.title}</h3>
             <p className="mt-2 max-w-[48ch] text-[15px] leading-relaxed text-ink-2">{study.summary}</p>
           </div>
@@ -46,9 +52,14 @@ export function CaseCard({
             Read the case <ArrowUpRight size={15} />
           </DialogTrigger>
           <DialogContent>
-            <p className="font-mono text-xs text-ink-3">
-              {study.org}, {study.year}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {study.products.map((p) => (
+                <ProductTag key={p} p={p} />
+              ))}
+              <span className="font-mono text-xs text-ink-3">
+                {study.org}, {study.year}
+              </span>
+            </div>
             <DialogTitle className="mt-2 pr-10 text-3xl font-semibold tracking-[-0.03em]">{study.title}</DialogTitle>
             <DialogDescription className="mt-4 text-[15px] leading-relaxed text-ink-2">{study.problem}</DialogDescription>
             <h4 className="mt-7 text-sm font-semibold">What I did</h4>

@@ -1,28 +1,31 @@
-// "AI infrastructure": AiBE, Primustech's agentic AI platform for building operations, from its
-// repositories' READMEs, deployment docs and Terraform. Public page: no customer names, repo names,
-// project IDs, hostnames or configuration values. `mine` marks the parts ZhenXi built or runs;
-// everything else is the platform he operates, described but not claimed.
+// "The AI products I run": Primustech's operations agent and document assistant, from their
+// READMEs, deployment docs and Terraform. Public page: no internal product names, customer names,
+// repo names, project IDs, hostnames or configuration values. `mine` marks the parts ZhenXi built
+// or runs; everything else is the platform he operates, described but not claimed. `product`
+// colours each box and journey by the product it belongs to (see products.ts); none means shared.
 
-export const aibeIntro =
-  "AiBE is Primustech's agentic AI platform for building operations: an operations agent that reads live building data, and Scholar, which answers from documents. I deploy and run it on Google Cloud.";
+import type { ProductKey } from "@/content/products";
+
+export const aiIntro =
+  "Two AI products built on the IoT platform's data: the operations agent answers facility managers from live building readings, and the document assistant answers from company documents. I deploy and run both on Google Cloud.";
 
 /** The whole platform in a paragraph, for the Ask console. */
-export const aibeOverview =
-  `${aibeIntro} The operations agent is an Agno team on Cloud Run using Gemini on Vertex AI, with Grok through OpenRouter; ` +
-  "it pulls live readings from Atlas over GraphQL and aggregates them in DuckDB. Scholar is a document RAG service: a Cloud Run API, " +
+export const aiOverview =
+  `${aiIntro} The operations agent is an Agno team on Cloud Run using Gemini on Vertex AI, with Grok through OpenRouter; ` +
+  "it pulls live readings from the IoT platform over GraphQL and aggregates them in DuckDB. The document assistant is a RAG service: a Cloud Run API, " +
   "a Redis queue and a Cloud Run Job worker that turn documents into Gemini embeddings in Milvus, then a bge-reranker-v2-m3 " +
   "cross-encoder on a GPU and Gemini answers with citations. Langfuse traces every request with its tokens and cost. " +
   "My part: deploying and running the agent APIs and the worker across dev, staging and production, the per-environment " +
-  "Cloud Build pipelines, service accounts, Secret Manager and the shared VPC, Atlas as the building-data source, and " +
+  "Cloud Build pipelines, service accounts, Secret Manager and the shared VPC, the IoT platform as the building-data source, and " +
   "benchmarking latency, token cost and models.";
 
 export type NodeId =
   | "people"
   | "lb"
   | "operator"
-  | "scholar"
+  | "docs-api"
   | "worker"
-  | "atlas"
+  | "iot"
   | "mongo"
   | "milvus"
   | "queue"
@@ -37,7 +40,7 @@ export type NodeId =
   | "secrets"
   | "vpc";
 
-export type MapNode = { id: NodeId; label: string; sub: string; x: number; y: number; w?: number; mine?: boolean };
+export type MapNode = { id: NodeId; label: string; sub: string; x: number; y: number; w?: number; mine?: boolean; product?: ProductKey };
 
 /**
  * Positions are centres in the map's 1000 x 640 viewBox, in columns: entry, services, then models and
@@ -47,17 +50,17 @@ export type MapNode = { id: NodeId; label: string; sub: string; x: number; y: nu
 export const mapNodes: MapNode[] = [
   { id: "people", label: "Facility team", sub: "chat, web, app", x: 95, y: 250 },
   { id: "lb", label: "Load balancer", sub: "Cloud Armor, TLS", x: 285, y: 250, mine: true },
-  { id: "operator", label: "Operations agent", sub: "Agno team, Cloud Run", x: 480, y: 150, mine: true },
-  { id: "scholar", label: "Scholar API", sub: "RAG agents, Cloud Run", x: 480, y: 290, mine: true },
-  { id: "worker", label: "Document worker", sub: "Cloud Run Job", x: 480, y: 430, mine: true },
-  { id: "atlas", label: "Building data", sub: "GraphQL, Atlas on GKE", x: 795, y: 60, w: 200, mine: true },
-  { id: "vertex", label: "Vertex AI", sub: "Gemini", x: 795, y: 115, w: 200 },
+  { id: "operator", label: "Operations agent", sub: "Agno team, Cloud Run", x: 480, y: 150, mine: true, product: "agent" },
+  { id: "docs-api", label: "Document assistant", sub: "RAG API, Cloud Run", x: 480, y: 290, mine: true, product: "docs" },
+  { id: "worker", label: "Document worker", sub: "Cloud Run Job", x: 480, y: 430, mine: true, product: "docs" },
+  { id: "iot", label: "IoT platform", sub: "live readings, GraphQL", x: 795, y: 60, w: 200, mine: true, product: "iot" },
+  { id: "vertex", label: "Vertex AI", sub: "Gemini", x: 795, y: 115, w: 200, product: "agent" },
   { id: "openrouter", label: "OpenRouter", sub: "Gemini, Grok, embeddings", x: 795, y: 170, w: 200 },
-  { id: "reranker", label: "Reranker", sub: "bge-reranker-v2-m3 on a GPU", x: 795, y: 225, w: 200 },
-  { id: "milvus", label: "Milvus", sub: "vector search", x: 795, y: 280, w: 200 },
+  { id: "reranker", label: "Reranker", sub: "bge-reranker-v2-m3 on a GPU", x: 795, y: 225, w: 200, product: "docs" },
+  { id: "milvus", label: "Milvus", sub: "vector search", x: 795, y: 280, w: 200, product: "docs" },
   { id: "mongo", label: "MongoDB", sub: "sessions, metadata", x: 795, y: 335, w: 200 },
-  { id: "queue", label: "Redis queue", sub: "document jobs", x: 795, y: 390, w: 200 },
-  { id: "storage", label: "Cloud Storage", sub: "uploaded files", x: 795, y: 445, w: 200 },
+  { id: "queue", label: "Redis queue", sub: "document jobs", x: 795, y: 390, w: 200, product: "docs" },
+  { id: "storage", label: "Cloud Storage", sub: "uploaded files", x: 795, y: 445, w: 200, product: "docs" },
   { id: "langfuse", label: "Langfuse", sub: "traces, tokens, cost", x: 795, y: 500, w: 200 },
   { id: "github", label: "GitHub", sub: "merge", x: 95, y: 595 },
   { id: "build", label: "Cloud Build", sub: "one per environment", x: 285, y: 595, mine: true },
@@ -72,13 +75,14 @@ export const mapNodes: MapNode[] = [
  * rather than a hop.
  */
 export type Step = { node: NodeId; from?: NodeId | null; also?: NodeId[]; title: string; text: string; mine?: string };
-export type Journey = { id: string; name: string; about: string; mine?: boolean; steps: Step[] };
+export type Journey = { id: string; name: string; about: string; mine?: boolean; product?: ProductKey; steps: Step[] };
 
 export const journeys: Journey[] = [
   {
     id: "ask-building",
     name: "Ask about the building",
-    about: "The operations agent: a small team of AI agents that answers questions from live building data.",
+    about: "The operations agent: a small team of AI agents that answers facility managers from live building data.",
+    product: "agent",
     steps: [
       { node: "people", title: "A question", text: "A facility manager asks something like \"which floors ran warm this afternoon?\"" },
       {
@@ -93,10 +97,10 @@ export const journeys: Journey[] = [
         mine: "I deploy and run it in dev, staging and production.",
       },
       {
-        node: "atlas",
+        node: "iot",
         title: "Live readings",
-        text: "The data-engineer agent pulls occupancy, temperature, air quality and water readings over GraphQL. The telemetry comes from Atlas.",
-        mine: "Atlas is the GKE platform I run, shown in the sections above.",
+        text: "The data-engineer agent pulls occupancy, temperature, air quality and water readings over GraphQL, from the building IoT platform.",
+        mine: "The IoT platform is the GKE system I run, shown in the section above.",
       },
       {
         node: "operator",
@@ -117,18 +121,19 @@ export const journeys: Journey[] = [
   {
     id: "add-document",
     name: "Add a document",
-    about: "Scholar's document pipeline: upload a PDF, spreadsheet, deck or image, and it becomes searchable for RAG.",
+    about: "The document assistant's pipeline: upload a PDF, spreadsheet, deck or image, and it becomes searchable for RAG.",
+    product: "docs",
     steps: [
       { node: "people", title: "An upload", text: "Someone adds a document to a knowledge base: PDF, Word, PowerPoint, Excel, CSV or an image." },
       { node: "lb", title: "One way in", text: "Same front door: the shared load balancer and Cloud Armor." },
       {
-        node: "scholar",
+        node: "docs-api",
         title: "Accept, don't wait",
         text: "The API stores the file and queues a job, then answers at once instead of holding the request open while it processes.",
         mine: "I deploy the API and the worker as separate services.",
       },
       { node: "storage", title: "The original", text: "The file itself lands in Cloud Storage." },
-      { node: "queue", from: "scholar", title: "A job", text: "A processing job goes onto a Redis queue, with progress the UI can show." },
+      { node: "queue", from: "docs-api", title: "A job", text: "A processing job goes onto a Redis queue, with progress the UI can show." },
       {
         node: "worker",
         title: "Heavy lifting, elsewhere",
@@ -145,25 +150,26 @@ export const journeys: Journey[] = [
   {
     id: "ask-documents",
     name: "Ask the documents",
-    about: "RAG in stages: fetch broadly, rerank precisely, answer with sources.",
+    about: "The document assistant's RAG, in stages: fetch broadly, rerank precisely, answer with sources.",
+    product: "docs",
     steps: [
       { node: "people", title: "A question", text: "Say, a construction rate from a schedule of rates, or an HR policy." },
       { node: "lb", title: "One way in", text: "The shared load balancer and Cloud Armor." },
       {
-        node: "scholar",
+        node: "docs-api",
         title: "The right specialist",
         text: "An agent is chosen by document category: one for HR documents, one for everything else.",
       },
       { node: "milvus", title: "Fetch broadly", text: "The question is embedded and the closest chunks come back from Milvus." },
       {
         node: "reranker",
-        from: "scholar",
+        from: "docs-api",
         title: "Rerank precisely",
         text: "A cross-encoder, bge-reranker-v2-m3 served on a GPU, scores each candidate against the question, so only the best reach the model.",
       },
-      { node: "openrouter", from: "scholar", title: "Answer with sources", text: "Gemini writes the answer and cites the documents it came from." },
-      { node: "mongo", from: "scholar", title: "Memory", text: "The last ten turns are kept for follow-up questions." },
-      { node: "langfuse", from: "scholar", title: "Accounted for", text: "Tokens, cost and tenant are recorded for every request." },
+      { node: "openrouter", from: "docs-api", title: "Answer with sources", text: "Gemini writes the answer and cites the documents it came from." },
+      { node: "mongo", from: "docs-api", title: "Memory", text: "The last ten turns are kept for follow-up questions." },
+      { node: "langfuse", from: "docs-api", title: "Accounted for", text: "Tokens, cost and tenant are recorded for every request." },
     ],
   },
   {
@@ -188,9 +194,9 @@ export const journeys: Journey[] = [
       {
         node: "worker",
         from: "registry",
-        also: ["operator", "scholar"],
+        also: ["operator", "docs-api"],
         title: "Roll out",
-        text: "The agent APIs roll out as new Cloud Run revisions, and the document worker's job is updated.",
+        text: "Both assistants' APIs roll out as new Cloud Run revisions, and the document worker's job is updated.",
       },
     ],
   },
@@ -215,7 +221,7 @@ export const journeys: Journey[] = [
       {
         node: "operator",
         from: null,
-        also: ["scholar", "worker"],
+        also: ["docs-api", "worker"],
         title: "Private by default",
         text: "Cloud Run services send all outbound traffic into the shared VPC, which is how they reach services on the private network.",
       },

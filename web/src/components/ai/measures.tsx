@@ -1,4 +1,4 @@
-import { measures } from "@/content/aibe";
+import { measures } from "@/content/ai-platform";
 
 /** How I benchmark and watch an LLM service: the question, what answers it, and why. */
 export function Measures() {

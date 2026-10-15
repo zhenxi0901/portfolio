@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, ArrowCounterClockwise, Pause, Play } from "@phosphor-icons/react";
-import { journeys, mapNodes, type MapNode, type NodeId, type Step } from "@/content/aibe";
+import { journeys, mapNodes, type MapNode, type NodeId, type Step } from "@/content/ai-platform";
+import { productOrder, products } from "@/content/products";
+import { ProductTag, productTone } from "@/components/site/product-tag";
 import { cn } from "@/lib/utils";
 
 const H = 44;
@@ -50,7 +52,7 @@ const CAPTIONS = [
 ] as const;
 
 /**
- * AiBE as a map: pick a journey and a packet walks it hop by hop, with what happens at each one.
+ * The AI products as a map: pick a journey and a packet walks it hop by hop, with what happens at each one.
  * "What I own" dims everything that is the platform rather than my work.
  */
 export function SystemMap() {
@@ -124,7 +126,7 @@ export function SystemMap() {
     <div ref={rootRef} className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
       {/* min-w-0: without it the scrolling tab row sets the column's width and widens the page on phones. */}
       <div className="flex min-w-0 flex-col gap-4">
-        <div role="tablist" aria-label="Journeys through AiBE" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+        <div role="tablist" aria-label="Journeys through the AI products" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
           {journeys.map((j) => (
             <button
               key={j.id}
@@ -136,7 +138,13 @@ export function SystemMap() {
                 jid === j.id ? "border-accent-ink bg-surface text-ink" : "border-line text-ink-2 hover:border-line-strong hover:text-ink",
               )}
             >
-              {j.name}
+              <span className="flex items-center gap-2.5">
+                <span
+                  aria-hidden
+                  className={cn("size-2.5 shrink-0 rounded-full", j.product ? productTone[j.product].bg : "bg-ink-3/50")}
+                />
+                {j.name}
+              </span>
               {j.mine && <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent">mine</span>}
             </button>
           ))}
@@ -155,14 +163,21 @@ export function SystemMap() {
       </div>
 
       <div className="min-w-0 overflow-hidden rounded-3xl border border-line bg-surface">
-        <p className="px-5 pt-5 text-[15px] leading-relaxed text-ink sm:px-7 sm:pt-6">{journey.about}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-5 sm:px-7 sm:pt-6">
+          {journey.product ? (
+            <ProductTag p={journey.product} />
+          ) : (
+            <span className="rounded-full border border-line-strong px-2.5 py-0.5 text-xs font-medium text-ink-2">Shared by both products</span>
+          )}
+          <p className="text-[15px] leading-relaxed text-ink">{journey.about}</p>
+        </div>
 
         <div ref={panRef} className="overflow-x-auto px-2 pb-2 pt-3 sm:px-4">
           <svg
             viewBox="0 0 1000 640"
             className="block w-full min-w-[720px] font-sans"
             role="img"
-            aria-label={`Map of the AiBE platform. ${journey.name}, step ${i + 1} of ${steps.length}: ${step.title}.`}
+            aria-label={`Map of the AI products. ${journey.name}, step ${i + 1} of ${steps.length}: ${step.title}.`}
           >
             {CAPTIONS.map((c) => (
               <text key={c.text} x={c.x} y={c.y} textAnchor={c.anchor} style={{ fill: "var(--ink-3)", fontSize: 11, letterSpacing: "0.14em" }}>
@@ -236,6 +251,16 @@ export function SystemMap() {
                       transition: "fill 0.35s, stroke 0.35s",
                     }}
                   />
+                  {n.product && (
+                    <rect
+                      x={n.x - w / 2 + 6}
+                      y={n.y - H / 2 + 9}
+                      width={4}
+                      height={H - 18}
+                      rx={2}
+                      style={{ fill: `var(--p-${n.product})` }}
+                    />
+                  )}
                   <text x={n.x} y={n.y - 3} textAnchor="middle" style={{ fill: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}>
                     {n.label}
                   </text>
@@ -247,6 +272,18 @@ export function SystemMap() {
             })}
           </svg>
         </div>
+        <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pb-4 text-xs text-ink-2 sm:px-7" aria-label="Colour key">
+          {productOrder.map((p) => (
+            <li key={p} className="flex items-center gap-1.5">
+              <span aria-hidden className={cn("h-3 w-1 rounded-full", productTone[p].bg)} />
+              {products[p].name}
+            </li>
+          ))}
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className="h-3 w-1 rounded-full border border-line-strong" />
+            no stripe: shared by both
+          </li>
+        </ul>
 
         <div className="border-t border-line px-5 py-5 sm:px-7">
           <div className="flex flex-wrap items-center justify-between gap-3">

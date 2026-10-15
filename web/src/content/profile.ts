@@ -1,3 +1,5 @@
+import type { ProductKey } from "@/content/products";
+
 // Single source of truth for everything the site says about ZhenXi.
 // Every number here traces to the CV, the Primustech PR history or the FYP results (docs/15).
 
@@ -25,6 +27,8 @@ export const stats: Stat[] = [
 
 export type CaseStudy = {
   id: string;
+  /** Which product the work was for (see products.ts). */
+  products: ProductKey[];
   org: string;
   year: string;
   title: string;
@@ -38,6 +42,7 @@ export type CaseStudy = {
 export const cases: CaseStudy[] = [
   {
     id: "gke",
+    products: ["iot"],
     org: "Primustech",
     year: "2026",
     title: "One VM to a GKE platform",
@@ -54,6 +59,7 @@ export const cases: CaseStudy[] = [
   },
   {
     id: "pipeline",
+    products: ["iot"],
     org: "Primustech",
     year: "2026",
     title: "A pipeline where failed merges never deploy",
@@ -70,6 +76,7 @@ export const cases: CaseStudy[] = [
   },
   {
     id: "reaper",
+    products: ["iot"],
     org: "Primustech",
     year: "2026",
     title: "Cutting cloud spend by ~15%",
@@ -87,6 +94,7 @@ export const cases: CaseStudy[] = [
   },
   {
     id: "observability",
+    products: ["iot"],
     org: "Primustech",
     year: "2026",
     title: "Alerts that mean something",
@@ -101,12 +109,13 @@ export const cases: CaseStudy[] = [
     stack: ["Grafana", "Prometheus", "PromQL", "Cloud Monitoring", "ZooKeeper"],
   },
   {
-    id: "aibe",
+    id: "ai-platform",
+    products: ["agent", "docs"],
     org: "Primustech",
     year: "2026",
     title: "Running an agentic AI platform",
-    summary: "Infrastructure for AiBE, the company's multi-agent and RAG platform for building operations.",
-    problem: "AiBE's agent and RAG services needed repeatable deploys, locked-down secrets and numbers on speed and cost.",
+    summary: "Infrastructure for the company's two AI products: an operations agent that answers from live building data, and a document assistant.",
+    problem: "The agent and RAG services needed repeatable deploys, locked-down secrets and numbers on speed and cost.",
     did: [
       "Deployed and operated the multi-agent API and the RAG services on Cloud Run with models on Vertex AI.",
       "Set up per-environment Cloud Build CI/CD, IAM service accounts, Secret Manager and shared-VPC networking for dev, staging and production.",
@@ -135,7 +144,7 @@ export const experience: Role[] = [
     points: [
       "Own the Cloud Build CI/CD pipeline for an IoT platform on GKE: 63 merged PRs.",
       "Migrated the platform from one VM to GKE microservices with Terraform.",
-      "Deployed, operated and benchmarked AiBE's LLM services on Cloud Run.",
+      "Deployed, operated and benchmarked the company's LLM services on Cloud Run.",
     ],
     tags: ["GKE", "Terraform", "Cloud Build", "Cloud Run", "Grafana"],
   },
@@ -280,48 +289,77 @@ export const flows: Flow[] = [
   },
 ];
 
-export type Signal = { question: string; metrics: string[]; why: string };
+/**
+ * A toy model of one alert, for the "what I monitor" playground. Each tick is one simulated minute.
+ * The line moves towards `normal` or, once broken, `broken`; the alert fires after the condition
+ * holds for `forTicks`. `noise` is relative to the level, so a zero level stays exactly zero.
+ * `context` is a second line drawn for comparison, never alerted on.
+ */
+export type SignalSim = {
+  metric: string;
+  normal: number;
+  broken: number;
+  noise: number;
+  max: number;
+  threshold: number;
+  above: boolean;
+  thresholdLabel: string;
+  forTicks: number;
+  action: string;
+  outcome: string;
+  context?: { metric: string; normal: number; broken: number; max: number };
+};
+
+export type Signal = { question: string; metrics: string[]; why: string; sim: SignalSim };
 
 export const signals: Signal[] = [
   {
     question: "Is data still arriving?",
     metrics: ["rate(bridge_writes) ~ 0 for 10 min", "missing data counts as breaching"],
     why: "A dead bridge emits nothing at all, so silence itself has to page.",
+    sim: { metric: "bridge writes per second", normal: 120, broken: 0, noise: 0.08, max: 160, threshold: 1, above: false, thresholdLabel: "≈ 0 for 10 min", forTicks: 10, action: "Kill the bridge", outcome: "Paged after ten silent minutes. Nothing errored: the line just stopped, which is why missing data counts as breaching." },
   },
   {
     question: "Is anything being lost silently?",
     metrics: ["rate(bridge_zero_device_parses) > 0"],
     why: "Failed writes are never acknowledged, so the broker replays them. A message that parses to nothing is acknowledged, so nothing will ever replay it. That one pages.",
+    sim: { metric: "messages that parse to zero devices, per second", normal: 0, broken: 0.6, noise: 0.35, max: 1.2, threshold: 0, above: true, thresholdLabel: "> 0", forTicks: 1, action: "Send a payload that parses to nothing", outcome: "Paged at once. The broker saw the message acknowledged, so nothing would ever have replayed it." },
   },
   {
     question: "Is the broker healthy?",
     metrics: ["emqx_messages_dropped > 0", "emqx_durable_subscriptions_count < 1", "up == 0, grouped by job"],
     why: "Grouping by job means a new broker inherits every alert without anyone editing them.",
+    sim: { metric: "broker messages dropped per second", normal: 0, broken: 40, noise: 0.3, max: 60, threshold: 0, above: true, thresholdLabel: "> 0", forTicks: 2, action: "Overload the broker", outcome: "Paged: the broker is dropping messages. The rule is grouped by job, so a new broker gets it without anyone editing it." },
   },
   {
     question: "Is the queue keeping up?",
     metrics: ['sum by (topic) (kafka_consumergroup_lag{topic!~".*notifications.*"})', "under-replicated partitions > 0"],
     why: "Lag with matching throughput is in-flight depth, not a backlog. Check throughput before scaling anything.",
+    sim: { metric: "consumer lag, messages", normal: 400, broken: 9000, noise: 0.15, max: 10000, threshold: 5000, above: true, thresholdLabel: "backlog", forTicks: 4, action: "Stall the consumers", outcome: "Paged: lag climbing while throughput fell to zero is a real backlog. The same lag with matching throughput would only be messages in flight.", context: { metric: "throughput, messages per second", normal: 900, broken: 0, max: 1200 } },
   },
   {
     question: "Are we near a ceiling?",
     metrics: ["HPA headroom = max - current replicas", "pods Pending > 15 min", "memory working set / request"],
     why: "ScalingLimited also fires at the floor, and the HPA scales on CPU only, so headroom and memory need their own signals.",
+    sim: { metric: "HPA headroom, replicas left", normal: 4, broken: 0, noise: 0, max: 6, threshold: 1, above: false, thresholdLabel: "no headroom", forTicks: 3, action: "Send a traffic spike", outcome: "Fired: the HPA is at its maximum and pods are Pending. The cluster autoscaler adds nodes; this tells a person it is happening.", context: { metric: "pods Pending", normal: 0, broken: 2, max: 6 } },
   },
   {
     question: "Is memory pressure real?",
     metrics: ['container_memory_rss{container="kafka"}'],
     why: "Working set includes page cache, which Kafka fills by design. The old alert fired on healthy brokers: 84% working set, 58% actually used, no restarts in 27 days.",
+    sim: { metric: "Kafka RSS, % of limit (alerted)", normal: 58, broken: 60, noise: 0.03, max: 100, threshold: 90, above: true, thresholdLabel: "RSS near the limit", forTicks: 3, action: "Replay a large topic", outcome: "Quiet, correctly. Working set rose to 84% because Kafka fills the page cache by design; the old alert watched that line and would have paged. RSS stayed near 58%.", context: { metric: "working set, % of limit (old alert)", normal: 70, broken: 84, max: 100 } },
   },
   {
     question: "Is the database the wall?",
     metrics: ["Cloud SQL CPU > 80%", "connections > 80% of max", "disk > 80%", "deadlocks > 0"],
     why: "The database is the one tier that cannot scale out, so it is watched closest to its limits.",
+    sim: { metric: "Cloud SQL CPU, %", normal: 35, broken: 93, noise: 0.06, max: 100, threshold: 80, above: true, thresholdLabel: "> 80%", forTicks: 2, action: "Run a heavy report", outcome: "Paged at 80%. The database is the one tier that cannot scale out, so it is watched closest to its limit." },
   },
   {
     question: "Can users actually reach it?",
     metrics: ["uptime check failing from 2+ regions", "rate(http 5xx) on the device API"],
     why: "Pods can be Ready while users get errors, so the check runs from outside the cluster.",
+    sim: { metric: "regions failing the uptime check", normal: 0, broken: 4, noise: 0, max: 6, threshold: 1.5, above: true, thresholdLabel: "2+ regions", forTicks: 2, action: "Break the ingress", outcome: "Paged from outside. Every pod stayed Ready the whole time, so only a check from outside the cluster could see users failing.", context: { metric: "pods Ready", normal: 3, broken: 3, max: 6 } },
   },
 ];
 
@@ -331,17 +369,33 @@ export const monitoringFacts = [
   "Managed Prometheus via PodMonitoring, plus log-based metrics where there is nothing to scrape",
 ];
 
-export type Lever = { area: string; title: string; detail: string; guardrail: string; status: "done" | "in review" };
+/** How the cost review draws one lever. Every number is from the review; nothing is modelled. */
+export type CostVisual =
+  | { kind: "share"; total: number; part: number; partLabel: string; restLabel: string; unit: string }
+  | { kind: "reap"; total: number; removed: number; unit: string }
+  | { kind: "bars"; rows: { label: string; before: number; after: number }[] }
+  | { kind: "removed"; items: string[] }
+  | { kind: "planned"; items: string[] };
+
+export type Lever = {
+  area: string;
+  title: string;
+  detail: string;
+  guardrail: string;
+  status: "done" | "in review";
+  headline: string;
+  headlineNote: string;
+  visual: CostVisual;
+};
 
 export const costReview = {
-  bars: [
-    { label: "All samples per scrape", before: 43580, after: 26150 },
-    { label: "Kafka exporter samples per scrape", before: 10386, after: 2891 },
-  ],
   levers: [
     {
       area: "Visibility",
       title: "Measure before cutting",
+      headline: "US$106/mo",
+      headlineNote: "Managed Prometheus: the third-largest line item, and never measured",
+      visual: { kind: "share", total: 43580, part: 10386, partLabel: "Kafka exporter", restLabel: "everything else", unit: "samples per scrape" },
       detail: "Managed Prometheus was about US$106 a month, the third-largest line item, and had never been measured. I attributed it per exporter before touching anything.",
       guardrail: "sort_desc(sum by (job) (scrape_samples_scraped))",
       status: "done",
@@ -349,6 +403,9 @@ export const costReview = {
     {
       area: "Monitoring",
       title: "Reap orphaned Kafka topics",
+      headline: "914",
+      headlineNote: "of 1,066 Kafka topics belonged to pods that no longer existed. Exporter samples fell from 10,386 to 2,891 per scrape",
+      visual: { kind: "reap", total: 1066, removed: 914, unit: "topics" },
       detail: "914 of 1,066 topics named pods that no longer existed, each emitting 7 metric families. A scheduled reaper keeps it clean; broker memory fell from 2.4 to 1.8 GiB too.",
       guardrail: "Topics regrew to 191 in five days, which is why it is a CronJob, not a one-off.",
       status: "done",
@@ -356,6 +413,9 @@ export const costReview = {
     {
       area: "Monitoring",
       title: "Drop metrics nobody reads",
+      headline: "-40%",
+      headlineNote: "samples per scrape, after turning off three unused metric packages",
+      visual: { kind: "bars", rows: [{ label: "All samples per scrape", before: 43580, after: 26150 }] },
       detail: "Turned off three GKE metric packages after confirming 0 of 27 alerts and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape.",
       guardrail: "Kept cAdvisor, the biggest remaining source, because three memory alerts depend on it.",
       status: "done",
@@ -363,6 +423,9 @@ export const costReview = {
     {
       area: "Database",
       title: "Right-size Cloud SQL",
+      headline: "-50%",
+      headlineNote: "database vCPUs, sized from measured use, and regional to zonal",
+      visual: { kind: "bars", rows: [{ label: "vCPU", before: 4, after: 2 }, { label: "Memory, GiB", before: 16, after: 12 }] },
       detail: "4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal.",
       guardrail: "Trade-off on record: no automatic failover, so recovery is 7 backups plus 7-day point-in-time recovery, and reverting is one line of Terraform.",
       status: "done",
@@ -370,6 +433,9 @@ export const costReview = {
     {
       area: "Compute",
       title: "Size pods to need, scale nodes to load",
+      headline: "-50%",
+      headlineNote: "CPU requested per core API pod, so pods pack tighter",
+      visual: { kind: "bars", rows: [{ label: "CPU request, cores", before: 1, after: 0.5 }, { label: "Memory request, GiB", before: 4, after: 3 }] },
       detail: "Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter. The HPA and cluster autoscaler keep 3 nodes at the floor and add up to 9 only under load.",
       guardrail: "Consolidate nodes only on seven days of working set against requests. CPU alone is not evidence.",
       status: "done",
@@ -377,6 +443,9 @@ export const costReview = {
     {
       area: "Decommission",
       title: "Retire a replaced lane end to end",
+      headline: "6",
+      headlineNote: "resources removed once the new ingestion lane carried production",
+      visual: { kind: "removed", items: ["Pub/Sub topic", "Cloud Run importer", "Firestore database", "Storage bucket", "Internal load balancer", "Internal load balancer"] },
       detail: "After ingestion moved in-cluster, removed the old Pub/Sub topic, Cloud Run importer, Firestore database, bucket and two internal load balancers.",
       guardrail: "Removed only after the new lane carried production traffic.",
       status: "done",
@@ -384,6 +453,9 @@ export const costReview = {
     {
       area: "Next",
       title: "Unused VPN and a smaller SQL tier",
+      headline: "~US$29/mo",
+      headlineNote: "more to come, through a reviewed Terraform plan",
+      visual: { kind: "planned", items: ["Classic VPN gateway: five resources, zero tunnels", "Cloud SQL: one memory step down"] },
       detail: "An unused Classic VPN gateway (five resources, zero tunnels) and a Cloud SQL memory step down, worth about US$29 a month.",
       guardrail: "Each goes through a reviewed, saved Terraform plan before it is applied.",
       status: "in review",

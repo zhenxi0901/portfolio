@@ -13,8 +13,8 @@ const STEPS = [
   { label: "Answer", note: "traced with tokens and cost" },
 ];
 
-/** The request path through AiBE, with a packet riding it. */
-export function AibeViz() {
+/** The request path through the AI products, with a packet riding it. */
+export function AiViz() {
   const reduce = useReducedMotion();
   return (
     <div className="flex h-full flex-col gap-5">

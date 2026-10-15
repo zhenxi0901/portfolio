@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowDown } from "@phosphor-icons/react";
-import { aiStats, aibeIntro } from "@/content/aibe";
+import { aiStats, aiIntro } from "@/content/ai-platform";
+import { products } from "@/content/products";
+import { ProductTag, productIcon, productTone } from "@/components/site/product-tag";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { SystemMap } from "@/components/ai/system-map";
@@ -25,11 +27,34 @@ export function AiInfra() {
         <SectionHeading
           title={
             <>
-              The AI platform <span className="text-accent-ink">I run</span>.
+              The AI products <span className="text-accent-ink">I run</span>.
             </>
           }
-          lead={`${aibeIntro} Follow a request through it, and switch on the lens to see which parts are mine.`}
+          lead={`${aiIntro} Follow a request through them, and switch on the lens to see which parts are mine.`}
         />
+
+        <Reveal className="mt-10">
+          <div className="grid gap-3 md:grid-cols-2">
+            {(["agent", "docs"] as const).map((p) => {
+              const Icon = productIcon[p];
+              return (
+                <article key={p} className={cn("flex gap-4 rounded-3xl border bg-surface p-5", productTone[p].border)}>
+                  <span className={cn("grid size-11 shrink-0 place-items-center rounded-2xl", productTone[p].soft, productTone[p].text)}>
+                    <Icon size={22} weight="duotone" />
+                  </span>
+                  <div>
+                    <h3 className="font-semibold">{products[p].name}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-ink-2">{products[p].what}</p>
+                    <p className="mt-2 font-mono text-xs text-ink-3">{products[p].runs}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <p className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-2">
+            Both get their building data from <ProductTag p="iot" />, the system in the section above.
+          </p>
+        </Reveal>
 
         <Reveal className="mt-10">
           <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-3">

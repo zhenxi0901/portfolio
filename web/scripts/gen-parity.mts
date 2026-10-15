@@ -14,7 +14,7 @@ const questions = [
   "k8s migration",
   "Where did ZhenXi study?",
   "Does ZhenXi know Terraform?",
-  "What is AiBE?",
+  "What products do you run?",
   "How does the document RAG pipeline work?",
   "What do you measure on an LLM service?",
   "ZooKeeper quorum alerts",
