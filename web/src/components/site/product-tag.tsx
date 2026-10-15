@@ -1,15 +1,15 @@
-import { Buildings, FileMagnifyingGlass, Robot } from "@phosphor-icons/react/dist/ssr";
+import { Buildings, Flask, Robot } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import { products, type ProductKey } from "@/content/products";
 import { cn } from "@/lib/utils";
 
-export const productIcon: Record<ProductKey, Icon> = { iot: Buildings, agent: Robot, docs: FileMagnifyingGlass };
+export const productIcon: Record<ProductKey, Icon> = { iot: Buildings, ai: Robot, aries: Flask };
 
 /** Tailwind classes per product. Written out in full so Tailwind can see them. */
 export const productTone: Record<ProductKey, { text: string; bg: string; border: string; soft: string }> = {
   iot: { text: "text-p-iot", bg: "bg-p-iot", border: "border-p-iot/50", soft: "bg-p-iot/10" },
-  agent: { text: "text-p-agent", bg: "bg-p-agent", border: "border-p-agent/50", soft: "bg-p-agent/10" },
-  docs: { text: "text-p-docs", bg: "bg-p-docs", border: "border-p-docs/50", soft: "bg-p-docs/10" },
+  ai: { text: "text-p-ai", bg: "bg-p-ai", border: "border-p-ai/50", soft: "bg-p-ai/10" },
+  aries: { text: "text-p-aries", bg: "bg-p-aries", border: "border-p-aries/50", soft: "bg-p-aries/10" },
 };
 
 /** A small pill naming the product something belongs to, in that product's colour. */

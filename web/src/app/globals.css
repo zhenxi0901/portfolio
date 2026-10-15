@@ -24,8 +24,8 @@
   --critical: #c53030;
   /* One colour per product, so a visitor can tell which system a card or box belongs to. */
   --p-iot: #0369a1;
-  --p-agent: #b45309;
-  --p-docs: #7c3aed;
+  --p-ai: #b45309;
+  --p-aries: #7c3aed;
   --shadow: 0 1px 0 rgba(13, 13, 16, 0.04), 0 12px 32px -16px rgba(13, 13, 16, 0.18);
 }
 
@@ -44,8 +44,8 @@
   --good: #22c55e;
   --critical: #f87171;
   --p-iot: #38bdf8;
-  --p-agent: #fbbf24;
-  --p-docs: #a78bfa;
+  --p-ai: #fbbf24;
+  --p-aries: #a78bfa;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
 }
 
@@ -64,8 +64,8 @@
   --color-good: var(--good);
   --color-critical: var(--critical);
   --color-p-iot: var(--p-iot);
-  --color-p-agent: var(--p-agent);
-  --color-p-docs: var(--p-docs);
+  --color-p-ai: var(--p-ai);
+  --color-p-aries: var(--p-aries);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --shadow-soft: var(--shadow);

@@ -110,7 +110,7 @@ export const cases: CaseStudy[] = [
   },
   {
     id: "ai-platform",
-    products: ["agent", "docs"],
+    products: ["ai"],
     org: "Primustech",
     year: "2026",
     title: "Running an agentic AI platform",

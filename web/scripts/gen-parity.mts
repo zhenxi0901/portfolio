@@ -15,6 +15,8 @@ const questions = [
   "Where did ZhenXi study?",
   "Does ZhenXi know Terraform?",
   "What products do you run?",
+  "What are your SLOs and error budgets?",
+  "What is your AI infrastructure stack?",
   "How does the document RAG pipeline work?",
   "What do you measure on an LLM service?",
   "ZooKeeper quorum alerts",

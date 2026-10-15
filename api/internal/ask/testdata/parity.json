@@ -26,7 +26,7 @@
     "answer": "A pipeline where failed merges never deploy (Primustech, 2026). I own the Cloud Build delivery pipeline: build once, promote by digest, approve before release. Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds.",
     "sources": [
       "case-pipeline",
-      "ai-ask-building"
+      "products"
     ]
   },
   {
@@ -61,10 +61,24 @@
   },
   {
     "question": "What products do you run?",
-    "answer": "At Primustech I run three products: Building IoT platform (Kubernetes on GKE): Collects live data from building systems (sensors, HVAC, meters) and serves the dashboards and alarms facility teams use. Operations agent (AI agents on Cloud Run): An AI assistant that answers a facility manager's questions from the IoT platform's live data. Document assistant (RAG on Cloud Run): Answers questions from a company's own documents, such as rate schedules and HR policies, and cites them.",
+    "answer": "The products I run and build: Building IoT platform, Primustech (Kubernetes on GKE): Collects live data from building systems (sensors, HVAC, meters) and serves the dashboards and alarms facility teams use. AI agent platform, Primustech (Agents and RAG on Cloud Run): Two AI agents for facility teams: one answers from the IoT platform's live data, the other from company documents. ARIES agent benchmarks, NTU HyScale Lab (SGLang on an A100, Google Cloud VM): Making the lab's open-source agent-serving framework run long agent tasks, then measuring what serving them costs.",
     "sources": [
-      "products",
-      "ai-products"
+      "products"
+    ]
+  },
+  {
+    "question": "What are your SLOs and error budgets?",
+    "answer": "How I monitor the IoT platform the SRE way: I measure SLIs from what users feel, set SLOs with an error budget for each, and alert when a budget burns too fast. Whatever it leaves over is the error budget, to spend on change. Error budget policy: Budget left: Ship as normal.",
+    "sources": [
+      "slos"
+    ]
+  },
+  {
+    "question": "What is your AI infrastructure stack?",
+    "answer": "The AI agent platform, layer by layer: Models (Gemini on Vertex AI, OpenRouter: Gemini, Grok, Gemini embeddings): Managed models behind two gateways: Vertex AI for the operations agent, OpenRouter for multi-provider access and the document assistant. My part: Service-account access to Vertex AI; provider keys kept in Secret Manager. Retrieval (Milvus, MongoDB, LLM chunking, Gemini vision for images): Documents become Markdown, then meaningful chunks, then vectors in Milvus.",
+    "sources": [
+      "ai-stack",
+      "case-ai-platform"
     ]
   },
   {

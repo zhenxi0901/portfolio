@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { FlowExplorer } from "@/components/platform/flow-explorer";
-import { Signals } from "@/components/platform/signals";
+import { Monitoring } from "@/components/platform/monitoring";
 import { CostReview } from "@/components/platform/cost-review";
 import { ProductTag } from "@/components/site/product-tag";
 import { cn } from "@/lib/utils";
@@ -67,7 +67,7 @@ export function Platform() {
         </Reveal>
         <div id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} className="mt-8">
           {tab === "paths" && <FlowExplorer />}
-          {tab === "signals" && <Signals />}
+          {tab === "signals" && <Monitoring />}
           {tab === "cost" && <CostReview />}
         </div>
       </div>
