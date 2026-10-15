@@ -10,7 +10,7 @@ import { cn, scrollToId } from "@/lib/utils";
 export function ProductKey() {
   return (
     <Reveal className="mt-10">
-      <p className="text-sm text-ink-3">What I run, and the colour each one wears on this page:</p>
+      <p className="text-sm text-ink-3">What I work on, and the colour each one wears on this page:</p>
       <ul className="mt-3 grid gap-3 md:grid-cols-3">
         {productOrder.map((p) => {
           const Icon = productIcon[p];
@@ -29,6 +29,7 @@ export function ProductKey() {
                   <Icon size={20} weight="duotone" />
                 </span>
                 <span className="min-w-0">
+                  <span className="block font-mono text-[11px] text-ink-3">{products[p].org}</span>
                   <span className="flex items-center gap-1.5 font-semibold">
                     {products[p].name}
                     <ArrowRight size={13} className="text-ink-3 transition-transform group-hover:translate-x-0.5" />

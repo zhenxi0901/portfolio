@@ -2,12 +2,28 @@
 // READMEs, deployment docs and Terraform. Public page: no internal product names, customer names,
 // repo names, project IDs, hostnames or configuration values. `mine` marks the parts ZhenXi built
 // or runs; everything else is the platform he operates, described but not claimed. `product`
-// colours each box and journey by the product it belongs to (see products.ts); none means shared.
+// colours each box by the product it belongs to (see products.ts); none means shared infrastructure.
 
 import type { ProductKey } from "@/content/products";
 
 export const aiIntro =
-  "Two AI products built on the IoT platform's data: the operations agent answers facility managers from live building readings, and the document assistant answers from company documents. I deploy and run both on Google Cloud.";
+  "Primustech's AI agent platform gives facility teams two agents: an operations agent that answers from the IoT platform's live readings, and a document assistant that answers from company documents. I deploy and run it on Google Cloud.";
+
+/** The two agents inside the AI agent platform. */
+export const agents = [
+  {
+    id: "operator",
+    name: "Operations agent",
+    what: "Answers facility managers from live building readings. A manager agent plans; a data-engineer agent queries the IoT platform and crunches the numbers.",
+    runs: "Agno team on Cloud Run, Gemini on Vertex AI",
+  },
+  {
+    id: "documents",
+    name: "Document assistant",
+    what: "Answers from a company's own documents, with citations: multi-stage RAG over Milvus, with a reranker on a GPU.",
+    runs: "Cloud Run API and job, Milvus, Gemini via OpenRouter",
+  },
+] as const;
 
 /** The whole platform in a paragraph, for the Ask console. */
 export const aiOverview =
@@ -50,17 +66,17 @@ export type MapNode = { id: NodeId; label: string; sub: string; x: number; y: nu
 export const mapNodes: MapNode[] = [
   { id: "people", label: "Facility team", sub: "chat, web, app", x: 95, y: 250 },
   { id: "lb", label: "Load balancer", sub: "Cloud Armor, TLS", x: 285, y: 250, mine: true },
-  { id: "operator", label: "Operations agent", sub: "Agno team, Cloud Run", x: 480, y: 150, mine: true, product: "agent" },
-  { id: "docs-api", label: "Document assistant", sub: "RAG API, Cloud Run", x: 480, y: 290, mine: true, product: "docs" },
-  { id: "worker", label: "Document worker", sub: "Cloud Run Job", x: 480, y: 430, mine: true, product: "docs" },
+  { id: "operator", label: "Operations agent", sub: "Agno team, Cloud Run", x: 480, y: 150, mine: true, product: "ai" },
+  { id: "docs-api", label: "Document assistant", sub: "RAG API, Cloud Run", x: 480, y: 290, mine: true, product: "ai" },
+  { id: "worker", label: "Document worker", sub: "Cloud Run Job", x: 480, y: 430, mine: true, product: "ai" },
   { id: "iot", label: "IoT platform", sub: "live readings, GraphQL", x: 795, y: 60, w: 200, mine: true, product: "iot" },
-  { id: "vertex", label: "Vertex AI", sub: "Gemini", x: 795, y: 115, w: 200, product: "agent" },
+  { id: "vertex", label: "Vertex AI", sub: "Gemini", x: 795, y: 115, w: 200, product: "ai" },
   { id: "openrouter", label: "OpenRouter", sub: "Gemini, Grok, embeddings", x: 795, y: 170, w: 200 },
-  { id: "reranker", label: "Reranker", sub: "bge-reranker-v2-m3 on a GPU", x: 795, y: 225, w: 200, product: "docs" },
-  { id: "milvus", label: "Milvus", sub: "vector search", x: 795, y: 280, w: 200, product: "docs" },
+  { id: "reranker", label: "Reranker", sub: "bge-reranker-v2-m3 on a GPU", x: 795, y: 225, w: 200, product: "ai" },
+  { id: "milvus", label: "Milvus", sub: "vector search", x: 795, y: 280, w: 200, product: "ai" },
   { id: "mongo", label: "MongoDB", sub: "sessions, metadata", x: 795, y: 335, w: 200 },
-  { id: "queue", label: "Redis queue", sub: "document jobs", x: 795, y: 390, w: 200, product: "docs" },
-  { id: "storage", label: "Cloud Storage", sub: "uploaded files", x: 795, y: 445, w: 200, product: "docs" },
+  { id: "queue", label: "Redis queue", sub: "document jobs", x: 795, y: 390, w: 200, product: "ai" },
+  { id: "storage", label: "Cloud Storage", sub: "uploaded files", x: 795, y: 445, w: 200, product: "ai" },
   { id: "langfuse", label: "Langfuse", sub: "traces, tokens, cost", x: 795, y: 500, w: 200 },
   { id: "github", label: "GitHub", sub: "merge", x: 95, y: 595 },
   { id: "build", label: "Cloud Build", sub: "one per environment", x: 285, y: 595, mine: true },
@@ -82,7 +98,7 @@ export const journeys: Journey[] = [
     id: "ask-building",
     name: "Ask about the building",
     about: "The operations agent: a small team of AI agents that answers facility managers from live building data.",
-    product: "agent",
+    product: "ai",
     steps: [
       { node: "people", title: "A question", text: "A facility manager asks something like \"which floors ran warm this afternoon?\"" },
       {
@@ -122,7 +138,7 @@ export const journeys: Journey[] = [
     id: "add-document",
     name: "Add a document",
     about: "The document assistant's pipeline: upload a PDF, spreadsheet, deck or image, and it becomes searchable for RAG.",
-    product: "docs",
+    product: "ai",
     steps: [
       { node: "people", title: "An upload", text: "Someone adds a document to a knowledge base: PDF, Word, PowerPoint, Excel, CSV or an image." },
       { node: "lb", title: "One way in", text: "Same front door: the shared load balancer and Cloud Armor." },
@@ -151,7 +167,7 @@ export const journeys: Journey[] = [
     id: "ask-documents",
     name: "Ask the documents",
     about: "The document assistant's RAG, in stages: fetch broadly, rerank precisely, answer with sources.",
-    product: "docs",
+    product: "ai",
     steps: [
       { node: "people", title: "A question", text: "Say, a construction rate from a schedule of rates, or an HR policy." },
       { node: "lb", title: "One way in", text: "The shared load balancer and Cloud Armor." },
@@ -262,3 +278,79 @@ export const aiStats = [
   { value: "2,014", label: "BMS devices in the 50-storey demo building I built for the agents to query" },
   { value: "96%", label: "of agent input tokens served from the prefix cache in my research" },
 ];
+
+/** The AI infrastructure layer by layer: what is used, what it does, and which parts are mine. */
+export type Layer = { name: string; tools: string[]; does: string; mine?: string };
+
+export const stack: Layer[] = [
+  {
+    name: "Models",
+    tools: ["Gemini on Vertex AI", "OpenRouter: Gemini, Grok", "Gemini embeddings"],
+    does: "Managed models behind two gateways: Vertex AI for the operations agent, OpenRouter for multi-provider access and the document assistant.",
+    mine: "Service-account access to Vertex AI; provider keys kept in Secret Manager.",
+  },
+  {
+    name: "GPU inference",
+    tools: ["bge-reranker-v2-m3", "Infinity server"],
+    does: "A cross-encoder reranker on its own accelerator. It re-scores retrieved chunks against the question, so only the best reach the model.",
+  },
+  {
+    name: "Retrieval",
+    tools: ["Milvus", "MongoDB", "LLM chunking", "Gemini vision for images"],
+    does: "Documents become Markdown, then meaningful chunks, then vectors in Milvus. Metadata and conversation history sit beside them in MongoDB.",
+  },
+  {
+    name: "Orchestration",
+    tools: ["Agno agent teams", "Redis queue", "Cloud Run Jobs", "Cloud Scheduler"],
+    does: "Agents answer on the request path. Heavy document processing goes onto a queue for a scheduled job, so uploads never block an answer.",
+  },
+  {
+    name: "Serving",
+    tools: ["Cloud Run services", "Cloud Run Jobs", "dev, staging, production"],
+    does: "The agent APIs scale as Cloud Run services; the document worker, a much larger image, runs as a job.",
+    mine: "I deploy and run both, in three environments.",
+  },
+  {
+    name: "Observability",
+    tools: ["Langfuse, self-hosted", "OpenTelemetry", "tokens, cost, tenant per request"],
+    does: "Every request is a trace: each model call and tool call, with its latency, tokens and cost.",
+    mine: "I used these traces to benchmark latency and cost, and to compare models.",
+  },
+  {
+    name: "Delivery and security",
+    tools: ["Cloud Build", "Artifact Registry", "Secret Manager", "Parameter Manager", "shared VPC", "Cloud Armor"],
+    does: "A pipeline per environment, no keys in images, private networking, and one front door.",
+    mine: "Mine, end to end.",
+  },
+];
+
+/**
+ * A sample trace of one operations-agent request, in the shape Langfuse shows it. The structure is
+ * the real one (manager agent, data-engineer agent, GraphQL, DuckDB, session store); the timings and
+ * token counts are illustrative, and the page says so.
+ */
+export type TraceSpan = {
+  name: string;
+  kind: "request" | "agent" | "llm" | "tool" | "store";
+  start: number;
+  dur: number;
+  depth: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  note: string;
+};
+
+export const sampleTrace: { question: string; spans: TraceSpan[] } = {
+  question: "Which floors ran warm this afternoon?",
+  spans: [
+    { name: "POST /query", kind: "request", start: 0, dur: 6.4, depth: 0, note: "The whole answer, from request to reply." },
+    { name: "Manager agent: plan", kind: "llm", start: 0.1, dur: 1.2, depth: 1, tokensIn: 2900, tokensOut: 160, note: "Gemini decides what it needs and hands the data work to the data engineer." },
+    { name: "Data-engineer agent", kind: "agent", start: 1.35, dur: 2.4, depth: 1, note: "A second agent with its own tools and its own model calls." },
+    { name: "Plan the query", kind: "llm", start: 1.4, dur: 0.9, depth: 2, tokensIn: 3200, tokensOut: 210, note: "Writes the GraphQL query for the floors and the time range." },
+    { name: "GraphQL: sensor readings", kind: "tool", start: 2.35, dur: 0.7, depth: 2, note: "Live temperature readings from the IoT platform." },
+    { name: "DuckDB: aggregate by floor", kind: "tool", start: 3.1, dur: 0.05, depth: 2, note: "SQL over thousands of readings, so the model reads a summary instead of raw points." },
+    { name: "Summarise the result", kind: "llm", start: 3.2, dur: 0.5, depth: 2, tokensIn: 1300, tokensOut: 120, note: "Turns the aggregate into a few lines for the manager." },
+    { name: "Manager agent: answer", kind: "llm", start: 3.8, dur: 2.5, depth: 1, tokensIn: 4100, tokensOut: 380, note: "The reply. It carries the conversation so far, so its input is the largest." },
+    { name: "Save session", kind: "store", start: 6.32, dur: 0.05, depth: 1, note: "The conversation goes to MongoDB for follow-up questions." },
+  ],
+};

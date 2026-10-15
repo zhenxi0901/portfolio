@@ -7,6 +7,7 @@ import { WallClockBar } from "@/components/research/wallclock-bar";
 import { PrefixCache } from "@/components/research/prefix-cache";
 import { GpuLink } from "@/components/research/gpu-link";
 import { ZoomImage } from "@/components/research/zoom-image";
+import { ProductTag } from "@/components/site/product-tag";
 
 export function Research() {
   return (
@@ -15,6 +16,7 @@ export function Research() {
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-28">
+              <ProductTag p="aries" className="mb-5" />
               <SectionHeading
                 title="What does an AI agent actually cost to run?"
                 lead="My final-year project at NTU's HyScale Lab. I made ARIES, the lab's open-source agent-serving framework, run long tasks against live apps (mail, a shop, an LMS), then measured 320 runs on a hosted API and self-hosted SGLang on an A100."

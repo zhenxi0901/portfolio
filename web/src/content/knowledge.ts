@@ -10,7 +10,8 @@ import {
   publication,
   signals,
 } from "@/content/profile";
-import { aiOverview, journeys, measures } from "@/content/ai-platform";
+import { aiOverview, journeys, measures, stack } from "@/content/ai-platform";
+import { budgetPolicy, burnRules, investigation, slos, sreTerms } from "@/content/slo";
 import { productOrder, products } from "@/content/products";
 
 // Facts the "Ask" console retrieves from. Built from profile.ts so there is one source of truth;
@@ -81,15 +82,53 @@ export function buildKnowledge(): Fact[] {
 
   facts.push({
     id: "products",
-    title: "The three products I run",
+    title: "Products I work on",
     anchor: "work",
-    lead: "At Primustech I run three products:",
-    text: productOrder.map((k) => `${products[k].name} (${products[k].runs}): ${products[k].what}`).join(" "),
+    lead: "The products I run and build:",
+    // The organisation without its note, so "final-year project" questions reach the project itself.
+    text: productOrder.map((k) => `${products[k].name}, ${products[k].org.split(",")[0]} (${products[k].runs}): ${products[k].what}`).join(" "),
+  });
+
+  facts.push({
+    id: "slos",
+    title: "SLIs, SLOs and error budgets for the IoT platform",
+    anchor: "platform",
+    lead: "How I monitor the IoT platform the SRE way:",
+    text:
+      "I measure SLIs from what users feel, set SLOs with an error budget for each, and alert when a budget burns too fast. " +
+      sreTerms.map((t) => `${t.term} (${t.name}): ${t.what} ${t.here}`).join(" ") +
+      " Proposed SLOs: " +
+      slos.map((o) => `${o.name}, ${o.target}% over 30 days, measured as ${o.good} over ${o.valid}. ${o.why}`).join(" ") +
+      " Burn-rate alerts: " +
+      burnRules.map((r) => `${r.name} above ${r.rate}x over ${r.long} and ${r.short} means ${r.spends}, so it is a ${r.action}.`).join(" ") +
+      " Error budget policy: " +
+      budgetPolicy.map((p) => `${p.when}: ${p.then}`).join(" "),
+  });
+
+  facts.push({
+    id: "investigation",
+    title: "How I investigate an incident",
+    anchor: "platform",
+    lead: "Seven Grafana pages, each starting from a question:",
+    text:
+      investigation.pages.map((p) => `${p.page}: ${p.start} Narrow using ${p.narrow}.`).join(" ") +
+      " Rules I monitor by: " +
+      investigation.rules.join(" ") +
+      " Runbook for late telemetry: " +
+      investigation.runbook.join(" "),
+  });
+
+  facts.push({
+    id: "ai-stack",
+    title: "The AI infrastructure stack I run",
+    anchor: "ai",
+    lead: "The AI agent platform, layer by layer:",
+    text: stack.map((l) => `${l.name} (${l.tools.join(", ")}): ${l.does}${l.mine ? ` My part: ${l.mine}` : ""}`).join(" "),
   });
 
   facts.push({
     id: "ai-products",
-    title: "The AI products I run",
+    title: "The AI agent platform I run",
     anchor: "ai",
     text: aiOverview,
   });

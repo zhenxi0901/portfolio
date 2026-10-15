@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, ArrowCounterClockwise, Pause, Play } from "@phosphor-icons/react";
 import { journeys, mapNodes, type MapNode, type NodeId, type Step } from "@/content/ai-platform";
-import { productOrder, products } from "@/content/products";
+import { products } from "@/content/products";
 import { ProductTag, productTone } from "@/components/site/product-tag";
 import { cn } from "@/lib/utils";
 
@@ -167,7 +167,7 @@ export function SystemMap() {
           {journey.product ? (
             <ProductTag p={journey.product} />
           ) : (
-            <span className="rounded-full border border-line-strong px-2.5 py-0.5 text-xs font-medium text-ink-2">Shared by both products</span>
+            <span className="rounded-full border border-line-strong px-2.5 py-0.5 text-xs font-medium text-ink-2">Shared infrastructure</span>
           )}
           <p className="text-[15px] leading-relaxed text-ink">{journey.about}</p>
         </div>
@@ -273,7 +273,7 @@ export function SystemMap() {
           </svg>
         </div>
         <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pb-4 text-xs text-ink-2 sm:px-7" aria-label="Colour key">
-          {productOrder.map((p) => (
+          {(["ai", "iot"] as const).map((p) => (
             <li key={p} className="flex items-center gap-1.5">
               <span aria-hidden className={cn("h-3 w-1 rounded-full", productTone[p].bg)} />
               {products[p].name}
@@ -281,7 +281,7 @@ export function SystemMap() {
           ))}
           <li className="flex items-center gap-1.5">
             <span aria-hidden className="h-3 w-1 rounded-full border border-line-strong" />
-            no stripe: shared by both
+            no stripe: shared infrastructure
           </li>
         </ul>
 
