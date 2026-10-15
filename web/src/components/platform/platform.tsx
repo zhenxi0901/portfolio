@@ -7,6 +7,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { FlowExplorer } from "@/components/platform/flow-explorer";
 import { Signals } from "@/components/platform/signals";
 import { CostReview } from "@/components/platform/cost-review";
+import { ProductTag } from "@/components/site/product-tag";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -32,9 +33,10 @@ export function Platform() {
   return (
     <section id="platform" className="scroll-mt-20 border-t border-line bg-surface-2/40">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
+        <ProductTag p="iot" className="mb-5" />
         <SectionHeading
-          title="Inside the platform"
-          lead="How traffic moves through the GKE platform I run at Primustech, which signals I alert on and why, and where the money went."
+          title="Inside the IoT platform"
+          lead="The building IoT platform I run on GKE: how traffic moves through it, what I alert on and why, and where the money went."
         />
         <Reveal className="mt-10">
           <div role="tablist" aria-label="Platform views" className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface p-1">

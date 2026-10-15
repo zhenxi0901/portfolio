@@ -11,6 +11,7 @@ import {
 } from "motion/react";
 import {
   Brain,
+  Buildings,
   Broadcast,
   ChatCircleDots,
   Briefcase,
@@ -21,7 +22,6 @@ import {
   House,
   LinkedinLogo,
   SquaresFour,
-  TreeStructure,
   type Icon,
 } from "@phosphor-icons/react";
 import { profile } from "@/content/profile";
@@ -32,8 +32,8 @@ type Item = { label: string; icon: Icon; id?: string; href?: string };
 const items: Item[] = [
   { label: "Home", icon: House, id: "top" },
   { label: "Work", icon: SquaresFour, id: "work" },
-  { label: "Inside the platform", icon: TreeStructure, id: "platform" },
-  { label: "AI platform", icon: Brain, id: "ai" },
+  { label: "IoT platform", icon: Buildings, id: "platform" },
+  { label: "AI products", icon: Brain, id: "ai" },
   { label: "Research", icon: Flask, id: "research" },
   { label: "Experience", icon: Briefcase, id: "experience" },
   { label: "Ask me", icon: ChatCircleDots, id: "ask" },

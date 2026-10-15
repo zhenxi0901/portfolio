@@ -22,6 +22,10 @@
   --on-accent: #0d0d10;
   --good: #0a8a0a;
   --critical: #c53030;
+  /* One colour per product, so a visitor can tell which system a card or box belongs to. */
+  --p-iot: #0369a1;
+  --p-agent: #b45309;
+  --p-docs: #7c3aed;
   --shadow: 0 1px 0 rgba(13, 13, 16, 0.04), 0 12px 32px -16px rgba(13, 13, 16, 0.18);
 }
 
@@ -39,6 +43,9 @@
   --on-accent: #0d0d10;
   --good: #22c55e;
   --critical: #f87171;
+  --p-iot: #38bdf8;
+  --p-agent: #fbbf24;
+  --p-docs: #a78bfa;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
 }
 
@@ -56,6 +63,9 @@
   --color-on-accent: var(--on-accent);
   --color-good: var(--good);
   --color-critical: var(--critical);
+  --color-p-iot: var(--p-iot);
+  --color-p-agent: var(--p-agent);
+  --color-p-docs: var(--p-docs);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --shadow-soft: var(--shadow);
@@ -165,6 +175,44 @@ html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
 }
 @keyframes step-in {
   from { opacity: 0; transform: translateY(4px); }
+}
+
+/* Cost review: bars grow in, "after" bars shrink to their size, reaped topics fade, removed
+   resources get struck through one by one. */
+.bar-in {
+  transform-origin: left;
+  animation: bar-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes bar-in {
+  from { transform: scaleX(0); }
+}
+.shrink-to {
+  animation: shrink-to 1.1s cubic-bezier(0.65, 0, 0.35, 1) 0.35s both;
+}
+@keyframes shrink-to {
+  from { width: var(--from); }
+  to { width: var(--to); }
+}
+.reap-dot {
+  animation: reap-dot 0.35s ease-out both;
+}
+@keyframes reap-dot {
+  to { opacity: 0.25; transform: scale(0.55); }
+}
+.strike-in {
+  position: relative;
+}
+.strike-in::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1.5px;
+  background: currentColor;
+  transform-origin: left;
+  animation: strike 0.45s ease-out var(--d, 0s) both;
+}
+@keyframes strike {
+  from { transform: scaleX(0); }
 }
 
 /* The SSH tunnel between the research GPU and the agents. */
