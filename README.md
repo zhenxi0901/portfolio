@@ -5,6 +5,21 @@ back end, the pipeline and the monitoring are the work.
 
 **Live:** https://portfolio-emsghin2iq-as.a.run.app (Cloud Run, asia-southeast1)
 
+![The hero: a 3D service mesh of the tools I work with](docs/screenshots/hero.webp)
+
+## What you will find on it
+
+Three things I work on, each with its own colour on the page: the **building IoT platform** I run on GKE
+and the **AI agent platform** I run on Cloud Run (both at Primustech), and **ARIES agent benchmarks**, my
+final-year project at NTU.
+
+| | |
+|---|---|
+| ![Map of the AI agent platform, with a request walking through it](docs/screenshots/ai-platform-map.webp) | ![A Grafana-style SLO board after a simulated incident](docs/screenshots/slo-board.webp) |
+| **Follow a request** through the AI agent platform: agents, RAG, GPU reranker, models, traces, and which parts are mine. | **SLOs and error budgets** for the IoT platform, with multi-window burn-rate alerts and a replayable incident. |
+| ![A Langfuse-style trace of one agent request](docs/screenshots/request-trace.webp) | ![The cost review as seven moves](docs/screenshots/cost-review.webp) |
+| **Inside one request**: where an agent answer's time and tokens go. | **Cost review**: a ~15% cut in seven moves, each with its before and after and the trade-off on record. |
+
 ```
 Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_next/*, /img/*)
                                     └──> JSON API               (/api/status, /api/ask, /api/contact)
@@ -17,13 +32,16 @@ Terraform ──> Cloud Run, Artifact Registry, Secret Manager, keyless GitHub O
 
 | Area | Highlights |
 |---|---|
-| **Front end** (`web/`) | Next.js 16, React 19, Tailwind CSS v4, Motion, three.js via react-three-fiber. An interactive 3D "service mesh" hero, five playable case studies (pipeline gates, a Kafka topic reaper, a ZooKeeper quorum alert, GKE pod and node autoscaling across zones), an "Inside the platform" section (hop-by-hop traffic paths and tunnels, the signals I alert on and why, a FinOps-style cost review), real FYP charts with tooltips and a table view, a ⌘K command palette, dock navigation, light and dark themes. Content renders without JavaScript; motion respects `prefers-reduced-motion`. |
-| **Back end** (`api/`) | Go 1.27, standard library `net/http`. Serves the static export with immutable caching and build-time brotli/gzip (no per-request compression CPU), plus `/api/status` (live uptime and latency percentiles), `/api/ask` (BM25 retrieval over the site's own facts, optional LLM on top, cached, rate limited, prompt-injection fenced), `/api/contact` (validation, honeypot, rate limit, optional Slack/Discord webhook). CSP and security headers, request IDs, structured logs, graceful shutdown. |
+| **Front end** (`web/`) | Next.js 16, React 19, Tailwind CSS v4, Motion, three.js via react-three-fiber. An interactive 3D "service mesh" hero; five playable case studies (pipeline gates with an approval step, a Kafka topic reaper, a ZooKeeper quorum alert, GKE pod and node autoscaling across zones); **Inside the IoT platform** (hop-by-hop traffic paths and tunnels; SLIs, SLOs and error budgets on a Grafana-style board with a replayable incident; a cause-alert playground for eight failure modes; the investigation route and runbook; a seven-move cost review); **the AI agent platform** (an animated system map with five request journeys and a "what I own" lens, the AI infrastructure stack layer by layer, a Langfuse-style request trace, what I measure on an LLM service); **research** (FYP charts, a prefix-cache explainer, the GPU-over-SSH setup); a trace of the visitor's own page load; a ⌘K command palette that searches by topic; dock navigation; light and dark themes. Content renders without JavaScript; motion respects `prefers-reduced-motion`. |
+| **Back end** (`api/`) | Go 1.27, standard library `net/http`. Serves the static export with immutable caching and build-time brotli/gzip (no per-request compression CPU), plus `/api/status` (live uptime and latency percentiles), `/api/ask` (BM25 retrieval over the site's own facts, optional LLM on top, cached, rate limited, prompt-injection fenced), `/api/contact` (validation, honeypot, rate limit, delivery to a Discord or Slack webhook before the visitor is told it was sent). `Server-Timing` on every response (server time, Cloud Run revision, and process age on an instance's first visitor request, which the page uses to say "you woke this server up"). CSP and security headers, request IDs, structured logs, graceful shutdown. |
 | **Reliability** | Prometheus metrics with bounded route labels, SLO recording rules and multi-window burn-rate alerts (`deploy/prometheus/rules.yml`), a provisioned Grafana dashboard (`deploy/grafana`). |
 | **Delivery** | Multi-stage Dockerfile to a 30 MB distroless, non-root image. GitHub Actions: lint, typecheck, build, `go vet`, race-detector tests, a TypeScript/Go parity check, container smoke test and a CRITICAL-CVE gate. Deploys promote the exact image digest, keyless via Workload Identity Federation. |
-| **Infrastructure** (`infra/`) | Terraform for Cloud Run (scale to zero, probes, least-privilege runtime identity), Artifact Registry with cleanup policies, Secret Manager for the optional LLM key, and a GitHub OIDC pool limited to this repository's `main` branch. |
+| **Infrastructure** (`infra/`) | Terraform for Cloud Run (scale to zero, probes, least-privilege runtime identity), Artifact Registry with cleanup policies, Secret Manager for the contact webhook and the optional LLM key, and a GitHub OIDC pool limited to this repository's `main` branch. |
 
-Every number on the site traces to the CV, Primustech's PR history or the FYP report; `web/src/content/profile.ts` is the single source of truth, and `/knowledge.json` (what the Ask console reads) is generated from it at build time.
+Every number on the site traces to the CV, Primustech's PR history, the platforms' own docs or the FYP report.
+Where the site shows sample data (the SLO board, whose objectives are still proposals, and the request trace),
+the page says so. Content lives in `web/src/content/` (`profile.ts`, `products.ts`, `ai-platform.ts`, `slo.ts`), and
+`/knowledge.json`, which the Ask console reads, is generated from it at build time.
 
 ## Run it
 
@@ -49,9 +67,13 @@ docker compose up --build
 
 The load generator (one `curl` per request) is the bottleneck in both runs; the server answers in
 microseconds. The Ask rate limiter let exactly the per-minute budget through and returned 429 for
-the rest. Browser end-to-end tests (17 checks: every interactive card, the Ask console, the contact
-form, the command palette, both themes and a phone viewport) pass with no console errors or CSP
-violations.
+the rest.
+
+Browser end-to-end tests against the live site (15 Oct 2026): 67 checks in three passes (desktop dark,
+desktop light, phone), covering every section, tab and journey, the SLO incident, all eight failure
+modes, all seven cost moves, the case dialogs, the Ask console, the visit trace, the command palette,
+the dock, the résumé and the 404 page. No crashes, console errors, failed requests or horizontal
+overflow. The deploy pipeline also runs `scripts/smoke.sh` against the live URL after every release.
 
 To use the API while running `next dev`, start the container and run the dev server with
 `NEXT_PUBLIC_API_BASE=http://localhost:8080` and the container with `ALLOWED_ORIGINS=http://localhost:3000`.
@@ -94,7 +116,7 @@ terraform apply
 
 ## Editing content
 
-Change `web/src/content/profile.ts`, then regenerate the Go test fixtures so CI's parity check passes:
+Change the files in `web/src/content/`, then regenerate the Go test fixtures so CI's parity check passes:
 
 ```bash
 cd web && npm run build && node scripts/gen-parity.mts && cp out/knowledge.json ../api/internal/ask/testdata/
