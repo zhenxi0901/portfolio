@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CloudSlash } from "@phosphor-icons/react";
 import { api, type Status as StatusT } from "@/lib/api";
+import { VisitTrace } from "@/components/sections/visit-trace";
 import { SectionHeading } from "@/components/site/section-heading";
 
 const FLOW = ["Your browser", "Cloud Run: Go server", "Static site + /api", "/metrics to Prometheus"];
@@ -62,7 +63,7 @@ export function Status() {
     <section ref={ref} id="status" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
       <SectionHeading
         title="This page is a production service"
-        lead="The Go server that sent you this page also reports on itself. These numbers are live and refresh every five seconds."
+        lead="The Go server that sent you this page also reports on itself. These numbers are live and refresh every five seconds, and underneath is the trace of your own visit."
       />
 
       <ol className="mt-10 flex flex-wrap items-center gap-2 text-sm" aria-label="How this site is served">
@@ -118,6 +119,8 @@ export function Status() {
           ))}
         </dl>
       </div>
+
+      <VisitTrace />
     </section>
   );
 }

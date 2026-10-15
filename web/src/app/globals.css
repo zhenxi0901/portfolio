@@ -150,6 +150,33 @@ html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
   from { opacity: 0; transform: translateY(0.6em) rotate(6deg); }
 }
 
+/* The hop a request is travelling on the AiBE map. */
+.map-flow {
+  stroke-dasharray: 6 6;
+  animation: map-flow 0.9s linear infinite;
+}
+@keyframes map-flow {
+  to { stroke-dashoffset: -12; }
+}
+
+/* A step's text on the AiBE map arriving. */
+.step-in {
+  animation: step-in 0.25s ease-out both;
+}
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+/* The SSH tunnel between the research GPU and the agents. */
+.tunnel {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--accent-ink) 0 6px, transparent 6px 12px);
+  animation: tunnel 0.8s linear infinite;
+}
+@keyframes tunnel {
+  to { background-position: 12px 0; }
+}
+
 /* Dotted canvas behind the hero and a few tiles. */
 .dot-grid {
   background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);

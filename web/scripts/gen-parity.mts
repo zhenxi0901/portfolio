@@ -15,6 +15,8 @@ const questions = [
   "Where did ZhenXi study?",
   "Does ZhenXi know Terraform?",
   "What is AiBE?",
+  "How does the document RAG pipeline work?",
+  "What do you measure on an LLM service?",
   "ZooKeeper quorum alerts",
   "SCADA and PLC experience",
   "How does traffic reach the cluster?",

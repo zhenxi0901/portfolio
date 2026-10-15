@@ -10,6 +10,7 @@ import {
   type MotionValue,
 } from "motion/react";
 import {
+  Brain,
   Broadcast,
   ChatCircleDots,
   Briefcase,
@@ -32,6 +33,7 @@ const items: Item[] = [
   { label: "Home", icon: House, id: "top" },
   { label: "Work", icon: SquaresFour, id: "work" },
   { label: "Inside the platform", icon: TreeStructure, id: "platform" },
+  { label: "AI platform", icon: Brain, id: "ai" },
   { label: "Research", icon: Flask, id: "research" },
   { label: "Experience", icon: Briefcase, id: "experience" },
   { label: "Ask me", icon: ChatCircleDots, id: "ask" },
@@ -59,7 +61,7 @@ export function Dock() {
       <motion.div
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}
-        className="flex h-14 items-end gap-1.5 rounded-full border border-line bg-surface/85 px-2.5 pb-2 shadow-soft backdrop-blur-md"
+        className="flex h-14 items-end gap-1 rounded-full border border-line bg-surface/85 px-2 pb-2 shadow-soft backdrop-blur-md sm:gap-1.5 sm:px-2.5"
       >
         {items.map((item) => (
           <DockIcon key={item.label} item={item} mouseX={mouseX} active={active === item.id} />
@@ -103,7 +105,8 @@ function DockIcon({ item, mouseX, active }: { item: Item; mouseX: MotionValue<nu
       aria-label={item.label}
       aria-current={active ? "true" : undefined}
       style={{ width: size, height: size }}
-      className="group relative grid place-items-center rounded-full bg-surface-2 text-ink-2 transition-colors hover:text-ink aria-[current=true]:bg-accent aria-[current=true]:text-on-accent"
+      // Phones get smaller icons so all sections fit; !important beats the inline hover size.
+      className="group relative grid place-items-center rounded-full bg-surface-2 text-ink-2 transition-colors hover:text-ink aria-[current=true]:bg-accent aria-[current=true]:text-on-accent max-sm:size-[31px]!"
     >
       <Icon className="size-[45%]" weight={active ? "fill" : "regular"} />
       <span className="pointer-events-none absolute -top-9 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink opacity-0 shadow-soft transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">

@@ -15,6 +15,13 @@ import (
 
 func newTestServer(t *testing.T) (*httptest.Server, Config) {
 	t.Helper()
+	cfg := testConfig(t)
+	return startServer(t, cfg), cfg
+}
+
+// testConfig builds a small static site and knowledge file in a temp dir.
+func testConfig(t *testing.T) Config {
+	t.Helper()
 	site := t.TempDir()
 	must(t, os.WriteFile(filepath.Join(site, "index.html"), []byte("<h1>home</h1>"), 0o644))
 	must(t, os.WriteFile(filepath.Join(site, "404.html"), []byte("<h1>lost</h1>"), 0o644))
@@ -24,16 +31,20 @@ func newTestServer(t *testing.T) (*httptest.Server, Config) {
 	must(t, err)
 	must(t, os.WriteFile(filepath.Join(site, "knowledge.json"), kb, 0o644))
 
-	cfg := Config{
+	return Config{
 		Port: "0", StaticDir: site, KnowledgePath: filepath.Join(site, "knowledge.json"),
 		DataDir: t.TempDir(), Region: "test", AllowedOrigins: []string{"http://localhost:3000"},
 		Version: "test", Commit: "abcdef123456",
 	}
+}
+
+func startServer(t *testing.T, cfg Config) *httptest.Server {
+	t.Helper()
 	s, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	must(t, err)
 	ts := httptest.NewServer(s.Handler())
 	t.Cleanup(ts.Close)
-	return ts, cfg
+	return ts
 }
 
 func TestHealthAndStatic(t *testing.T) {

@@ -5,6 +5,7 @@ import { Hero } from "@/components/hero/hero";
 import { Impact } from "@/components/sections/impact";
 import { Work } from "@/components/work/work";
 import { Platform } from "@/components/platform/platform";
+import { AiInfra } from "@/components/ai/ai-infra";
 import { Research } from "@/components/research/research";
 import { StackMarquee } from "@/components/sections/stack-marquee";
 import { Experience } from "@/components/sections/experience";
@@ -27,6 +28,7 @@ export default function Home() {
         <Impact />
         <Work />
         <Platform />
+        <AiInfra />
         <Research />
         <StackMarquee />
         <Experience />

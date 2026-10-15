@@ -370,6 +370,8 @@ export default function ClusterScene() {
           dpr={[1, 1.75]}
           camera={{ position: [0, 0, 6.4], fov: 40 }}
           gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
+          // Read by the "your visit" trace in the status section.
+          onCreated={() => performance.mark("hero-3d-ready")}
           aria-hidden
         >
           <Mesh

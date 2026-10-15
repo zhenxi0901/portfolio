@@ -13,6 +13,7 @@ type Config struct {
 	KnowledgePath  string
 	DataDir        string
 	Region         string
+	Revision       string // set by Cloud Run as K_REVISION
 	AllowedOrigins []string
 	TrustProxy     bool
 
@@ -34,6 +35,7 @@ func ConfigFromEnv() Config {
 		KnowledgePath:  env("KNOWLEDGE_PATH", filepath.Join(static, "knowledge.json")),
 		DataDir:        env("DATA_DIR", filepath.Join(os.TempDir(), "portfolio-contact")),
 		Region:         env("REGION", "local"),
+		Revision:       os.Getenv("K_REVISION"),
 		AllowedOrigins: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		TrustProxy:     os.Getenv("TRUST_PROXY") == "true",
 		ContactWebhook: os.Getenv("CONTACT_WEBHOOK_URL"),

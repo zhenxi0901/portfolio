@@ -10,6 +10,7 @@ import {
   publication,
   signals,
 } from "@/content/profile";
+import { aibeOverview, journeys, measures } from "@/content/aibe";
 
 // Facts the "Ask" console retrieves from. Built from profile.ts so there is one source of truth;
 // exported at build time as /knowledge.json, which the Go API loads too.
@@ -78,6 +79,33 @@ export function buildKnowledge(): Fact[] {
   });
 
   facts.push({
+    id: "aibe",
+    title: "What AiBE is",
+    anchor: "ai",
+    text: aibeOverview,
+  });
+
+  // The lead already opens the answer, so the text is the steps alone (a repeated lead would be
+  // quoted twice when it is more than one sentence).
+  for (const j of journeys) {
+    facts.push({
+      id: `aibe-${j.id}`,
+      title: j.name,
+      anchor: "ai",
+      lead: j.about,
+      text: j.steps.map((st) => `${st.title}: ${st.text}${st.mine ? ` ${st.mine}` : ""}`).join(" "),
+    });
+  }
+
+  facts.push({
+    id: "llm-measures",
+    title: "How I benchmark and watch an LLM service",
+    anchor: "ai",
+    lead: "What I measure on an LLM service, and why:",
+    text: measures.map((m) => `${m.question} I measure ${m.metrics.join(", ")}. ${m.why}`).join(" "),
+  });
+
+  facts.push({
     id: "fyp",
     title: fyp.title,
     anchor: "research",
@@ -86,7 +114,7 @@ export function buildKnowledge(): Fact[] {
       `the lab's open-source agent-serving framework, so Toolathlon tasks (109 tasks, 34 MCP servers) run with live applications in isolated containers. ` +
       `Findings: ${fyp.findings.map((f) => `${f.value} ${f.label}`).join("; ")}. ` +
       `Running 4 tasks at once gave ${fyp.concurrency[2].attempts} attempts per hour against ${fyp.concurrency[0].attempts} at 1, a 3.02x throughput, ` +
-      `using ${fyp.concurrency[2].memGiB} GiB of memory. Self-hosted Qwen3-4B was served with SGLang on an NVIDIA A100 at NSCC. ` +
+      `using ${fyp.concurrency[2].memGiB} GiB of memory. Self-hosted Qwen3-4B was served with SGLang on an NVIDIA A100 at NSCC, reached from the Google Cloud benchmark VM over an SSH tunnel through IAP. ` +
       `I also found and fixed a Docker exec race condition in ARIES that dropped runs under load.`,
   });
 

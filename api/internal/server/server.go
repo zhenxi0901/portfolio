@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,6 +27,7 @@ type Server struct {
 	ask     *ask.Service
 	contact *contact.Service
 	started time.Time
+	visits  atomic.Int64 // requests other than probes, to spot an instance's first visitor
 }
 
 func New(cfg Config, log *slog.Logger) (*Server, error) {
@@ -93,6 +95,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("/", staticHandler(s.cfg.StaticDir))
 
 	var h http.Handler = mux
+	h = s.timing(h)
 	h = s.observe(h)
 	h = cors(s.cfg.AllowedOrigins, h)
 	h = securityHeaders(h)

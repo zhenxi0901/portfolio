@@ -3,8 +3,7 @@
     "question": "How did ZhenXi cut the cloud bill?",
     "answer": "How I cut cloud spend by about 15%: Drop metrics nobody reads (Monitoring, done): Turned off three GKE metric packages after confirming 0 of 27 alerts and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape. Right-size Cloud SQL (Database, done): 4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal. Size pods to need, scale nodes to load (Compute, done): Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter.",
     "sources": [
-      "cost-review",
-      "case-reaper"
+      "cost-review"
     ]
   },
   {
@@ -19,14 +18,15 @@
     "answer": "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. CI/CD: GitHub Actions, Jenkins, Cloud Build. AI infrastructure: LLM serving with SGLang, LLM benchmarking, A100 GPUs, Vertex AI, RAG, MCP, PyTorch.",
     "sources": [
       "skills",
-      "path-tunnels"
+      "aibe-ask-documents"
     ]
   },
   {
     "question": "What happens when a build has a critical CVE?",
     "answer": "A pipeline where failed merges never deploy (Primustech, 2026). I own the Cloud Build delivery pipeline: build once, promote by digest, approve before release. Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds.",
     "sources": [
-      "case-pipeline"
+      "case-pipeline",
+      "aibe-ask-building"
     ]
   },
   {
@@ -61,10 +61,24 @@
   },
   {
     "question": "What is AiBE?",
-    "answer": "Running an agentic AI platform (Primustech, 2026). Infrastructure for AiBE, the company's multi-agent and RAG platform for building operations. AiBE's agent and RAG services needed repeatable deploys, locked-down secrets and numbers on speed and cost. Deployed and operated the multi-agent API and the RAG services on Cloud Run with models on Vertex AI.",
+    "answer": "AiBE is Primustech's agentic AI platform for building operations: an operations agent that reads live building data, and Scholar, which answers from documents. I deploy and run it on Google Cloud. The operations agent is an Agno team on Cloud Run using Gemini on Vertex AI, with Grok through OpenRouter; it pulls live readings from Atlas over GraphQL and aggregates them in DuckDB.",
     "sources": [
-      "case-aibe",
-      "role-primustech"
+      "aibe"
+    ]
+  },
+  {
+    "question": "How does the document RAG pipeline work?",
+    "answer": "Scholar's document pipeline: upload a PDF, spreadsheet, deck or image, and it becomes searchable for RAG. An upload: Someone adds a document to a knowledge base: PDF, Word, PowerPoint, Excel, CSV or an image. Heavy lifting, elsewhere: A much larger image, with the document parsers, runs as a Cloud Run Job on a schedule and drains the queue. Searchable: The vectors go to Milvus and the document's metadata to MongoDB.",
+    "sources": [
+      "aibe-add-document",
+      "aibe-ask-documents"
+    ]
+  },
+  {
+    "question": "What do you measure on an LLM service?",
+    "answer": "What I measure on an LLM service, and why: I measure end-to-end latency p50 / p95, time per agent step, model vs tool vs data time. An agent answer is several model calls and tool calls in a row. I measure input / output tokens per request, cost per request, cost per tenant.",
+    "sources": [
+      "llm-measures"
     ]
   },
   {

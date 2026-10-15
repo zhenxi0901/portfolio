@@ -7,10 +7,10 @@ import { Reveal } from "@/components/motion/reveal";
 
 const STEPS = [
   { label: "Question", note: "from a facility manager" },
-  { label: "Agent API", note: "Cloud Run" },
-  { label: "Retrieve", note: "RAG over building docs" },
-  { label: "Gemini", note: "Vertex AI" },
-  { label: "Answer", note: "tokens and cost logged" },
+  { label: "Agent team", note: "Agno on Cloud Run" },
+  { label: "Data", note: "live readings, documents" },
+  { label: "Gemini", note: "Vertex AI, OpenRouter" },
+  { label: "Answer", note: "traced with tokens and cost" },
 ];
 
 /** The request path through AiBE, with a packet riding it. */
@@ -47,10 +47,10 @@ export function AibeViz() {
       </ul>
       <button
         type="button"
-        onClick={() => scrollToId("ask")}
+        onClick={() => scrollToId("ai")}
         className="mt-auto inline-flex w-fit items-center gap-1.5 text-sm font-medium text-ink underline decoration-accent-ink decoration-2 underline-offset-4"
       >
-        The same pattern powers the Ask console on this page <ArrowRight size={14} />
+        Follow a request through the whole platform <ArrowRight size={14} />
       </button>
     </div>
   );
