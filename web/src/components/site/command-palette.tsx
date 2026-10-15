@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { usePalette } from "@/components/providers";
 import { sections } from "@/components/site/nav-items";
 import { profile } from "@/content/profile";
-import { scrollToId } from "@/lib/utils";
+import { openPlatformTab, scrollToId } from "@/lib/utils";
 
 export function CommandPalette() {
   const { open, setOpen } = usePalette();
@@ -45,10 +45,24 @@ export function CommandPalette() {
         <Command.Empty className="px-4 py-8 text-center text-sm text-ink-3">Nothing matches that.</Command.Empty>
         <Command.Group heading="Sections">
           {sections.map((s) => (
-            <Item key={s.id} onSelect={() => run(() => scrollToId(s.id))} icon={<ArrowRight size={16} />}>
+            <Item key={s.id} keywords={s.keywords} onSelect={() => run(() => scrollToId(s.id))} icon={<ArrowRight size={16} />}>
               {s.label}
             </Item>
           ))}
+          <Item
+            keywords={["slo", "sli", "sla", "error budget", "burn rate", "alerts", "grafana", "monitoring", "sre"]}
+            onSelect={() => run(() => openPlatformTab("signals"))}
+            icon={<ArrowRight size={16} />}
+          >
+            SLOs and monitoring
+          </Item>
+          <Item
+            keywords={["cost", "bill", "finops", "savings", "15%"]}
+            onSelect={() => run(() => openPlatformTab("cost"))}
+            icon={<ArrowRight size={16} />}
+          >
+            Cost review
+          </Item>
         </Command.Group>
         <Command.Group heading="Actions">
           <Item
@@ -83,10 +97,21 @@ export function CommandPalette() {
   );
 }
 
-function Item({ children, icon, onSelect }: { children: React.ReactNode; icon: React.ReactNode; onSelect: () => void }) {
+function Item({
+  children,
+  icon,
+  onSelect,
+  keywords,
+}: {
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  onSelect: () => void;
+  keywords?: string[];
+}) {
   return (
     <Command.Item
       onSelect={onSelect}
+      keywords={keywords}
       className="flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-ink-2 data-[selected=true]:bg-surface-2 data-[selected=true]:text-ink"
     >
       <span className="text-ink-3">{icon}</span>

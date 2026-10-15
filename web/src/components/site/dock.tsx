@@ -33,7 +33,7 @@ const items: Item[] = [
   { label: "Home", icon: House, id: "top" },
   { label: "Work", icon: SquaresFour, id: "work" },
   { label: "IoT platform", icon: Buildings, id: "platform" },
-  { label: "AI products", icon: Brain, id: "ai" },
+  { label: "AI agent platform", icon: Brain, id: "ai" },
   { label: "Research", icon: Flask, id: "research" },
   { label: "Experience", icon: Briefcase, id: "experience" },
   { label: "Ask me", icon: ChatCircleDots, id: "ask" },
