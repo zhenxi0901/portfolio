@@ -19,7 +19,7 @@ func TestRetrieveRanksTheRightFact(t *testing.T) {
 	cases := []struct {
 		question, wantSource, wantInAnswer string
 	}{
-		{"How did ZhenXi cut the cloud bill?", "case-reaper", "15%"},
+		{"How did ZhenXi cut the cloud bill?", "cost-review", "15%"},
 		{"Which GPUs has ZhenXi used?", "skills", "A100"},
 		{"What happens when a build has a critical CVE?", "case-pipeline", "CVE"},
 		{"Tell me about the ICCV paper", "pvchat", "ICCV"},

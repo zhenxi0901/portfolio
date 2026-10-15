@@ -4,6 +4,8 @@ import { SectionHeading } from "@/components/site/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { ConcurrencyChart } from "@/components/research/concurrency-chart";
 import { WallClockBar } from "@/components/research/wallclock-bar";
+import { PrefixCache } from "@/components/research/prefix-cache";
+import { GpuLink } from "@/components/research/gpu-link";
 import { ZoomImage } from "@/components/research/zoom-image";
 
 export function Research() {
@@ -46,6 +48,12 @@ export function Research() {
             </Reveal>
             <Reveal>
               <WallClockBar />
+            </Reveal>
+            <Reveal>
+              <PrefixCache />
+            </Reveal>
+            <Reveal>
+              <GpuLink />
             </Reveal>
             <Reveal>
               <figure className="overflow-hidden rounded-3xl border border-line bg-surface">
