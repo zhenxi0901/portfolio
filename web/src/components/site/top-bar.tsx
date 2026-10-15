@@ -24,6 +24,9 @@ export function TopBar() {
           <button
             type="button"
             onClick={() => setOpen(true)}
+            // The label text is hidden on phones, so the button needs its name spelled out.
+            aria-label="Jump anywhere"
+            aria-keyshortcuts="/"
             className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <Command size={15} />
