@@ -160,17 +160,10 @@ export function VisitTrace() {
                       background: FILL[s.tone],
                     }}
                   />
-                  <span
-                    className="absolute top-0.5 whitespace-nowrap pl-2 font-mono text-[11px] leading-5 text-ink-2"
-                    style={
-                      s.end / t.total > 0.62
-                        ? { right: `${100 - (s.start / t.total) * 100}%`, paddingRight: 8, paddingLeft: 0 }
-                        : { left: `${(s.end / t.total) * 100}%` }
-                    }
-                  >
+                  <SpanLabel start={s.start / t.total} end={s.end / t.total}>
                     {fmt(s.end - s.start)}
                     {s.note && <span className="hidden sm:inline">, {s.note}</span>}
-                  </span>
+                  </SpanLabel>
                 </span>
               </li>
             ))}
@@ -183,6 +176,39 @@ export function VisitTrace() {
 
       {!trace && <div className="mt-6 h-40 animate-pulse rounded-2xl bg-surface-2" />}
     </div>
+  );
+}
+
+/**
+ * A span's duration label: after the bar when there is room, on a chip inside a long bar, otherwise
+ * before the bar. Each placement is capped to the space it has, so a label can never run into the
+ * row name or past the edge.
+ */
+function SpanLabel({ start, end, children }: { start: number; end: number; children: React.ReactNode }) {
+  const s = start * 100;
+  const e = end * 100;
+  const base = "absolute top-0.5 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[11px] leading-5";
+  if (e <= 68) {
+    return (
+      <span className={`${base} pl-2 text-ink-2`} style={{ left: `${e}%`, maxWidth: `${100 - e}%` }}>
+        {children}
+      </span>
+    );
+  }
+  if (e - s >= 28) {
+    return (
+      <span
+        className={`${base} ml-1 mt-[3px] rounded-[3px] bg-surface/90 px-1.5 leading-4 text-ink`}
+        style={{ left: `${s}%`, maxWidth: `calc(${e - s}% - 0.5rem)` }}
+      >
+        {children}
+      </span>
+    );
+  }
+  return (
+    <span className={`${base} pr-2 text-right text-ink-2`} style={{ right: `${100 - s}%`, maxWidth: `${s}%` }}>
+      {children}
+    </span>
   );
 }
 

@@ -11,7 +11,7 @@ export function Experience() {
   return (
     <section id="experience" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
       <SectionHeading title="Where I've worked" lead="From PLCs in a building's control room to Kubernetes in the cloud." />
-      <ol className="mt-14 border-t border-line">
+      <ol className="mt-12 border-t border-line">
         {experience.map((role, i) => {
           const isOpen = open === i;
           return (
@@ -20,17 +20,19 @@ export function Experience() {
                 type="button"
                 onClick={() => setOpen(isOpen ? null : i)}
                 aria-expanded={isOpen}
-                className="group grid w-full grid-cols-[1fr_auto] items-center gap-x-6 gap-y-1 py-7 text-left sm:grid-cols-[9rem_1fr_auto] sm:py-9"
+                className="group grid w-full grid-cols-[1fr_auto] items-center gap-x-6 gap-y-1 py-5 text-left sm:grid-cols-[9rem_1fr_auto] sm:py-6"
               >
                 <span className="order-2 col-span-2 font-mono text-xs text-ink-3 sm:order-none sm:col-span-1">{role.period}</span>
-                <span className="text-[clamp(2rem,5.5vw,4.25rem)] font-semibold leading-none tracking-[-0.05em] transition-colors group-hover:text-accent-ink">
-                  {role.org}
+                <span className="min-w-0">
+                  <span className="block text-[clamp(1.25rem,2.2vw,1.75rem)] font-semibold leading-tight tracking-[-0.03em] transition-colors group-hover:text-accent-ink">
+                    {role.org}
+                  </span>
+                  <span className="mt-1 block text-sm text-ink-2">{role.role}</span>
                 </span>
-                <span className="flex items-center gap-4">
-                  <span className="hidden text-right text-sm text-ink-2 md:block">{role.role}</span>
+                <span className="flex items-center">
                   <motion.span
                     animate={{ rotate: isOpen ? 45 : 0 }}
-                    className="grid size-10 place-items-center rounded-full border border-line-strong"
+                    className="grid size-9 place-items-center rounded-full border border-line-strong"
                   >
                     <Plus size={16} />
                   </motion.span>
@@ -45,18 +47,12 @@ export function Experience() {
                     transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                     className="overflow-hidden"
                   >
-                    <div className="grid gap-6 pb-9 sm:grid-cols-[9rem_1fr]">
-                      <p className="text-sm text-ink-3">
-                        <span className="md:hidden">
-                          {role.role}
-                          <br />
-                        </span>
-                        {role.place}
-                      </p>
+                    <div className="grid gap-4 pb-7 sm:grid-cols-[9rem_1fr] sm:gap-6">
+                      <p className="text-sm text-ink-3">{role.place}</p>
                       <div>
                         <ul className="grid max-w-3xl gap-3">
                           {role.points.map((p) => (
-                            <li key={p} className="text-lg leading-relaxed text-ink-2">
+                            <li key={p} className="text-[15px] leading-relaxed text-ink-2 sm:text-base">
                               {p}
                             </li>
                           ))}
@@ -81,7 +77,7 @@ export function Experience() {
       <div className="mt-14 grid gap-2 rounded-3xl border border-line bg-surface p-6 sm:grid-cols-[9rem_1fr] sm:p-8">
         <p className="font-mono text-xs text-ink-3">{education.period}</p>
         <div>
-          <p className="text-2xl font-semibold tracking-[-0.03em]">{education.school}</p>
+          <p className="text-xl font-semibold tracking-[-0.02em]">{education.school}</p>
           <p className="mt-1 text-ink-2">{education.degree}</p>
           <p className="mt-4 text-sm text-ink-2">
             Exchange semesters at <span className="text-ink">{education.exchanges[0]}</span> and{" "}

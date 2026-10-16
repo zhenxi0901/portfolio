@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowDown, FileMagnifyingGlass, Robot } from "@phosphor-icons/react";
+import { FileMagnifyingGlass, Robot } from "@phosphor-icons/react";
 import { agents, aiStats, aiIntro } from "@/content/ai-platform";
 import { ProductTag, productTone } from "@/components/site/product-tag";
 import { SectionHeading } from "@/components/site/section-heading";
@@ -11,7 +11,7 @@ import { SystemMap } from "@/components/ai/system-map";
 import { InfraStack } from "@/components/ai/infra-stack";
 import { RequestTrace } from "@/components/ai/request-trace";
 import { Measures } from "@/components/ai/measures";
-import { cn, scrollToId } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "map", label: "Follow a request" },
@@ -109,17 +109,6 @@ export function AiInfra() {
           {tab === "measure" && <Measures />}
         </div>
 
-        <button
-          type="button"
-          onClick={() => scrollToId("research")}
-          className="mt-10 inline-flex flex-wrap items-center gap-2 text-sm font-medium"
-        >
-          <span className="underline decoration-accent-ink decoration-2 underline-offset-4">
-            The research side: what serving an AI agent really costs
-          </span>
-          <ProductTag p="aries" />
-          <ArrowDown size={14} />
-        </button>
       </div>
     </section>
   );
