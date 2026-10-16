@@ -101,23 +101,26 @@ export function Status() {
             </div>
           )}
         </div>
-        <dl className="grid grid-cols-2 gap-4 lg:col-span-5">
-          {(tiles.length ? tiles : Array.from({ length: 6 }, () => null)).map((t, i) => (
-            <div key={i} className="rounded-3xl border border-line bg-surface p-5">
-              {t ? (
-                <>
-                  <dt className="text-sm text-ink-2">{t.label}</dt>
-                  <dd className="mt-2 truncate text-2xl font-semibold tracking-[-0.03em]">{t.value}</dd>
-                </>
-              ) : (
-                <>
-                  <div className="h-4 w-20 animate-pulse rounded-full bg-surface-2" />
-                  <div className="mt-3 h-7 w-24 animate-pulse rounded-full bg-surface-2" />
-                </>
-              )}
-            </div>
-          ))}
-        </dl>
+        {tiles.length ? (
+          <dl className="grid grid-cols-2 gap-4 lg:col-span-5">
+            {tiles.map((t) => (
+              <div key={t.label} className="rounded-3xl border border-line bg-surface p-5">
+                <dt className="text-sm text-ink-2">{t.label}</dt>
+                <dd className="mt-2 truncate text-2xl font-semibold tracking-[-0.03em]">{t.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          // Placeholders while the API answers; the message beside them says what is happening.
+          <div className="grid grid-cols-2 gap-4 lg:col-span-5" aria-hidden>
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="rounded-3xl border border-line bg-surface p-5">
+                <div className="h-4 w-20 animate-pulse rounded-full bg-surface-2" />
+                <div className="mt-3 h-7 w-24 animate-pulse rounded-full bg-surface-2" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <VisitTrace />

@@ -13,12 +13,13 @@ export function TopBar() {
         <a
           href="#top"
           className="group flex items-center gap-2.5 rounded-full border border-line bg-surface/80 py-1 pl-1 pr-1 backdrop-blur-md sm:pr-4"
-          aria-label={`${profile.name}, back to top`}
         >
-          <span className="grid size-9 place-items-center rounded-full bg-accent font-mono text-[13px] font-bold text-on-accent transition-transform duration-300 group-hover:rotate-[-12deg]">
+          <span aria-hidden className="grid size-9 place-items-center rounded-full bg-accent font-mono text-[13px] font-bold text-on-accent transition-transform duration-300 group-hover:rotate-[-12deg]">
             LZ
           </span>
-          <span className="hidden text-sm font-medium tracking-tight sm:block">{profile.name}</span>
+          {/* The name is the link's text on every screen; phones just don't show it. */}
+          <span className="sr-only text-sm font-medium tracking-tight sm:not-sr-only">{profile.name}</span>
+          <span className="sr-only">, back to top</span>
         </a>
         <div className="flex items-center gap-1 rounded-full border border-line bg-surface/80 p-1 backdrop-blur-md">
           <button
