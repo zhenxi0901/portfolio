@@ -4,18 +4,21 @@ import { Command } from "cmdk";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   ArrowRight,
+  Article,
   Copy,
   FileText,
   GithubLogo,
   LinkedinLogo,
   MoonStars,
+  Warning,
 } from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { usePalette } from "@/components/providers";
 import { sections } from "@/components/site/nav-items";
-import { profile } from "@/content/profile";
-import { openPlatformTab, scrollToId } from "@/lib/utils";
+import { cases, profile } from "@/content/profile";
+import { postmortems } from "@/content/postmortems";
+import { goTo, openPlatformTab, scrollToId } from "@/lib/utils";
 
 export function CommandPalette() {
   const { open, setOpen } = usePalette();
@@ -63,6 +66,25 @@ export function CommandPalette() {
           >
             Cost review
           </Item>
+        </Command.Group>
+        <Command.Group heading="Case studies">
+          {cases.map((c) => (
+            <Item key={c.id} keywords={c.stack} onSelect={() => run(() => goTo(`/work/${c.id}`))} icon={<Article size={16} />}>
+              {c.title}
+            </Item>
+          ))}
+        </Command.Group>
+        <Command.Group heading="Postmortems">
+          {postmortems.map((p) => (
+            <Item
+              key={p.slug}
+              keywords={["postmortem", "incident", p.kind]}
+              onSelect={() => run(() => goTo(`/postmortems/${p.slug}`))}
+              icon={<Warning size={16} />}
+            >
+              {p.title}
+            </Item>
+          ))}
         </Command.Group>
         <Command.Group heading="Actions">
           <Item

@@ -37,6 +37,10 @@ export type CaseStudy = {
   did: string[];
   result: string;
   stack: string[];
+  /** Headline numbers for the case's own page. Each restates a figure from the text above. */
+  numbers: { value: string; label: string }[];
+  /** Where the site goes further into this work. */
+  deeper: { label: string; href: string }[];
 };
 
 export const cases: CaseStudy[] = [
@@ -56,6 +60,15 @@ export const cases: CaseStudy[] = [
     ],
     result: "The platform now runs on autoscaling GKE with a WAF in front, and every change goes through code review.",
     stack: ["GKE", "Terraform", "Kafka", "Cloud SQL", "EMQX", "Redis", "Cloud Armor"],
+    numbers: [
+      { value: "1 VM", label: "before: one Docker Compose host, one failure domain" },
+      { value: "3", label: "Kafka brokers, beside Cloud SQL, EMQX and Redis" },
+      { value: "1", label: "restore drill passed before deletion protection went on" },
+    ],
+    deeper: [
+      { label: "How traffic, telemetry and commands move through the platform", href: "/#platform-paths" },
+      { label: "What I alert on there, and the SLOs", href: "/#platform-signals" },
+    ],
   },
   {
     id: "pipeline",
@@ -73,6 +86,14 @@ export const cases: CaseStudy[] = [
     ],
     result: "63 merged pull requests so far. A red merge never reaches production.",
     stack: ["Cloud Build", "Artifact Registry", "Artifact Analysis", "GitHub", "Terraform"],
+    numbers: [
+      { value: "63", label: "pull requests merged into the pipeline so far" },
+      { value: "1", label: "image digest per release: built once, then promoted" },
+      { value: "0", label: "red merges that reached production" },
+    ],
+    deeper: [
+      { label: "The same habit on this site: the smoke test that gates every deploy, and its postmortem", href: "/postmortems/smoke-test" },
+    ],
   },
   {
     id: "reaper",
@@ -91,6 +112,12 @@ export const cases: CaseStudy[] = [
     ],
     result: "Cut cloud spend by about 15%, without dropping a single alert.",
     stack: ["Managed Prometheus", "Kafka", "Kubernetes CronJob", "Cloud SQL", "GKE autoscaling", "Terraform"],
+    numbers: [
+      { value: "~15%", label: "cloud spend cut, with no alert dropped" },
+      { value: "914", label: "orphaned Kafka topics reaped, 86% of all topics" },
+      { value: "10,386 → 2,891", label: "samples per scrape from the Kafka exporter" },
+    ],
+    deeper: [{ label: "The full cost review, one move at a time", href: "/#platform-cost" }],
   },
   {
     id: "observability",
@@ -107,6 +134,15 @@ export const cases: CaseStudy[] = [
     ],
     result: "Failures that used to be silent now page someone, and the metrics bill went down, not up.",
     stack: ["Grafana", "Prometheus", "PromQL", "Cloud Monitoring", "ZooKeeper"],
+    numbers: [
+      { value: "28", label: "alert policies, all in Terraform" },
+      { value: "40", label: "tiles on the platform dashboard" },
+      { value: "0", label: "drift between Terraform and what is live" },
+    ],
+    deeper: [
+      { label: "SLOs, error budgets and burn-rate alerts, on a Grafana-style board", href: "/#platform-signals" },
+      { label: "Postmortems I wrote for this site", href: "/#postmortems" },
+    ],
   },
   {
     id: "ai-platform",
@@ -123,6 +159,16 @@ export const cases: CaseStudy[] = [
     ],
     result: "Three environments deployed the same way, with building telemetry from the IoT platform feeding the agents.",
     stack: ["Cloud Run", "Vertex AI", "Cloud Build", "Secret Manager", "IAM", "VPC"],
+    numbers: [
+      { value: "2", label: "AI products: an operations agent and a document assistant" },
+      { value: "3", label: "environments deployed the same way: dev, staging and production" },
+      { value: "2,014", label: "BMS devices in the demo building I built for the agents to query" },
+    ],
+    deeper: [
+      { label: "Follow a request through the platform", href: "/#ai-map" },
+      { label: "The AI infra stack, layer by layer", href: "/#ai-stack" },
+      { label: "Inside one traced request", href: "/#ai-trace" },
+    ],
   },
 ];
 

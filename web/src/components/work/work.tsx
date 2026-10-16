@@ -1,14 +1,11 @@
 import { cases } from "@/content/profile";
 import { SectionHeading } from "@/components/site/section-heading";
 import { CaseCard } from "@/components/work/case-card";
-import { GkeViz } from "@/components/work/viz-gke";
-import { PipelineViz } from "@/components/work/viz-pipeline";
-import { ReaperViz } from "@/components/work/viz-reaper";
-import { AlertsViz } from "@/components/work/viz-alerts";
-import { AiViz } from "@/components/work/viz-ai";
+import { caseViz } from "@/components/work/case-viz";
 import { ProductKey } from "@/components/work/product-key";
 
 const byId = Object.fromEntries(cases.map((c) => [c.id, c]));
+const { gke: GkeViz, pipeline: PipelineViz, reaper: ReaperViz, observability: AlertsViz, "ai-platform": AiViz } = caseViz;
 
 export function Work() {
   return (
