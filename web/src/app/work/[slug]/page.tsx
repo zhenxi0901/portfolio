@@ -73,7 +73,7 @@ export default async function CasePage(props: PageProps<"/work/[slug]">) {
       </Part>
 
       <figure className="mt-14 rounded-3xl bg-[color-mix(in_oklab,var(--accent)_14%,var(--surface))] p-6 sm:p-8">
-        <figcaption className="font-mono text-xs uppercase tracking-[0.18em] text-ink-3">The result</figcaption>
+        <figcaption className="font-mono text-xs uppercase tracking-[0.18em] text-ink-2">The result</figcaption>
         <p className="mt-3 text-2xl font-semibold leading-snug tracking-[-0.02em] sm:text-3xl">{c.result}</p>
       </figure>
 
