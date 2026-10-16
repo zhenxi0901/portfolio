@@ -8,6 +8,7 @@ import { FlowExplorer } from "@/components/platform/flow-explorer";
 import { Monitoring } from "@/components/platform/monitoring";
 import { CostReview } from "@/components/platform/cost-review";
 import { ProductTag } from "@/components/site/product-tag";
+import { useHashTab } from "@/lib/use-hash-tab";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -16,10 +17,15 @@ const TABS = [
   { id: "cost", label: "Cost review" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
+const TAB_IDS = TABS.map((t) => t.id);
 
-/** Opened from elsewhere on the page with: window.dispatchEvent(new CustomEvent("platform-tab", { detail: "cost" })) */
+/**
+ * Opened from elsewhere on the page with: window.dispatchEvent(new CustomEvent("platform-tab", { detail: "cost" })),
+ * and from other pages with a link to /#platform-cost.
+ */
 export function Platform() {
   const [tab, setTab] = useState<Tab>("paths");
+  useHashTab("platform", TAB_IDS, setTab);
 
   useEffect(() => {
     const open = (e: Event) => {

@@ -1,9 +1,8 @@
 "use client";
 
-import { ArrowUpRight, CheckCircle } from "@phosphor-icons/react";
+import { ArrowUpRight } from "@phosphor-icons/react";
 import type { CaseStudy } from "@/content/profile";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Reveal } from "@/components/motion/reveal";
 import { ProductTag } from "@/components/site/product-tag";
 
@@ -47,40 +46,12 @@ export function CaseCard({
 
         <div className="mt-6 flex-1">{children}</div>
 
-        <Dialog>
-          <DialogTrigger className="mt-6 inline-flex w-fit items-center gap-1.5 rounded-full border border-line-strong bg-surface px-4 py-2 text-sm font-medium transition-colors hover:border-ink-3">
-            Read the case <ArrowUpRight size={15} />
-          </DialogTrigger>
-          <DialogContent>
-            <div className="flex flex-wrap items-center gap-2">
-              {study.products.map((p) => (
-                <ProductTag key={p} p={p} />
-              ))}
-              <span className="font-mono text-xs text-ink-3">
-                {study.org}, {study.year}
-              </span>
-            </div>
-            <DialogTitle className="mt-2 pr-10 text-3xl font-semibold tracking-[-0.03em]">{study.title}</DialogTitle>
-            <DialogDescription className="mt-4 text-[15px] leading-relaxed text-ink-2">{study.problem}</DialogDescription>
-            <h4 className="mt-7 text-sm font-semibold">What I did</h4>
-            <ul className="mt-3 space-y-3">
-              {study.did.map((d) => (
-                <li key={d} className="flex gap-3 text-[15px] leading-relaxed text-ink-2">
-                  <CheckCircle size={18} weight="fill" className="mt-0.5 shrink-0 text-accent-ink" />
-                  {d}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-7 rounded-2xl bg-surface-2 p-4 text-[15px] font-medium leading-relaxed">{study.result}</p>
-            <ul className="mt-6 flex flex-wrap gap-2" aria-label="Stack">
-              {study.stack.map((s) => (
-                <li key={s} className="rounded-full border border-line px-3 py-1 font-mono text-xs text-ink-2">
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </DialogContent>
-        </Dialog>
+        <a
+          href={`/work/${study.id}`}
+          className="mt-6 inline-flex w-fit items-center gap-1.5 rounded-full border border-line-strong bg-surface px-4 py-2 text-sm font-medium transition-colors hover:border-ink-3"
+        >
+          Read the case <ArrowUpRight size={15} />
+        </a>
       </article>
     </Reveal>
   );

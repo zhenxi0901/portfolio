@@ -11,6 +11,7 @@ import { SystemMap } from "@/components/ai/system-map";
 import { InfraStack } from "@/components/ai/infra-stack";
 import { RequestTrace } from "@/components/ai/request-trace";
 import { Measures } from "@/components/ai/measures";
+import { useHashTab } from "@/lib/use-hash-tab";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -20,11 +21,14 @@ const TABS = [
   { id: "measure", label: "What I measure" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
+const TAB_IDS = TABS.map((t) => t.id);
 
 const AGENT_ICON = { operator: Robot, documents: FileMagnifyingGlass } as const;
 
 export function AiInfra() {
   const [tab, setTab] = useState<Tab>("map");
+  // Other pages link straight to a tab: /#ai-trace.
+  useHashTab("ai", TAB_IDS, setTab);
   const tone = productTone.ai;
 
   return (

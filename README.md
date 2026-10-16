@@ -20,6 +20,11 @@ final-year project at NTU.
 | ![A Langfuse-style trace of one agent request](docs/screenshots/request-trace.webp) | ![The cost review as seven moves](docs/screenshots/cost-review.webp) |
 | **Inside one request**: where an agent answer's time and tokens go. | **Cost review**: a ~15% cut in seven moves, each with its before and after and the trade-off on record. |
 
+Each of the five pieces of work also has its own page (`/work/<case>`), and the things that went wrong while
+building and running this site are written up as **blameless postmortems** (`/postmortems/<slug>`): impact,
+timeline, root cause, detection and action items, with times and counts taken from the commits, the CI history
+and Cloud Run's request logs.
+
 ```
 Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_next/*, /img/*)
                                     └──> JSON API               (/api/status, /api/ask, /api/contact)
@@ -32,7 +37,7 @@ Terraform ──> Cloud Run, Artifact Registry, Secret Manager, keyless GitHub O
 
 | Area | Highlights |
 |---|---|
-| **Front end** (`web/`) | Next.js 16, React 19, Tailwind CSS v4, Motion, three.js via react-three-fiber. An interactive 3D "service mesh" hero; five playable case studies (pipeline gates with an approval step, a Kafka topic reaper, a ZooKeeper quorum alert, GKE pod and node autoscaling across zones); **Inside the IoT platform** (hop-by-hop traffic paths and tunnels; SLIs, SLOs and error budgets on a Grafana-style board with a replayable incident; a cause-alert playground for eight failure modes; the investigation route and runbook; a seven-move cost review); **the AI agent platform** (an animated system map with five request journeys and a "what I own" lens, the AI infrastructure stack layer by layer, a Langfuse-style request trace, what I measure on an LLM service); **research** (FYP charts, a prefix-cache explainer, the GPU-over-SSH setup); a trace of the visitor's own page load; a ⌘K command palette that searches by topic; dock navigation; light and dark themes. Content renders without JavaScript; motion respects `prefers-reduced-motion`. |
+| **Front end** (`web/`) | Next.js 16, React 19, Tailwind CSS v4, Motion, three.js via react-three-fiber. An interactive 3D "service mesh" hero, loaded only on screens 768 px and wider once the browser is idle, with a static version for phones (Lighthouse on a phone profile: performance 90+, accessibility 100); five playable case studies (pipeline gates with an approval step, a Kafka topic reaper, a ZooKeeper quorum alert, GKE pod and node autoscaling across zones); **Inside the IoT platform** (hop-by-hop traffic paths and tunnels; SLIs, SLOs and error budgets on a Grafana-style board with a replayable incident; a cause-alert playground for eight failure modes; the investigation route and runbook; a seven-move cost review); **the AI agent platform** (an animated system map with five request journeys and a "what I own" lens, the AI infrastructure stack layer by layer, a Langfuse-style request trace, what I measure on an LLM service); **research** (FYP charts, a prefix-cache explainer, the GPU-over-SSH setup); a page per case study and three postmortems from running this site, with a sitemap; a trace of the visitor's own page load; a ⌘K command palette that searches by topic and reaches every page; dock navigation; light and dark themes. Content renders without JavaScript; motion respects `prefers-reduced-motion`. |
 | **Back end** (`api/`) | Go 1.27, standard library `net/http`. Serves the static export with immutable caching and build-time brotli/gzip (no per-request compression CPU), plus `/api/status` (live uptime and latency percentiles), `/api/ask` (BM25 retrieval over the site's own facts, optional LLM on top, cached, rate limited, prompt-injection fenced), `/api/contact` (validation, honeypot, rate limit, delivery to a Discord or Slack webhook before the visitor is told it was sent). `Server-Timing` on every response (server time, Cloud Run revision, and process age on an instance's first visitor request, which the page uses to say "you woke this server up"). CSP and security headers, request IDs, structured logs, graceful shutdown. |
 | **Reliability** | Prometheus metrics with bounded route labels, SLO recording rules and multi-window burn-rate alerts (`deploy/prometheus/rules.yml`), a provisioned Grafana dashboard (`deploy/grafana`). |
 | **Delivery** | Multi-stage Dockerfile to a 30 MB distroless, non-root image. GitHub Actions: lint, typecheck, build, `go vet`, race-detector tests, a TypeScript/Go parity check, container smoke test and a CRITICAL-CVE gate. Deploys promote the exact image digest, keyless via Workload Identity Federation. |
@@ -40,7 +45,7 @@ Terraform ──> Cloud Run, Artifact Registry, Secret Manager, keyless GitHub O
 
 Every number on the site traces to the CV, Primustech's PR history, the platforms' own docs or the FYP report.
 Where the site shows sample data (the SLO board, whose objectives are still proposals, and the request trace),
-the page says so. Content lives in `web/src/content/` (`profile.ts`, `products.ts`, `ai-platform.ts`, `slo.ts`), and
+the page says so. Content lives in `web/src/content/` (`profile.ts`, `products.ts`, `ai-platform.ts`, `slo.ts`, `postmortems.ts`), and
 `/knowledge.json`, which the Ask console reads, is generated from it at build time.
 
 ## Run it
@@ -104,7 +109,9 @@ deploy finishes by running `scripts/smoke.sh` against the live URL.
 ### Contact form messages
 
 On Cloud Run the container's disk is scratch space, so messages are delivered to a Discord (or Slack) webhook
-before the visitor is told they were sent; if delivery fails, the form asks them to email instead. Terraform
+before the visitor is told they were sent; if delivery fails, the form asks them to email instead. On Cloud Run
+a missing webhook is refused outright (503) rather than reported as sent; set `CONTACT_REQUIRE_WEBHOOK=false`
+to opt out. Why: see the contact-form postmortem on the site. Terraform
 creates an empty `portfolio-contact-webhook` secret. Add the webhook URL as a version (it is read from the
 terminal, so it never lands in shell history or Terraform state), then turn forwarding on:
 
