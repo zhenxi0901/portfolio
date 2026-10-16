@@ -19,11 +19,8 @@ final-year project at NTU.
 | **Follow a request** through the AI agent platform: agents, RAG, GPU reranker, models, traces, and which parts are mine. | **SLOs and error budgets** for the IoT platform, with multi-window burn-rate alerts and a replayable incident. |
 | ![A Langfuse-style trace of one agent request](docs/screenshots/request-trace.webp) | ![The cost review as seven moves](docs/screenshots/cost-review.webp) |
 | **Inside one request**: where an agent answer's time and tokens go. | **Cost review**: a ~15% cut in seven moves, each with its before and after and the trade-off on record. |
-
-Each of the five pieces of work also has its own page (`/work/<case>`), and the things that went wrong while
-building and running this site are written up as **blameless postmortems** (`/postmortems/<slug>`): impact,
-timeline, root cause, detection and action items, with times and counts taken from the commits, the CI history
-and Cloud Run's request logs.
+| [![A case study page: the numbers, then the working model](docs/screenshots/case-page.webp)](https://portfolio-emsghin2iq-as.a.run.app/work/reaper) | [![A postmortem page: impact in numbers, then the write-up](docs/screenshots/postmortem.webp)](https://portfolio-emsghin2iq-as.a.run.app/postmortems/contact-form) |
+| **A page per case study** (`/work/<case>`): the numbers, the same working model, the full write-up, and links into the deeper sections. | **Postmortems** (`/postmortems/<slug>`): blameless write-ups of what went wrong running this site, with times and counts from the commits, the CI history and Cloud Run's request logs. |
 
 ```
 Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_next/*, /img/*)

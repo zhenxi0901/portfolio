@@ -36,7 +36,8 @@ export function StatRow({ stats }: { stats: { value: string; label: string }[] }
   return (
     <dl className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3">
       {stats.map((s) => (
-        <div key={s.label} className="flex flex-col-reverse rounded-3xl border border-line bg-surface p-5">
+        // Reversed so the label follows the value visually; justify-end keeps every value on the top line.
+        <div key={s.label} className="flex flex-col-reverse justify-end rounded-3xl border border-line bg-surface p-5">
           <dt className="mt-1 text-sm leading-snug text-ink-2">{s.label}</dt>
           <dd className="text-3xl font-semibold tracking-[-0.03em]">{s.value}</dd>
         </div>
