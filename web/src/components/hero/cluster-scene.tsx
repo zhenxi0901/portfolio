@@ -8,30 +8,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { scrollToId } from "@/lib/utils";
+import { HUBS } from "@/components/hero/hubs";
 
 /**
  * A small "service mesh": hubs are systems ZhenXi has run or built, pods hang off them,
  * and packets travel the edges like requests. Click a hub to jump to the matching work.
  */
 
-type Hub = { label: string; target: string };
-
-const HUBS: Hub[] = [
-  { label: "GKE", target: "case-gke" },
-  { label: "Terraform", target: "case-gke" },
-  { label: "Kafka", target: "case-reaper" },
-  { label: "Cloud Build", target: "case-pipeline" },
-  { label: "Grafana", target: "case-observability" },
-  { label: "Prometheus", target: "case-observability" },
-  { label: "Cloud Run", target: "case-ai-platform" },
-  { label: "Vertex AI", target: "case-ai-platform" },
-  { label: "SGLang", target: "research" },
-  { label: "A100", target: "research" },
-  { label: "ARIES", target: "research" },
-  { label: "PVChat", target: "research" },
-  { label: "SCADA", target: "experience" },
-  { label: "MQTT", target: "experience" },
-];
 
 const POD_COUNT = 54;
 const PACKET_COUNT = 30;
@@ -255,7 +238,8 @@ function Mesh({
       const y = ((1 - tmp.w.y) / 2) * size.height;
       const front = THREE.MathUtils.clamp((depth + 2.2) / 4.4, 0, 1);
       el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -170%) scale(${0.82 + front * 0.22})`;
-      el.style.opacity = hovered === i ? "1" : String(0.25 + front * 0.75);
+      // Depth shows in scale; opacity stays high enough that every label keeps readable contrast.
+      el.style.opacity = hovered === i ? "1" : String(0.8 + front * 0.2);
       el.style.zIndex = String(Math.round(front * 100));
     }
   });
@@ -402,7 +386,7 @@ export default function ClusterScene() {
               burstRef.current?.(i);
               window.setTimeout(() => scrollToId(hub.target), reduce ? 0 : 450);
             }}
-            className="pointer-events-auto absolute left-0 top-0 whitespace-nowrap rounded-full border border-line bg-surface/90 px-2.5 py-1 font-mono text-[11px] text-ink-2 opacity-0 shadow-soft backdrop-blur-sm transition-colors hover:border-accent-ink hover:text-ink focus-visible:text-ink"
+            className="pointer-events-auto absolute left-0 top-0 whitespace-nowrap rounded-full border border-line bg-surface/90 px-2.5 py-1 font-mono text-[11px] text-ink opacity-0 shadow-soft backdrop-blur-sm transition-colors hover:border-accent-ink hover:text-ink focus-visible:text-ink"
             aria-label={`${hub.label}: jump to related work`}
           >
             {hub.label}

@@ -145,7 +145,10 @@ html.js [data-reveal]:not([data-shown]) .grow-x { transform: scaleX(0); }
 }
 html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
 
-/* Kinetic name: CSS only, so the headline renders with or without JavaScript. */
+/*
+ * Kinetic name: CSS only, so the headline renders with or without JavaScript. It rises but never
+ * fades: a letter at opacity 0 does not count as painted, which pushed the largest paint back.
+ */
 .kinetic-letter {
   display: inline-block;
   animation: letter-rise 0.9s cubic-bezier(0.2, 0.9, 0.25, 1.15) backwards;
@@ -157,10 +160,24 @@ html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
   color: var(--accent-ink);
 }
 @keyframes letter-rise {
-  from { opacity: 0; transform: translateY(0.6em) rotate(6deg); }
+  from { transform: translateY(0.6em) rotate(6deg); }
 }
 
-/* The hop a request is travelling on the AiBE map. */
+/* The rest of the hero arrives on a timer, not on hydration, so a busy phone still shows it. */
+.hero-in {
+  animation: hero-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) backwards;
+}
+.hero-rise {
+  animation: hero-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) backwards;
+}
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(14px); }
+}
+@keyframes hero-rise {
+  from { transform: translateY(14px); }
+}
+
+/* The hop a request is travelling on the AI platform map. */
 .map-flow {
   stroke-dasharray: 6 6;
   animation: map-flow 0.9s linear infinite;
@@ -169,7 +186,7 @@ html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
   to { stroke-dashoffset: -12; }
 }
 
-/* A step's text on the AiBE map arriving. */
+/* A step's text on the AI platform map arriving. */
 .step-in {
   animation: step-in 0.25s ease-out both;
 }

@@ -55,7 +55,7 @@ export function ConcurrencyChart() {
       </div>
 
       <div className="relative mt-2">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Runs per hour at 1, 2 and 4 concurrent tasks">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="group" aria-label="Runs per hour at 1, 2 and 4 concurrent tasks">
           {[0, 20, 40, 60].map((t) => (
             <g key={t}>
               <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeWidth={1} />
@@ -120,6 +120,7 @@ export function ConcurrencyChart() {
                 onFocus={() => setHover(i)}
                 onBlur={() => setHover(null)}
                 tabIndex={0}
+                role="img"
                 aria-label={`${p.level} at once: ${p.v} runs per hour`}
               />
             </g>

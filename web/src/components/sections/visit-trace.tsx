@@ -90,9 +90,11 @@ function readTrace(): Trace | null {
   });
   spans.push({ label: "Parsing and scripts", start: nav.responseEnd, end: nav.domContentLoadedEventEnd, tone: "page" });
   spans.push({ label: "Fonts, images, the rest", start: nav.domContentLoadedEventEnd, end: nav.loadEventEnd, tone: "page" });
+  // Only on wider screens: phones get a static hero and never load the 3D scene.
   const hero = performance.getEntriesByName("hero-3d-ready")[0]?.startTime;
-  if (hero && hero > nav.domContentLoadedEventEnd) {
-    spans.push({ label: "3D cluster, after first paint", start: nav.domContentLoadedEventEnd, end: hero, tone: "page" });
+  const heroStart = performance.getEntriesByName("hero-3d-start")[0]?.startTime ?? nav.domContentLoadedEventEnd;
+  if (hero && hero > heroStart) {
+    spans.push({ label: "3D cluster, once the page is idle", start: heroStart, end: hero, tone: "page" });
   }
 
   return {
