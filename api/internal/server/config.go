@@ -18,6 +18,9 @@ type Config struct {
 	TrustProxy     bool
 
 	ContactWebhook string
+	// Refuse to report a message as sent when there is no webhook to deliver it to. On by default
+	// on Cloud Run (which sets K_SERVICE), where the local file is per-instance scratch space.
+	ContactRequireWebhook bool
 
 	LLMBaseURL string
 	LLMAPIKey  string
@@ -39,9 +42,11 @@ func ConfigFromEnv() Config {
 		AllowedOrigins: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		TrustProxy:     os.Getenv("TRUST_PROXY") == "true",
 		ContactWebhook: os.Getenv("CONTACT_WEBHOOK_URL"),
-		LLMBaseURL:     strings.TrimRight(os.Getenv("LLM_BASE_URL"), "/"),
-		LLMAPIKey:      os.Getenv("LLM_API_KEY"),
-		LLMModel:       os.Getenv("LLM_MODEL"),
+		ContactRequireWebhook: os.Getenv("CONTACT_REQUIRE_WEBHOOK") == "true" ||
+			(os.Getenv("K_SERVICE") != "" && os.Getenv("CONTACT_REQUIRE_WEBHOOK") != "false"),
+		LLMBaseURL: strings.TrimRight(os.Getenv("LLM_BASE_URL"), "/"),
+		LLMAPIKey:  os.Getenv("LLM_API_KEY"),
+		LLMModel:   os.Getenv("LLM_MODEL"),
 	}
 }
 

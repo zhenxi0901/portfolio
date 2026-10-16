@@ -24,6 +24,8 @@ const questions = [
   "How does traffic reach the cluster?",
   "What do you monitor?",
   "How does a command reach the HVAC plant?",
+  "Have you written a postmortem?",
+  "Any incidents or outages on this site?",
   "zzqx plorf",
 ];
 

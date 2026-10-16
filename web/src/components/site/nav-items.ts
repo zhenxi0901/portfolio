@@ -13,5 +13,10 @@ export const sections = [
   { id: "experience", label: "Experience", keywords: ["jobs", "primustech", "engie", "internship", "education", "ntu"] },
   { id: "ask", label: "Ask me", keywords: ["question", "chat", "search"] },
   { id: "status", label: "Live status", keywords: ["uptime", "latency", "live", "trace", "cold start", "server"] },
+  {
+    id: "postmortems",
+    label: "Postmortems",
+    keywords: ["incident", "outage", "rca", "root cause", "blameless", "near miss", "on-call", "what went wrong"],
+  },
   { id: "contact", label: "Contact", keywords: ["email", "hire", "message", "reach"] },
 ];

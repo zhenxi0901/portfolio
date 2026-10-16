@@ -36,7 +36,7 @@ func webhook(t *testing.T, statuses ...int) (url string, calls *atomic.Int32, bo
 
 func newService(t *testing.T, hook string) *Service {
 	t.Helper()
-	s := NewService(t.TempDir(), hook, metrics.New(prometheus.NewRegistry(), "test", "x"), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	s := NewService(t.TempDir(), hook, false, metrics.New(prometheus.NewRegistry(), "test", "x"), slog.New(slog.NewTextHandler(io.Discard, nil)))
 	s.retryWait = time.Millisecond
 	return s
 }
@@ -94,6 +94,23 @@ func TestReportsUndeliveredMessages(t *testing.T) {
 func TestNoWebhookStillAccepts(t *testing.T) {
 	if rec := send(newService(t, ""), valid); rec.Code != http.StatusAccepted {
 		t.Errorf("status %d, want 202", rec.Code)
+	}
+}
+
+// Where the webhook is required (Cloud Run), a missing one must never produce "sent".
+func TestRequiredWebhookMissingRefuses(t *testing.T) {
+	s := newService(t, "")
+	s.requireWebhook = true
+	rec := send(s, valid)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status %d, want 503", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "\"ok\"") {
+		t.Errorf("body claims success: %s", rec.Body.String())
+	}
+	// Validation still runs first, so bad input is a 400 and the smoke test's check holds.
+	if rec := send(s, `{"name":"","email":"x","message":""}`); rec.Code != http.StatusBadRequest {
+		t.Errorf("bad input: status %d, want 400", rec.Code)
 	}
 }
 

@@ -30,20 +30,24 @@ const (
 
 // Service appends messages to a JSONL file and, if configured, forwards them to a chat webhook.
 // No IP address is stored. On Cloud Run the file is per-instance scratch space, so the webhook
-// is the durable channel there.
+// is the durable channel there, and requireWebhook stops the form saying "sent" without one.
 type Service struct {
-	dir       string
-	webhook   string
-	m         *metrics.Metrics
-	log       *slog.Logger
-	mu        sync.Mutex
-	client    *http.Client
-	retryWait time.Duration
+	dir            string
+	webhook        string
+	requireWebhook bool
+	m              *metrics.Metrics
+	log            *slog.Logger
+	mu             sync.Mutex
+	client         *http.Client
+	retryWait      time.Duration
 }
 
-func NewService(dir, webhook string, m *metrics.Metrics, log *slog.Logger) *Service {
+func NewService(dir, webhook string, requireWebhook bool, m *metrics.Metrics, log *slog.Logger) *Service {
+	if webhook == "" && requireWebhook {
+		log.Error("contact: no webhook configured; the form will ask visitors to email instead")
+	}
 	return &Service{
-		dir: dir, webhook: webhook, m: m, log: log,
+		dir: dir, webhook: webhook, requireWebhook: requireWebhook, m: m, log: log,
 		client:    &http.Client{Timeout: attemptTimeout},
 		retryWait: 300 * time.Millisecond,
 	}
@@ -81,6 +85,12 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	if problem := validate(msg); problem != "" {
 		s.reply(w, http.StatusBadRequest, "invalid", map[string]any{"error": problem})
+		return
+	}
+	// Without a webhook the message would only reach this instance's disk. Where that disk is
+	// thrown away, say so rather than "sent" (see the contact-form postmortem on the site).
+	if s.webhook == "" && s.requireWebhook {
+		s.reply(w, http.StatusServiceUnavailable, "undelivered", map[string]any{"error": "Messages can't be delivered right now."})
 		return
 	}
 	if err := s.store(msg); err != nil {

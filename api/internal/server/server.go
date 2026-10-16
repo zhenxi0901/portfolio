@@ -52,7 +52,7 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 		metrics: m,
 		reg:     reg,
 		ask:     ask.NewService(facts, llm, m, log),
-		contact: contact.NewService(cfg.DataDir, cfg.ContactWebhook, m, log),
+		contact: contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log),
 		started: time.Now(),
 	}, nil
 }
