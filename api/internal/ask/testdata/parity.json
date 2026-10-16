@@ -134,6 +134,21 @@
     ]
   },
   {
+    "question": "Have you written a postmortem?",
+    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 36 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. The health check that only worked from inside: Cloud Run's front end answers some paths ending in “z” itself, so /healthz returned 404 to every outside check while the app was healthy.",
+    "sources": [
+      "postmortems"
+    ]
+  },
+  {
+    "question": "Any incidents or outages on this site?",
+    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 36 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. A failing check on a healthy site: The smoke test reported /metrics as broken while Cloud Run's logs showed every /metrics request returning 200.",
+    "sources": [
+      "postmortems",
+      "site"
+    ]
+  },
+  {
     "question": "zzqx plorf",
     "answer": "I couldn't find that in what this site knows. Try asking about Primustech, the GKE migration, the cloud bill, the final-year project or the ICCV paper.",
     "sources": []

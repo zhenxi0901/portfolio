@@ -29,6 +29,10 @@ func newStaticSite(t *testing.T) http.Handler {
 	write("_next/static/old.js", "old")
 	write("_next/static/old.js.gz", "old-gz")
 	write("img/photo.jpg", "jpg")
+	// A nested page: the export writes the page beside a folder of the same name.
+	write("postmortems/healthz.html", "pm")
+	write("postmortems/healthz.html.br", "pm-br")
+	write("postmortems/healthz/__next._tree.txt", "tree")
 	return staticHandler(site)
 }
 
@@ -57,6 +61,8 @@ func TestStaticServesPrecompressedVariants(t *testing.T) {
 		{"falls back to the variant that exists", "/_next/static/old.js", "br, gzip", "old-gz", "gzip"},
 		{"home page", "/", "br", "home-br", "br"},
 		{"binary files are never varied", "/img/photo.jpg", "br, gzip", "jpg", ""},
+		{"nested page, not its folder", "/postmortems/healthz", "br", "pm-br", "br"},
+		{"nested page without compression", "/postmortems/healthz", "", "pm", ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

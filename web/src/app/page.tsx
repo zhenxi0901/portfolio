@@ -11,6 +11,7 @@ import { StackMarquee } from "@/components/sections/stack-marquee";
 import { Experience } from "@/components/sections/experience";
 import { Ask } from "@/components/sections/ask";
 import { Status } from "@/components/sections/status";
+import { Postmortems } from "@/components/sections/postmortems";
 import { Contact } from "@/components/sections/contact";
 
 export default function Home() {
@@ -34,6 +35,7 @@ export default function Home() {
         <Experience />
         <Ask />
         <Status />
+        <Postmortems />
         <Contact />
       </main>
       <Footer />

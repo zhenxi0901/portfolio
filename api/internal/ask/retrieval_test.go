@@ -28,6 +28,8 @@ func TestRetrieveRanksTheRightFact(t *testing.T) {
 		{"How does traffic reach the cluster?", "path-user", "load balancer"},
 		{"What do you monitor?", "monitoring", "silence"},
 		{"How does a command reach the HVAC plant?", "path-command", "RPC"},
+		{"Have you written a postmortem?", "postmortems", "postmortem"},
+		{"Any incidents or outages on this site?", "postmortems", "postmortem"},
 	}
 	fs := facts(t)
 	for _, c := range cases {
