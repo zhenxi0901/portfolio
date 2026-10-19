@@ -7,9 +7,13 @@
 // Definitions (DORA's four keys, as applied here):
 //   deploys              successful runs of deploy.yml in the window
 //   lead time            commit time to the end of the first successful deploy that contains it
-//   change failure rate  deploy runs (and earlier attempts of re-run ones) that failed after
-//                        reaching Cloud Run, out of all that reached it; null when none did
-//   time to restore      for each failed deploy, time until the next successful one
+//   change failure rate  deploy runs (and earlier attempts of re-run ones) that failed after their
+//                        revision took traffic, out of all whose revision took traffic; null when none
+//   time to restore      for a failed deploy that rolled itself back, traffic switch to rollback;
+//                        otherwise, time until the next successful deploy
+// Also counted: releases stopped before taking traffic (the candidate failed its checks), releases
+// held by the error-budget gate, and rollback drills, which are rehearsals and never count as
+// failed changes.
 import { mkdir, writeFile } from "node:fs/promises";
 
 const REPO = process.env.GITHUB_REPOSITORY ?? "zhenxi0901/portfolio";
@@ -64,30 +68,57 @@ const candidates = (await all(`/actions/workflows/deploy.yml/runs?created=>=${si
     started: new Date(r.run_started_at ?? r.created_at),
     ended: new Date(r.updated_at),
     url: r.html_url,
+    drill: r.display_title === "Rollback drill",
   }));
 
-// A failed run only counts if it got as far as changing production: the deploy step succeeded and
-// a later step (the live verification) failed. A run that failed while building changed nothing.
-// (The step was renamed when deploys started promoting CI's image; both names count.)
-const DEPLOY_STEPS = new Set(["Deploy the exact digest that was built", "Deploy the digest CI tested"]);
-const reachedProduction = async (jobsPath) => {
+// What a run did to production, from its steps. A revision "took traffic" when the step that sends
+// users to it succeeded; earlier deploys switched traffic in the deploy step itself (both of the
+// older names). A run that failed before that point changed nothing users could see.
+const TRAFFIC_STEPS = new Set(["Deploy the exact digest that was built", "Deploy the digest CI tested", "Send traffic to the new revision"]);
+const step = (jobs, name) => jobs.flatMap((j) => j.steps ?? []).find((st) => st.name === name);
+async function inspect(jobsPath) {
   const { jobs } = await gh(jobsPath);
-  return jobs.some((j) => j.steps?.some((st) => DEPLOY_STEPS.has(st.name) && st.conclusion === "success"));
-};
+  const all = jobs.flatMap((j) => j.steps ?? []);
+  const traffic = all.find((st) => TRAFFIC_STEPS.has(st.name) && st.conclusion === "success");
+  const rollback = step(jobs, "Roll back to the previous revision");
+  const rolledBack = rollback?.conclusion === "success";
+  return {
+    tookTraffic: Boolean(traffic),
+    rolledBack,
+    restoreMs: rolledBack && traffic ? Date.parse(rollback.completed_at) - Date.parse(traffic.completed_at) : null,
+    stoppedBeforeTraffic: step(jobs, "Check the new revision before it takes traffic")?.conclusion === "failure",
+    heldByBudget: step(jobs, "Check the error budget")?.conclusion === "failure",
+  };
+}
+
 const runs = [];
+const drills = [];
+let stoppedBeforeTraffic = 0;
+let heldByBudget = 0;
+async function record(r, jobsPath) {
+  if (r.ok && !r.drill) return runs.push(r);
+  const s = await inspect(jobsPath);
+  if (r.drill) {
+    if (s.rolledBack) drills.push({ ended: r.ended, restoreSeconds: Math.round(s.restoreMs / 1000), url: r.url });
+    return;
+  }
+  if (s.stoppedBeforeTraffic) stoppedBeforeTraffic++;
+  if (s.heldByBudget) heldByBudget++;
+  if (s.tookTraffic) runs.push({ ...r, ok: false, restoreMs: s.restoreMs });
+}
 for (const r of candidates) {
-  if (r.ok) runs.push(r);
-  else if (await reachedProduction(`/actions/runs/${r.id}/jobs`)) runs.push(r);
-  // A run that was re-run only shows its latest attempt; earlier attempts that failed after
-  // deploying were failed changes too.
+  await record(r, `/actions/runs/${r.id}/jobs`);
+  // A run that was re-run only shows its latest attempt; earlier attempts that failed after their
+  // revision took traffic were failed changes too.
   for (let n = 1; n < r.attempt; n++) {
     const a = await gh(`/actions/runs/${r.id}/attempts/${n}`);
-    if (a.conclusion === "failure" && (await reachedProduction(`/actions/runs/${r.id}/attempts/${n}/jobs`))) {
-      runs.push({ ...r, ok: false, ended: new Date(a.updated_at), started: new Date(a.run_started_at ?? a.created_at) });
-    }
+    if (a.conclusion !== "failure") continue;
+    const attempt = { ...r, ok: false, ended: new Date(a.updated_at), started: new Date(a.run_started_at ?? a.created_at) };
+    await record(attempt, `/actions/runs/${r.id}/attempts/${n}/jobs`);
   }
 }
 runs.sort((a, b) => a.ended - b.ended);
+drills.sort((a, b) => a.ended - b.ended);
 
 // Every successful deploy counts, including a redeploy of an older commit.
 const deploys = runs.filter((r) => r.ok);
@@ -104,11 +135,14 @@ for (const c of commits) {
   leadBySha.set(c.sha, m);
 }
 
-// Failures and recovery: a failed run, then the next successful one.
+// Failures and recovery: an automatic rollback if there was one, else the next successful deploy.
 const failed = runs.filter((r) => !r.ok);
 const restoreMinutes = failed
-  .map((f) => deploys.find((d) => d.ended > f.ended))
-  .map((d, k) => (d ? (d.ended - failed[k].ended) / 6e4 : null))
+  .map((f) => {
+    if (f.restoreMs != null) return f.restoreMs / 6e4;
+    const next = deploys.find((d) => d.ended > f.ended);
+    return next ? (next.ended - f.ended) / 6e4 : null;
+  })
   .filter((m) => m !== null);
 
 // Calendar days in Singapore time (UTC+8), the oldest first, ending today.
@@ -137,6 +171,14 @@ const result = {
   failedDeploys: failed.length,
   restoreMinutes: { median: median(restoreMinutes), count: restoreMinutes.length },
   deployMinutes: { median: median(deploys.map((d) => (d.ended - d.started) / 6e4)) },
+  safeguards: {
+    stoppedBeforeTraffic,
+    heldByBudget,
+    rollbacks: failed.filter((f) => f.restoreMs != null).length,
+    lastDrill: drills.length
+      ? { ended: drills.at(-1).ended.toISOString(), restoreSeconds: drills.at(-1).restoreSeconds, url: drills.at(-1).url }
+      : null,
+  },
   perDay,
   recent: deploys
     .slice(-6)

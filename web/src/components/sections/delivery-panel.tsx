@@ -17,6 +17,12 @@ type Delivery = {
   failedDeploys: number;
   restoreMinutes: { median: number | null; count: number };
   deployMinutes: { median: number | null };
+  safeguards: {
+    stoppedBeforeTraffic: number;
+    heldByBudget: number;
+    rollbacks: number;
+    lastDrill: { ended: string; restoreSeconds: number; url: string } | null;
+  };
   perDay: { date: string; deploys: number }[];
   recent: { sha: string; title: string; ended: string; minutes: number; leadMinutes: number | null; url: string }[];
 };
@@ -36,8 +42,11 @@ const asOf = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
 /** DORA's four keys for this site itself, plus the deploy timeline behind them. */
+const count = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
+
 export function DeliveryPanel() {
   const d = delivery;
+  const s = d.safeguards;
   const peak = Math.max(1, ...d.perDay.map((x) => x.deploys));
   const tiles = [
     { value: String(d.deploys), label: `deploys to production, on ${d.daysWithDeploys} of ${d.windowDays} days` },
@@ -46,7 +55,7 @@ export function DeliveryPanel() {
       ? { value: "n/a", label: "change failure rate: nothing deployed in the window" }
       : {
           value: `${(d.changeFailureRate * 100).toFixed(0)}%`,
-          label: `change failure rate: ${d.failedDeploys} of ${d.deploys + d.failedDeploys} deploys failed their live checks`,
+          label: `change failure rate: ${d.failedDeploys} of ${d.deploys + d.failedDeploys} deploys failed their live checks after taking traffic`,
         },
     {
       value: d.restoreMinutes.count ? duration(d.restoreMinutes.median) : "n/a",
@@ -76,6 +85,22 @@ export function DeliveryPanel() {
           </div>
         ))}
       </dl>
+
+      <p className="mt-6 rounded-2xl bg-surface-2 px-4 py-3 text-sm leading-relaxed text-ink-2">
+        <span className="font-medium text-ink">Before a release reaches you:</span> {count(s.stoppedBeforeTraffic, "release")} stopped
+        before taking traffic, {count(s.heldByBudget, "release")} held by the error-budget gate, {count(s.rollbacks, "automatic rollback")}.{" "}
+        {s.lastDrill ? (
+          <>
+            Last{" "}
+            <a href={s.lastDrill.url} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-ink">
+              rollback drill
+            </a>
+            , {asOf(s.lastDrill.ended)} UTC: traffic back on the old revision {s.lastDrill.restoreSeconds} s after the switch.
+          </>
+        ) : (
+          "No rollback drill in this window yet."
+        )}
+      </p>
 
       <div className="mt-6">
         <div
@@ -115,8 +140,9 @@ export function DeliveryPanel() {
 
       <p className="mt-4 text-xs leading-relaxed text-ink-3">
         Computed by the pipeline from this repository&apos;s commits and deploy runs as of the time above, before it built the
-        image you are looking at. A deploy counts as failed only if it reached Cloud Run and then failed its live checks. Problems that did not come from
-        a deploy are in the postmortems below.
+        image you are looking at. Each release starts with no traffic and is smoke-tested at its own URL first; a deploy counts as failed only if
+        its revision took traffic and then failed the live checks, and a failure there rolls back on its own. Problems that did not come from a
+        deploy are in the postmortems below.
       </p>
     </div>
   );

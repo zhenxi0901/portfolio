@@ -51,6 +51,26 @@ func TestSummariseBudget(t *testing.T) {
 	if r.Since == nil || !r.Since.Equal(end.Add(-10*day)) {
 		t.Errorf("since %v, want %v", r.Since, end.Add(-10*day))
 	}
+	if r.Releases != ReleasesOpen {
+		t.Errorf("releases %q with budget left, want open", r.Releases)
+	}
+}
+
+func TestSpentBudgetFreezesReleases(t *testing.T) {
+	end := time.Date(2026, 10, 30, 12, 0, 0, 0, time.UTC)
+	days := make([]Day, WindowDays)
+	// One day measured with 5% of checks failing: 72 minutes down, more than the 43.2-minute budget.
+	days[WindowDays-1] = Day{End: end, Checks: 4320, Passed: 4104}
+	r := Summarise(days, end.Add(-day), end)
+	if r.BudgetRemaining > 0 || r.Releases != ReleasesFrozen {
+		t.Errorf("budget remaining %v, releases %q; want spent and frozen", r.BudgetRemaining, r.Releases)
+	}
+	if u := Summarise(make([]Day, WindowDays), time.Time{}, end); u.Releases != ReleasesUnknown {
+		t.Errorf("nothing measured: releases %q, want unknown", u.Releases)
+	}
+	if u := unavailable("down"); u.Releases != ReleasesUnknown {
+		t.Errorf("unavailable: releases %q, want unknown", u.Releases)
+	}
 }
 
 func TestSummariseWithoutData(t *testing.T) {

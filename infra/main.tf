@@ -167,11 +167,14 @@ resource "google_cloud_run_v2_service" "portfolio" {
     }
   }
 
-  # CI deploys new images by digest; Terraform owns everything else. `gcloud run deploy` also
-  # writes a service-level scaling block of zeros (same as unset; the real limits are in
-  # template.scaling), which would otherwise show as drift after every deploy.
+  # The deploy workflow owns the image and the traffic: it starts each revision with no traffic,
+  # checks it, then pins traffic to it (or back to the previous one). Terraform owns everything
+  # else, and because traffic is pinned, a change Terraform makes here goes live with the next
+  # release rather than straight away. `gcloud run deploy` also writes a service-level scaling block
+  # of zeros (same as unset; the real limits are in template.scaling), which would otherwise show as
+  # drift after every deploy.
   lifecycle {
-    ignore_changes = [template[0].containers[0].image, client, client_version, scaling]
+    ignore_changes = [template[0].containers[0].image, client, client_version, scaling, traffic]
   }
   # A revision that reads a secret fails unless the runtime identity can already read it.
   depends_on = [google_project_service.apis, google_secret_manager_secret_iam_member.runtime_reads_contact_webhook]

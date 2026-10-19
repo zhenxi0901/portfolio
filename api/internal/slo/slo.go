@@ -48,7 +48,17 @@ type Report struct {
 	Updated         time.Time  `json:"updated"`
 	// Set when the latest fetch failed and this is the last good report.
 	Stale bool `json:"stale,omitempty"`
+	// The error-budget policy for releases, which the deploy pipeline enforces: "open" while budget
+	// is left, "frozen" once it is spent (only commits marked as reliability fixes ship), "unknown"
+	// when nothing is measured. Unknown does not block: losing the measurement should not stop a fix.
+	Releases string `json:"releases"`
 }
+
+const (
+	ReleasesOpen    = "open"
+	ReleasesFrozen  = "frozen"
+	ReleasesUnknown = "unknown"
+)
 
 // Source returns per-day check counts for the WindowDays days ending at end, oldest first, and
 // when the first check in the window ran (zero if none did).
@@ -130,7 +140,7 @@ func Badge(r Report) ShieldsBadge {
 }
 
 func unavailable(reason string) Report {
-	return Report{Reason: reason, Target: Target, WindowDays: WindowDays, BudgetMinutes: budgetMinutes(), Days: []Day{}}
+	return Report{Reason: reason, Target: Target, WindowDays: WindowDays, BudgetMinutes: budgetMinutes(), Days: []Day{}, Releases: ReleasesUnknown}
 }
 
 func budgetMinutes() float64 { return (1 - Target) * WindowDays * 24 * 60 }
@@ -145,6 +155,7 @@ func Summarise(days []Day, first, now time.Time) Report {
 		BudgetMinutes: budgetMinutes(),
 		Days:          days,
 		Updated:       now.UTC(),
+		Releases:      ReleasesOpen,
 	}
 	for _, d := range days {
 		r.Checks += d.Checks
@@ -153,6 +164,7 @@ func Summarise(days []Day, first, now time.Time) Report {
 	if r.Checks == 0 || first.IsZero() {
 		r.Available = false
 		r.Reason = "No checks recorded yet."
+		r.Releases = ReleasesUnknown
 		return r
 	}
 	since := first.UTC()
@@ -165,5 +177,8 @@ func Summarise(days []Day, first, now time.Time) Report {
 	}
 	r.DowntimeMinutes = failed * measured
 	r.BudgetRemaining = 1 - r.DowntimeMinutes/r.BudgetMinutes
+	if r.BudgetRemaining <= 0 {
+		r.Releases = ReleasesFrozen
+	}
 	return r
 }

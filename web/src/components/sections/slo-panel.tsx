@@ -113,6 +113,21 @@ export function SloPanel() {
             </p>
           </div>
 
+          {r.releases && r.releases !== "unknown" && (
+            <p className="mt-5 flex items-start gap-3 rounded-2xl bg-surface-2 px-4 py-3 text-sm leading-relaxed text-ink-2">
+              <span
+                className={cn("mt-1.5 size-2 shrink-0 rounded-full", r.releases === "open" ? "bg-good" : "bg-critical")}
+                aria-hidden
+              />
+              <span>
+                <span className="font-medium text-ink">Releases {r.releases === "open" ? "open" : "frozen"}.</span>{" "}
+                {r.releases === "open"
+                  ? "Budget is left, so changes ship. If it runs out, the deploy pipeline holds every release that is not marked as a reliability fix."
+                  : "The error budget is spent, so the deploy pipeline holds every release that is not marked as a reliability fix until it recovers."}
+              </span>
+            </p>
+          )}
+
           <p className="mt-4 text-xs leading-relaxed text-ink-3">
             {r.since && `Measured since ${dayTime(r.since)} your time; the 30-day window fills in from there. `}
             Read from Cloud Monitoring by this site&apos;s Go API, cached for five minutes

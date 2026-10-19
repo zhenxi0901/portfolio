@@ -1,18 +1,32 @@
 name: deploy
+run-name: ${{ inputs.rollback_drill && 'Rollback drill' || '' }}
 
-# Promotes the image CI built and tested for a commit on main to Cloud Run, by digest. Nothing is
-# built here. Keyless: GitHub OIDC -> Workload Identity Federation.
-# Needs repository variables GCP_PROJECT, GCP_REGION, WIF_PROVIDER, DEPLOYER_SA (from `terraform output`).
+# Releases the image CI built, tested and attested for a commit on main. Nothing is built here.
+#   1. Find that image by its commit, and refuse it unless its provenance and SBOM attestations
+#      verify as made by this repository's CI.
+#   2. Hold the release if the site's own error budget is spent (scripts/budget-gate.sh).
+#   3. Start the new revision with no traffic and smoke-test it at its own URL.
+#   4. Move all traffic to it and check again; if the live checks fail, move traffic back.
+# Keyless: GitHub OIDC -> Workload Identity Federation. Needs repository variables GCP_REGION and
+# WIF_PROVIDER, and secrets GCP_PROJECT and DEPLOYER_SA (secrets, so logs mask them).
 on:
   workflow_run:
     workflows: [ci]
     branches: [main]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      rollback_drill:
+        description: Rollback drill. Release main's head as usual, then fail the live check on purpose so the automatic rollback runs.
+        type: boolean
+        default: false
+      budget_override:
+        description: Release even if the error budget is spent. Say why; the reason goes in the run summary.
+        type: string
+        default: ""
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: deploy-production
@@ -21,45 +35,187 @@ concurrency:
 jobs:
   deploy:
     # A push to main in this repository whose CI passed. The branch filter alone is not enough: it
-    # also matches a pull request from a fork whose own branch is called main. A manual run deploys
+    # also matches a pull request from a fork whose own branch is called main. A manual run releases
     # main's head, and only if CI has already pushed a tested image for it (checked below).
     if: >-
-      vars.GCP_PROJECT != '' && (
+      vars.GCP_REGION != '' && (
         github.event_name == 'workflow_dispatch' || (
           github.event.workflow_run.conclusion == 'success' &&
           github.event.workflow_run.event == 'push' &&
           github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      contents: read
+      id-token: write
+      attestations: read
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     env:
-      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/portfolio/site
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: portfolio
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/portfolio/site
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
+      # The default branch's scripts, never the triggering ref's: this job holds deploy credentials.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with: { ref: "${{ env.SHA }}" }
+        with: { persist-credentials: false }
       - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.DEPLOYER_SA }}
+          service_account: ${{ secrets.DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+
       - name: Find the image CI tested
         id: image
         run: |
           digest=$(gcloud artifacts docker images describe "$IMAGE:$SHA" --format='value(image_summary.digest)' 2>/dev/null) || true
           if [ -z "$digest" ]; then
-            echo "::error::No image for $SHA. CI pushes one only after every check passes; there is nothing tested to deploy."
+            echo "::error::No image for $SHA. CI pushes one only after every check passes; there is nothing tested to release."
             exit 1
           fi
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
-      - name: Deploy the digest CI tested
+
+      - name: Check the image's provenance and SBOM
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DIGEST: ${{ steps.image.outputs.digest }}
         run: |
-          gcloud run deploy portfolio \
-            --region ${{ vars.GCP_REGION }} \
-            --image "$IMAGE@${{ steps.image.outputs.digest }}" \
-            --quiet
-      - name: Verify
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          for type in https://slsa.dev/provenance/v1 https://spdx.dev/Document/v2.3; do
+            gh attestation verify "oci://$IMAGE@$DIGEST" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" --predicate-type "$type"
+          done
+
+      - name: Check the error budget
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OVERRIDE: ${{ inputs.budget_override }}
         run: |
-          URL=$(gcloud run services describe portfolio --region ${{ vars.GCP_REGION }} --format 'value(status.url)')
-          curl -fsS "$URL/api/health"
-          curl -fsS "$URL/api/status" | grep "${SHA:0:7}" >/dev/null
+          url=$(gcloud run services describe "$SERVICE" --region "$REGION" --format 'value(status.url)')
+          COMMIT_MESSAGE=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA" --jq .commit.message) \
+            bash scripts/budget-gate.sh "$url"
+
+      - name: Note the revision serving now
+        id: before
+        run: |
+          rev=$(gcloud run services describe "$SERVICE" --region "$REGION" --format=json |
+            jq -r '[.status.traffic[] | select(.percent == 100)][0].revisionName // empty')
+          echo "revision=$rev" >> "$GITHUB_OUTPUT"
+          echo "Serving now: ${rev:-unknown}"
+
+      - name: Start the new revision with no traffic
+        id: candidate
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          gcloud run deploy "$SERVICE" --region "$REGION" --image "$IMAGE@$DIGEST" --no-traffic --tag candidate --quiet
+          desc=$(gcloud run services describe "$SERVICE" --region "$REGION" --format=json)
+          echo "revision=$(jq -r .status.latestCreatedRevisionName <<<"$desc")" >> "$GITHUB_OUTPUT"
+          echo "url=$(jq -r '.status.traffic[] | select(.tag == "candidate") | .url' <<<"$desc")" >> "$GITHUB_OUTPUT"
+
+      - name: Check the new revision before it takes traffic
+        env:
+          URL: ${{ steps.candidate.outputs.url }}
+        run: |
+          for _ in $(seq 1 20); do curl -fsS "$URL/api/health" && break; sleep 2; done
+          status=$(curl -fsS "$URL/api/status")
+          grep -F "\"commit\":\"${SHA:0:7}\"" <<<"$status" >/dev/null || { echo "::error::The candidate is not serving ${SHA:0:7}"; exit 1; }
           bash scripts/smoke.sh "$URL"
+
+      - name: Send traffic to the new revision
+        id: switch
+        env:
+          NEW: ${{ steps.candidate.outputs.revision }}
+        run: gcloud run services update-traffic "$SERVICE" --region "$REGION" --to-revisions "$NEW=100" --quiet
+
+      - name: Verify
+        env:
+          DRILL: ${{ inputs.rollback_drill }}
+        run: |
+          url=$(gcloud run services describe "$SERVICE" --region "$REGION" --format 'value(status.url)')
+          curl -fsS "$url/api/health"
+          status=$(curl -fsS "$url/api/status")
+          grep -F "\"commit\":\"${SHA:0:7}\"" <<<"$status" >/dev/null || { echo "::error::The live site is not serving ${SHA:0:7}"; exit 1; }
+          bash scripts/smoke.sh "$url"
+          if [ "$DRILL" = "true" ]; then
+            echo "::warning::Rollback drill: failing the live check on purpose."
+            exit 1
+          fi
+
+      # Mitigate first: put traffic back on the revision that was serving, then confirm it answers.
+      - name: Roll back to the previous revision
+        id: rollback
+        if: failure() && steps.switch.outcome == 'success' && steps.before.outputs.revision != ''
+        env:
+          PREV: ${{ steps.before.outputs.revision }}
+          DRILL: ${{ inputs.rollback_drill }}
+        run: |
+          gcloud run services update-traffic "$SERVICE" --region "$REGION" --to-revisions "$PREV=100" --quiet
+          url=$(gcloud run services describe "$SERVICE" --region "$REGION" --format 'value(status.url)')
+          for _ in $(seq 1 15); do
+            timing=$(curl -fsS -o /dev/null -D - "$url/api/health" | grep -i '^server-timing:' || true)
+            grep -F "\"$PREV\"" <<<"$timing" >/dev/null && break
+            sleep 2
+          done
+          grep -F "\"$PREV\"" <<<"$timing" >/dev/null || { echo "::error::Traffic did not return to $PREV"; exit 1; }
+          if [ "$DRILL" = "true" ]; then
+            echo "::notice::Rollback drill passed: traffic is back on $PREV."
+            echo "**Rollback drill passed.** Traffic went to the new revision, the live check failed on purpose, and traffic is back on \`$PREV\`." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::The new revision failed its live checks; traffic is back on $PREV."
+          fi
+
+      - name: Take the candidate tag off a revision that failed
+        if: failure() && steps.candidate.outcome == 'success'
+        run: gcloud run services update-traffic "$SERVICE" --region "$REGION" --remove-tags candidate --quiet
+
+  # Every release is a GitHub release: the commits it shipped, the image digest, and the SBOM and
+  # provenance CI attested for it. Separate from the deploy job, which never gets write access here.
+  release:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the tag and the release
+      actions: read # fetch the SBOM and provenance from CI's run
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      DIGEST: ${{ needs.deploy.outputs.digest }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Publish the release
+        run: |
+          prev=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')
+          prev_sha=""
+          if [ -n "$prev" ]; then
+            prev_sha=$(gh api "repos/$GH_REPO/commits/$prev" --jq .sha)
+          fi
+          if [ "$prev_sha" = "$SHA" ]; then
+            echo "$SHA is already released as $prev"
+            exit 0
+          fi
+          tag="v$(date -u +%Y.%m.%d).$GITHUB_RUN_NUMBER"
+          {
+            echo "Released to production by [this deploy]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)."
+            echo
+            if [ -n "$prev_sha" ]; then
+              echo "## Changes since $prev"
+              gh api "repos/$GH_REPO/compare/$prev_sha...$SHA" \
+                --jq '.commits[] | "- " + (.commit.message | split("\n")[0]) + " (" + .sha[0:7] + ")"'
+            else
+              echo "## Changes"
+              gh api "repos/$GH_REPO/commits/$SHA" --jq '"- " + (.commit.message | split("\n")[0]) + " (" + .sha[0:7] + ")"'
+            fi
+            echo
+            echo "## Image"
+            echo "Digest \`$DIGEST\`, built once by CI and released without a rebuild. The SBOM and the"
+            echo "provenance bundle below are the ones CI attested; check the image with"
+            echo "\`gh attestation verify oci://<image>@$DIGEST --repo $GH_REPO\`."
+          } > notes.md
+          ci=$(gh run list --workflow ci.yml --commit "$SHA" --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          assets=()
+          if [ -n "$ci" ] && gh run download "$ci" --name release-evidence --dir evidence; then
+            assets=(evidence/*)
+          fi
+          gh release create "$tag" --target "$SHA" --title "$tag" --notes-file notes.md "${assets[@]}"

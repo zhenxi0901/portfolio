@@ -33,6 +33,8 @@ export type SloReport = {
   days: { end: string; checks: number; passed: number }[];
   updated: string;
   stale?: boolean;
+  /** The error-budget policy the deploy pipeline enforces (scripts/budget-gate.sh). */
+  releases?: "open" | "frozen" | "unknown";
 };
 
 /** The OpenTelemetry spans of one Ask request (see api/internal/tracing). */
