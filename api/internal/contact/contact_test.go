@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -161,5 +163,75 @@ func TestDeliveryErrorsDoNotLeakTheWebhookURL(t *testing.T) {
 	}
 	if strings.Contains(err.Error(), "SECRET-TOKEN") || strings.Contains(err.Error(), "webhooks") {
 		t.Errorf("error leaks the URL: %v", err)
+	}
+}
+
+func sendWith(s *Service, body, token string) *httptest.ResponseRecorder {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(body))
+	if token != "" {
+		req.Header.Set(SyntheticHeader, token)
+	}
+	s.Handle(rec, req)
+	return rec
+}
+
+func stored(t *testing.T, s *Service) bool {
+	t.Helper()
+	_, err := os.Stat(filepath.Join(s.dir, "messages.jsonl"))
+	return err == nil
+}
+
+// The scheduled check goes through validation, the webhook and the reply like a visitor's message,
+// but is marked, carries none of its own text to the receiver, and is not kept.
+func TestSyntheticCheckIsDeliveredMarkedAndNotStored(t *testing.T) {
+	url, calls, bodies := webhook(t, http.StatusNoContent)
+	s := newService(t, url).WithSyntheticToken("s3cret")
+	if rec := sendWith(s, valid, "s3cret"); rec.Code != http.StatusAccepted {
+		t.Fatalf("status %d, want 202", rec.Code)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("webhook called %d times, want 1", calls.Load())
+	}
+	if b := <-bodies; !strings.Contains(b, "Synthetic check") || strings.Contains(b, "Mei Ling") {
+		t.Errorf("want a marked check without the message text, got %s", b)
+	}
+	if stored(t, s) {
+		t.Error("a synthetic check must not be stored as a message")
+	}
+}
+
+// Only the right token marks a check. Anything else is a visitor's message and is treated as one.
+func TestSyntheticTokenMustMatch(t *testing.T) {
+	for name, s := range map[string]func(string) *Service{
+		"wrong token":   func(u string) *Service { return newService(t, u).WithSyntheticToken("s3cret") },
+		"none set here": func(u string) *Service { return newService(t, u) },
+	} {
+		url, _, bodies := webhook(t, http.StatusNoContent)
+		svc := s(url)
+		if rec := sendWith(svc, valid, "guess"); rec.Code != http.StatusAccepted {
+			t.Fatalf("%s: status %d, want 202", name, rec.Code)
+		}
+		if b := <-bodies; !strings.Contains(b, "Mei Ling") {
+			t.Errorf("%s: a visitor's message lost its text: %s", name, b)
+		}
+		if !stored(t, svc) {
+			t.Errorf("%s: a visitor's message was not stored", name)
+		}
+	}
+}
+
+func TestSyntheticDiscordPayloadIsSilent(t *testing.T) {
+	m := Message{Name: "Synthetic check", Email: "check@example.com", Message: "scheduled check", Synthetic: true}
+	raw, _ := json.Marshal(webhookPayload("https://discord.com/api/webhooks/1/token", m))
+	var p struct {
+		Content string `json:"content"`
+		Flags   int    `json:"flags"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Flags != 4096 || !strings.Contains(p.Content, "Synthetic check") {
+		t.Errorf("want a silent (flags 4096), marked post; got %s", raw)
 	}
 }

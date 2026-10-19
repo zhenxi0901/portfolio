@@ -50,7 +50,7 @@ Terraform ──> Cloud Run, Artifact Registry, Secret Manager, uptime check, ke
 | **Back end** (`api/`) | Go 1.27, standard library `net/http`. Serves the static export with immutable caching and build-time brotli/gzip (no per-request compression CPU), plus `/api/status` (live uptime and latency percentiles), `/api/slo` (this site's own availability and error budget, read from Cloud Monitoring with the metadata server's token, standard library only), `/api/ask` (BM25 retrieval over the site's own facts, optional LLM on top, cached, rate limited, prompt-injection fenced; traced with OpenTelemetry, exported to Cloud Trace by a small REST exporter, and each answer carries its own trace), `/api/contact` (validation, honeypot, rate limit, delivery to a Discord or Slack webhook before the visitor is told it was sent), `/api/badge/uptime` (a shields.io endpoint for the 30-day uptime badge). `Server-Timing` on every response (server time, Cloud Run revision, and process age on an instance's first visitor request, which the page uses to say "you woke this server up"). CSP and security headers, request IDs, structured logs, graceful shutdown. |
 | **Reliability** | A real SLO for the site itself: 99.9% over 30 days, measured by Google Cloud uptime checks every minute from three continents and shown on the page with the error budget left. For the local stack: Prometheus metrics with bounded route labels, recording rules for a 99.5% request SLO, a fast-burn alert that needs both the last hour and the last 5 minutes above 14.4x, latency and abuse alerts (`deploy/prometheus/rules.yml`), and a provisioned Grafana dashboard (`deploy/grafana`). |
 | **Delivery** | Multi-stage Dockerfile to a 30 MB distroless, non-root image. GitHub Actions: lint, typecheck, build, `go vet`, race-detector tests, a TypeScript/Go parity check, container smoke test, Lighthouse budgets and a CRITICAL-CVE gate, with every action pinned to a commit SHA. The image is built once: CI pushes it only after every check passes and attests its SBOM and build provenance. The deploy refuses an image whose attestations don't verify, holds the release if the site's own error budget is spent (unless the commit is marked `Reliability-fix:`), starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back to the previous revision on its own if that fails; a manual **rollback drill** rehearses exactly that in production. Every release becomes a GitHub release with its SBOM and provenance attached. Keyless via Workload Identity Federation; only pushes to `main` in this repository deploy, never a fork's pull request. Base images pinned by digest, Dependabot for updates, CodeQL and OpenSSF Scorecard on every push, Go fuzz tests for the inputs visitors control. |
-| **Infrastructure** (`infra/`) | Terraform for Cloud Run (scale to zero, probes, least-privilege runtime identity), Artifact Registry with cleanup policies, Secret Manager for the contact webhook and the optional LLM key, the uptime check behind the SLO (`infra/slo.tf`), Cloud Trace write access for the runtime identity (`infra/tracing.tf`), and a GitHub OIDC pool limited to this repository's `main` branch. |
+| **Infrastructure** (`infra/`) | Terraform for Cloud Run (scale to zero, probes, least-privilege runtime identity), Artifact Registry with cleanup policies, Secret Manager for the contact webhook and the optional LLM key, the uptime check behind the SLO (`infra/slo.tf`), Cloud Trace write access for the runtime identity (`infra/tracing.tf`), a read-only identity for the scheduled contact checks (`infra/watch.tf`), and a GitHub OIDC pool limited to this repository's `main` branch. |
 
 Every number on the site traces to the CV, Primustech's PR history, the platforms' own docs or the FYP report.
 Where the site shows sample data (the SLO board, whose objectives are still proposals, and the request trace),
@@ -138,6 +138,19 @@ terminal, so it never lands in shell history or Terraform state), then turn forw
 read -rsp "Webhook URL: " URL && printf %s "$URL" | gcloud secrets versions add portfolio-contact-webhook --data-file=- && unset URL
 # set enable_contact_webhook = true in terraform.tfvars, then
 terraform apply
+```
+
+Two scheduled checks keep watching it (`.github/workflows/synthetic.yml`, identity in `infra/watch.tf`): every
+hour, Cloud Run's logs are searched for `contact: undelivered`, and twice a day a message marked by a secret
+token goes through the live form and the real webhook. A marked message is posted silently and never stored.
+A failure fails the workflow, which GitHub emails about. To set up the token, one value in two places:
+
+```bash
+TOKEN=$(openssl rand -hex 32)
+printf %s "$TOKEN" | gcloud secrets versions add portfolio-contact-synthetic-token --data-file=-
+printf %s "$TOKEN" | gh secret set CONTACT_SYNTHETIC_TOKEN && unset TOKEN
+terraform output -raw watcher_sa | gh secret set WATCHER_SA
+# set enable_synthetic_check = true in terraform.tfvars, then terraform apply; it goes live with the next release
 ```
 
 ## Editing content

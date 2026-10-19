@@ -21,6 +21,8 @@ type Config struct {
 	// Refuse to report a message as sent when there is no webhook to deliver it to. On by default
 	// on Cloud Run (which sets K_SERVICE), where the local file is per-instance scratch space.
 	ContactRequireWebhook bool
+	// Token that marks the scheduled end-to-end contact check (see contact.SyntheticHeader).
+	ContactSyntheticToken string
 
 	// Read this site's uptime-check results from Cloud Monitoring for /api/slo. On by default on
 	// Cloud Run, where the metadata server provides the project and a token.
@@ -40,15 +42,16 @@ type Config struct {
 func ConfigFromEnv() Config {
 	static := env("STATIC_DIR", "./site")
 	return Config{
-		Port:           env("PORT", "8080"),
-		StaticDir:      static,
-		KnowledgePath:  env("KNOWLEDGE_PATH", filepath.Join(static, "knowledge.json")),
-		DataDir:        env("DATA_DIR", filepath.Join(os.TempDir(), "portfolio-contact")),
-		Region:         env("REGION", "local"),
-		Revision:       os.Getenv("K_REVISION"),
-		AllowedOrigins: splitList(os.Getenv("ALLOWED_ORIGINS")),
-		TrustProxy:     os.Getenv("TRUST_PROXY") == "true",
-		ContactWebhook: os.Getenv("CONTACT_WEBHOOK_URL"),
+		Port:                  env("PORT", "8080"),
+		StaticDir:             static,
+		KnowledgePath:         env("KNOWLEDGE_PATH", filepath.Join(static, "knowledge.json")),
+		DataDir:               env("DATA_DIR", filepath.Join(os.TempDir(), "portfolio-contact")),
+		Region:                env("REGION", "local"),
+		Revision:              os.Getenv("K_REVISION"),
+		AllowedOrigins:        splitList(os.Getenv("ALLOWED_ORIGINS")),
+		TrustProxy:            os.Getenv("TRUST_PROXY") == "true",
+		ContactWebhook:        os.Getenv("CONTACT_WEBHOOK_URL"),
+		ContactSyntheticToken: os.Getenv("CONTACT_SYNTHETIC_TOKEN"),
 		ContactRequireWebhook: os.Getenv("CONTACT_REQUIRE_WEBHOOK") == "true" ||
 			(os.Getenv("K_SERVICE") != "" && os.Getenv("CONTACT_REQUIRE_WEBHOOK") != "false"),
 		TraceExport: os.Getenv("TRACE_EXPORT") == "cloudtrace" ||

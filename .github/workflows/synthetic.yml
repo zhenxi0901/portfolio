@@ -1,0 +1,72 @@
+name: synthetic
+
+# Follow-up to the contact-form postmortem: nothing used to tell me when a visitor's message could not
+# be delivered. Now:
+#   - every hour, Cloud Run's logs are searched for "contact: undelivered";
+#   - twice a day, a marked message goes through the live form and the real webhook (posted silently).
+# Either one failing fails this workflow, and GitHub emails the owner. Read-only identity
+# (infra/watch.tf); the token that marks the synthetic message is a repository secret.
+on:
+  schedule:
+    - cron: "7 * * * *"
+    - cron: "37 1,13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SITE: https://portfolio-emsghin2iq-as.a.run.app
+
+jobs:
+  undelivered:
+    if: github.event.schedule != '37 1,13 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ secrets.WATCHER_SA }}
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+      - name: Contact messages that could not be delivered, last 65 minutes
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT }}
+        run: |
+          since=$(date -u -d '65 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          filter="resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"portfolio\" AND jsonPayload.msg=\"contact: undelivered\" AND timestamp>=\"$since\""
+          found=$(gcloud logging read "$filter" --project "$PROJECT" --limit 50 --format 'value(timestamp,jsonPayload.reason,jsonPayload.synthetic)')
+          if [ -z "$found" ]; then
+            echo "None since $since." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "$found"
+          n=$(wc -l <<<"$found")
+          echo "::error::$n contact message(s) since $since could not be delivered; the visitor was asked to email instead. Check the webhook secret (README, Contact form messages)."
+          { echo "**$n undelivered since $since:**"; echo '```'; echo "$found"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+  contact:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '37 1,13 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: A marked message through the live form and the real webhook
+        env:
+          TOKEN: ${{ secrets.CONTACT_SYNTHETIC_TOKEN }}
+        run: |
+          body='{"name":"Synthetic check","email":"synthetic-check@example.com","message":"Scheduled end-to-end check of the contact form.","company":""}'
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o reply.json -w '%{http_code}' --max-time 20 -X POST "$SITE/api/contact" \
+              -H 'Content-Type: application/json' -H "X-Synthetic-Check: $TOKEN" -d "$body") || code=000
+            if [ "$code" = 202 ]; then break; fi
+            sleep 10
+          done
+          if [ "$code" != 202 ]; then
+            echo "::error::The contact form answered $code after $attempt attempts: $(cat reply.json 2>/dev/null)"
+            exit 1
+          fi
+          echo "Delivered through the webhook in attempt $attempt (202)." | tee -a "$GITHUB_STEP_SUMMARY"
