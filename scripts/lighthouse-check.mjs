@@ -4,19 +4,23 @@
 //
 //   node scripts/lighthouse-check.mjs http://localhost:8080/ http://localhost:8080/writing/...
 import { execFileSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const LIGHTHOUSE = "lighthouse@12.8.2";
-const BUDGET = { accessibility: 1, seo: 1, "best-practices": 0.95, performance: 0.7 };
+// Performance is a floor against big regressions only: shared runners score about 25 points lower
+// than a laptop on the same build.
+const BUDGET = { accessibility: 1, seo: 1, "best-practices": 0.95, performance: 0.5 };
+const REPORTS = process.env.LIGHTHOUSE_REPORTS;
 const urls = process.argv.slice(2);
 if (!urls.length) {
   console.error("usage: lighthouse-check.mjs <url>...");
   process.exit(2);
 }
 
-const dir = mkdtempSync(join(tmpdir(), "lh-"));
+const dir = REPORTS ?? mkdtempSync(join(tmpdir(), "lh-"));
+mkdirSync(dir, { recursive: true });
 const rows = [];
 let failed = false;
 for (const [i, url] of urls.entries()) {
@@ -34,6 +38,13 @@ for (const [i, url] of urls.entries()) {
       .filter((r) => r.weight > 0 && report.audits[r.id].score !== null && report.audits[r.id].score < 1)
       .map((r) => r.id);
     console.error(`::error::${url}: ${k} ${Math.round(scores[k] * 100)} is under ${Math.round(BUDGET[k] * 100)} (${audits.join(", ")})`);
+    // And the elements involved, so a failure can be fixed without reproducing it.
+    for (const id of audits) {
+      for (const item of (report.audits[id].details?.items ?? []).slice(0, 5)) {
+        if (item.node) console.error(`    ${id}: ${item.node.snippet.slice(0, 160)}  ${(item.node.explanation ?? "").split("
+")[1]?.trim() ?? ""}`);
+      }
+    }
   }
   failed ||= misses.length > 0;
   rows.push([url, ...Object.keys(BUDGET).map((k) => `${Math.round(scores[k] * 100)}${scores[k] < BUDGET[k] ? " ✗" : ""}`)]);

@@ -71,7 +71,11 @@ jobs:
         with: { node-version: 24 }
       # The footer promises accessibility and SEO at 100 on every release; this is what keeps it true.
       - name: Lighthouse budgets
+        env: { LIGHTHOUSE_REPORTS: lighthouse }
         run: node scripts/lighthouse-check.mjs http://localhost:8080/ http://localhost:8080/work/gke http://localhost:8080/writing/serving-llm-agents
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with: { name: lighthouse, path: lighthouse, retention-days: 7 }
       - name: Block on critical vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
