@@ -98,6 +98,9 @@ export function CommandPalette() {
           <Item keywords={["tour", "overview", "highlights", "recruiter", "quick"]} icon={<ArrowRight size={16} />} onSelect={() => run(startTour)}>
             Take the 60-second tour
           </Item>
+          <Item keywords={["on call", "incident", "drill", "pager", "simulation", "game"]} icon={<ArrowRight size={16} />} onSelect={() => run(() => goTo("/oncall"))}>
+            Go on call: an incident drill
+          </Item>
           <Item
             icon={<Copy size={16} />}
             onSelect={() =>

@@ -24,6 +24,13 @@ export function Postmortems() {
         }
         lead="Blameless postmortems from building and running this site: timeline, root cause, how it was caught, and what changed. The times and numbers come from the commits, the CI history and Cloud Run's request logs."
       />
+      <p className="mt-6 text-sm text-ink-2">
+        Want to be on the other side of one?{" "}
+        <a href="/oncall" className="font-medium text-ink underline decoration-accent-ink decoration-2 underline-offset-4">
+          Go on call for a simulated incident
+        </a>
+        , and get a postmortem of your own response.
+      </p>
       <ol className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {postmortems.map((pm, i) => {
           const done = pm.actions.filter((a) => a.done).length;

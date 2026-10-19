@@ -3,11 +3,20 @@ import { TopBar } from "@/components/site/top-bar";
 import { Footer } from "@/components/site/footer";
 
 /** Frame for the standalone pages (case studies, postmortems): top bar that goes home, one column. */
-export function ArticleShell({ back, children }: { back: { href: string; label: string }; children: React.ReactNode }) {
+export function ArticleShell({
+  back,
+  wide = false,
+  children,
+}: {
+  back: { href: string; label: string };
+  /** Interactive pages need more room than a column of text. */
+  wide?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <>
       <TopBar home />
-      <main id="top" className="mx-auto max-w-[880px] px-4 pb-24 pt-28 sm:px-8 sm:pt-36">
+      <main id="top" className={`mx-auto ${wide ? "max-w-[1180px]" : "max-w-[880px]"} px-4 pb-24 pt-28 sm:px-8 sm:pt-36`}>
         <a href={back.href} className="inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-ink">
           <ArrowLeft size={14} /> {back.label}
         </a>
