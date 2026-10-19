@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  actions: read # the delivery metrics read this repository's deploy runs
 
 concurrency:
   group: deploy-production
@@ -36,6 +37,14 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
       - run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
       - uses: docker/setup-buildx-action@v3
+      # DORA metrics for the status section, from this repository's commits and deploy runs. If the
+      # GitHub API is unavailable the committed snapshot ships instead.
+      - name: Delivery metrics
+        continue-on-error: true
+        working-directory: web
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/delivery-stats.mjs
       - name: Build and push
         id: push
         uses: docker/build-push-action@v6
