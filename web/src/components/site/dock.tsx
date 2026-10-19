@@ -16,7 +16,6 @@ import {
   ChatCircleDots,
   Briefcase,
   EnvelopeSimple,
-  FileText,
   Flask,
   GithubLogo,
   House,
@@ -42,7 +41,6 @@ const items: Item[] = [
 ];
 
 const links: Item[] = [
-  { label: "Résumé", icon: FileText, href: profile.resume },
   { label: "GitHub", icon: GithubLogo, href: profile.github },
   { label: "LinkedIn", icon: LinkedinLogo, href: profile.linkedin },
 ];

@@ -1,4 +1,4 @@
-import { ArrowDown, FileText } from "@phosphor-icons/react/dist/ssr";
+import { ArrowDown, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
 import { profile } from "@/content/profile";
 import { Button } from "@/components/ui/button";
 import { Cluster } from "@/components/hero/cluster";
@@ -36,8 +36,8 @@ export function Hero() {
               </a>
             </Button>
             <Button asChild size="lg" variant="secondary">
-              <a href={profile.resume} target="_blank" rel="noreferrer">
-                <FileText /> Résumé
+              <a href="#contact">
+                <EnvelopeSimple /> Get in touch
               </a>
             </Button>
           </div>

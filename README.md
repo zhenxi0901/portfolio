@@ -74,7 +74,7 @@ the rest.
 Browser end-to-end tests against the live site (15 Oct 2026): 67 checks in three passes (desktop dark,
 desktop light, phone), covering every section, tab and journey, the SLO incident, all eight failure
 modes, all seven cost moves, the case dialogs, the Ask console, the visit trace, the command palette,
-the dock, the résumé and the 404 page. No crashes, console errors, failed requests or horizontal
+the dock and the 404 page. No crashes, console errors, failed requests or horizontal
 overflow. The deploy pipeline also runs `scripts/smoke.sh` against the live URL after every release.
 
 To use the API while running `next dev`, start the container and run the dev server with
