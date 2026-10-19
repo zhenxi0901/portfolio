@@ -26,6 +26,7 @@ const questions = [
   "How does a command reach the HVAC plant?",
   "Have you written a postmortem?",
   "What is this site's uptime?",
+  "Have you written any blog posts?",
   "Any incidents or outages on this site?",
   "zzqx plorf",
 ];

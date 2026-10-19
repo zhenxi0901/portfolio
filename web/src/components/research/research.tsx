@@ -7,6 +7,7 @@ import { WallClockBar } from "@/components/research/wallclock-bar";
 import { PrefixCache } from "@/components/research/prefix-cache";
 import { GpuLink } from "@/components/research/gpu-link";
 import { ZoomImage } from "@/components/research/zoom-image";
+import { posts } from "@/content/writing";
 import { ProductTag } from "@/components/site/product-tag";
 
 export function Research() {
@@ -31,12 +32,18 @@ export function Research() {
                   ))}
                 </dl>
               </Reveal>
-              <Reveal delay={0.15}>
+              <Reveal delay={0.15} className="mt-10 flex flex-wrap gap-x-6 gap-y-3">
+                <a
+                  href={`/writing/${posts.find((p) => p.product === "aries")!.slug}`}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-accent-ink decoration-2 underline-offset-4"
+                >
+                  Read the write-up <ArrowUpRight size={14} />
+                </a>
                 <a
                   href={fyp.aries}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-10 inline-flex items-center gap-1.5 text-sm font-medium underline decoration-accent-ink decoration-2 underline-offset-4"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-accent-ink decoration-2 underline-offset-4"
                 >
                   ARIES on GitHub <ArrowUpRight size={14} />
                 </a>

@@ -12,6 +12,7 @@ import { Experience } from "@/components/sections/experience";
 import { Ask } from "@/components/sections/ask";
 import { Status } from "@/components/sections/status";
 import { Postmortems } from "@/components/sections/postmortems";
+import { Writing } from "@/components/sections/writing";
 import { Contact } from "@/components/sections/contact";
 
 export default function Home() {
@@ -36,6 +37,7 @@ export default function Home() {
         <Ask />
         <Status />
         <Postmortems />
+        <Writing />
         <Contact />
       </main>
       <Footer />

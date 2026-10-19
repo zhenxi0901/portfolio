@@ -149,6 +149,14 @@
     ]
   },
   {
+    "question": "Have you written any blog posts?",
+    "answer": "Things I have written up at length: \"What 320 agent runs taught me about serving LLM agents\". \"Finding a metrics bill in 914 orphaned Kafka topics\". Both are in the Writing section, with the measurements behind them.",
+    "sources": [
+      "writing",
+      "slos"
+    ]
+  },
+  {
     "question": "Any incidents or outages on this site?",
     "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 36 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. A failing check on a healthy site: The smoke test reported /metrics as broken while Cloud Run's logs showed every /metrics request returning 200.",
     "sources": [

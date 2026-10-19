@@ -14,6 +14,7 @@ import { aiOverview, journeys, measures, stack } from "@/content/ai-platform";
 import { budgetPolicy, burnRules, investigation, slos, sreTerms } from "@/content/slo";
 import { productOrder, products } from "@/content/products";
 import { postmortems } from "@/content/postmortems";
+import { posts } from "@/content/writing";
 
 // Facts the "Ask" console retrieves from. Built from profile.ts so there is one source of truth;
 // exported at build time as /knowledge.json, which the Go API loads too.
@@ -212,6 +213,15 @@ export function buildKnowledge(): Fact[] {
     text:
       postmortems.map((p) => `${p.title}: ${p.summary} The lesson: ${p.lesson}`).join(" ") +
       " Each one has a timeline, the root cause, how it was detected and action items linked to the commits that fixed it.",
+  });
+
+  facts.push({
+    id: "writing",
+    title: "Writing",
+    anchor: "writing",
+    lead: "Things I have written up at length:",
+    // Titles only: the summaries' numbers already belong to other facts and would compete with them.
+    text: posts.map((p) => `"${p.title}".`).join(" ") + " Both are in the Writing section, with the measurements behind them.",
   });
 
   return facts;

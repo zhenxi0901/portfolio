@@ -116,7 +116,10 @@ export const cases: CaseStudy[] = [
       { value: "914", label: "orphaned Kafka topics reaped, 86% of all topics" },
       { value: "10,386 → 2,891", label: "samples per scrape from the Kafka exporter" },
     ],
-    deeper: [{ label: "The full cost review, one move at a time", href: "/#platform-cost" }],
+    deeper: [
+      { label: "The full cost review, one move at a time", href: "/#platform-cost" },
+      { label: "The write-up: finding a metrics bill in 914 orphaned Kafka topics", href: "/writing/metrics-bill-kafka-topics" },
+    ],
   },
   {
     id: "observability",
