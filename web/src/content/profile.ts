@@ -10,7 +10,6 @@ export const profile = {
   email: "zli057@e.ntu.edu.sg",
   github: "https://github.com/zhenxi0901",
   linkedin: "https://www.linkedin.com/in/zhenxi-li-lzx391/",
-  resume: "/Li_ZhenXi_Resume.pdf",
   availability: "Open to 2027 roles",
   intro:
     "I run cloud platforms in production and benchmark AI infrastructure. DevOps intern at Primustech, Computer Science at NTU.",

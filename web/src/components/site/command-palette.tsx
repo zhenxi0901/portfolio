@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Article,
   Copy,
-  FileText,
   GithubLogo,
   LinkedinLogo,
   MoonStars,
@@ -97,9 +96,6 @@ export function CommandPalette() {
             }
           >
             Copy email address
-          </Item>
-          <Item icon={<FileText size={16} />} onSelect={() => run(() => window.open(profile.resume, "_blank"))}>
-            Open résumé (PDF)
           </Item>
           <Item
             icon={<MoonStars size={16} />}

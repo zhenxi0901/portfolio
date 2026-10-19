@@ -16,11 +16,6 @@ export function Footer() {
               LinkedIn
             </a>
           </li>
-          <li>
-            <a className="hover:text-ink" href={profile.resume} target="_blank" rel="noreferrer">
-              Résumé
-            </a>
-          </li>
         </ul>
       </div>
     </footer>
