@@ -22,9 +22,9 @@ export const metadata: Metadata = {
     title: `${profile.name} | ${profile.role}`,
     description,
     url: "/",
-    images: [{ url: "/img/og-card.png", width: 1200, height: 630, alt: `${profile.name}, ${profile.role}` }],
   },
-  twitter: { card: "summary_large_image", title: profile.name, description, images: ["/img/og-card.png"] },
+  // The share image comes from app/opengraph-image.tsx; X falls back to it.
+  twitter: { card: "summary_large_image", title: profile.name, description },
 };
 
 export const viewport: Viewport = {

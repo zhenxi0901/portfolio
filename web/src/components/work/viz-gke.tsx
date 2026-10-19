@@ -24,6 +24,19 @@ const nodesFor = (replicas: number) => Math.max(MIN_NODES, replicas);
 
 type Node = { name: string; zone: (typeof ZONES)[number]; first: boolean; core: boolean };
 
+/** One line of `kubectl get events`, worded the way the HPA, scheduler and cluster autoscaler word them. */
+type KubeEvent = { id: number; at?: number; reason: string; object: string; message: string; warning?: boolean };
+
+const SEED: KubeEvent[] = [
+  { id: 0, reason: "Scheduled", object: "pod/core-api", message: "2/2 replicas running in zones a and b" },
+];
+
+function age(at: number | undefined, now: number) {
+  if (at === undefined || !now) return "-";
+  const s = Math.max(0, Math.round((now - at) / 1000));
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m`;
+}
+
 function layout(replicas: number, nodeCount: number) {
   const nodes: Node[] = Array.from({ length: nodeCount }, (_, i) => {
     const zone = ZONES[i % 3];
@@ -40,8 +53,22 @@ export function GkeViz() {
   const replicas = replicasFor(traffic);
   const [nodeCount, setNodeCount] = useState(MIN_NODES);
   const [event, setEvent] = useState("Steady state: 2 Core API pods, 3 nodes (the pool's floor).");
+  const [events, setEvents] = useState<KubeEvent[]>(SEED);
+  const [now, setNow] = useState(0);
+  const nextId = useRef(1);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.4 });
+  const record = (e: Omit<KubeEvent, "id" | "at">) => {
+    setNow(Date.now());
+    setEvents((list) => [{ ...e, id: nextId.current++, at: Date.now() }, ...list].slice(0, 5));
+  };
+
+  // Tick the AGE column once a second, only once there is something to age.
+  useEffect(() => {
+    if (events.length === SEED.length) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [events.length]);
   const reduce = useReducedMotion();
 
   // Play the migration once when the card is first seen; after that the toggle is the visitor's.
@@ -60,6 +87,18 @@ export function GkeViz() {
       () => {
         const diff = Math.abs(needed - nodeCount);
         setNodeCount(needed);
+        setEvents((list) =>
+          [
+            {
+              id: nextId.current++,
+              at: Date.now(),
+              ...(up
+                ? { reason: "TriggeredScaleUp", object: "pod/core-api", message: `pod triggered scale-up: pool ${nodeCount} -> ${needed} nodes (max 9)` }
+                : { reason: "ScaleDown", object: "node", message: `${diff} empty node${diff > 1 ? "s" : ""} removed by cluster autoscaler` }),
+            },
+            ...list,
+          ].slice(0, 5),
+        );
         setEvent(
           up
             ? `Cluster autoscaler added ${diff} node${diff > 1 ? "s" : ""} in the emptiest zone. The Pending pod${diff > 1 ? "s are" : " is"} scheduled.`
@@ -75,6 +114,21 @@ export function GkeViz() {
 
   const onTraffic = (v: number) => {
     const next = replicasFor(v);
+    if (next !== replicas) {
+      record({
+        reason: "SuccessfulRescale",
+        object: "hpa/core-api",
+        message: `New size: ${next}; reason: ${next > replicas ? "cpu utilization above target" : "all metrics below target"}`,
+      });
+    }
+    if (next > replicas && nodesFor(next) > nodeCount) {
+      record({
+        reason: "FailedScheduling",
+        object: "pod/core-api",
+        message: `0/${nodeCount} nodes are available: ${nodeCount} Insufficient memory`,
+        warning: true,
+      });
+    }
     if (next > replicas) {
       setEvent(
         nodesFor(next) > nodeCount
@@ -229,6 +283,28 @@ export function GkeViz() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {mode === "after" && (
+        <div className="flex-1 rounded-2xl border border-line bg-surface p-3.5 font-mono text-[11px]">
+          <p className="flex justify-between gap-2 text-ink-3">
+            <span>$ kubectl get events --watch</span>
+            <span>simulated</span>
+          </p>
+          <ol className="mt-2.5 space-y-2" aria-label="Cluster events, newest first">
+            {events.map((e) => (
+              <li key={e.id} className="grid grid-cols-[2.25rem_1fr] gap-x-2">
+                <span className="text-ink-3">{age(e.at, now)}</span>
+                <span className="min-w-0">
+                  <span className={e.warning ? "text-critical" : "text-accent-ink"}>{e.reason}</span>{" "}
+                  <span className="text-ink-3">{e.object}</span>
+                  <span className="block text-ink-2">{e.message}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          {events.length === SEED.length && <p className="mt-3 text-ink-3">Drag the traffic slider to watch the cluster react.</p>}
+        </div>
+      )}
 
       <p className="mt-auto font-mono text-[11px] text-ink-3">
         {mode === "before"
