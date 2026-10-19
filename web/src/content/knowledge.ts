@@ -199,7 +199,9 @@ export function buildKnowledge(): Fact[] {
     anchor: "status",
     text:
       "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, " +
-      "the contact form and the live status panel. It exposes Prometheus metrics, is built by GitHub Actions and deployed with Terraform.",
+      "the contact form and the live status panel. It exposes Prometheus metrics, is built by GitHub Actions and deployed with Terraform. " +
+      "Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute " +
+      "from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
   });
 
   facts.push({

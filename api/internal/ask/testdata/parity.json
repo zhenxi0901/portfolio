@@ -141,6 +141,14 @@
     ]
   },
   {
+    "question": "What is this site's uptime?",
+    "answer": "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, the contact form and the live status panel. It exposes Prometheus metrics, is built by GitHub Actions and deployed with Terraform. Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
+    "sources": [
+      "site",
+      "postmortems"
+    ]
+  },
+  {
     "question": "Any incidents or outages on this site?",
     "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 36 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. A failing check on a healthy site: The smoke test reported /metrics as broken while Cloud Run's logs showed every /metrics request returning 200.",
     "sources": [

@@ -17,6 +17,24 @@ export type Status = {
   heap_mb: number;
 };
 
+/** This site's availability from Cloud Monitoring uptime checks (see api/internal/slo). */
+export type SloReport = {
+  available: boolean;
+  reason?: string;
+  target: number;
+  window_days: number;
+  checks: number;
+  passed: number;
+  availability: number;
+  budget_minutes: number;
+  budget_remaining: number;
+  downtime_minutes: number;
+  since?: string;
+  days: { end: string; checks: number; passed: number }[];
+  updated: string;
+  stale?: boolean;
+};
+
 export type AskResult = {
   answer: string;
   sources: { id: string; title: string }[];
@@ -50,6 +68,8 @@ async function request<T>(path: string, init?: RequestInit & { timeoutMs?: numbe
 
 export const api = {
   status: () => request<Status>("/api/status", { timeoutMs: 4000 }),
+  // The first call after a cold start reads Cloud Monitoring, which can take a few seconds.
+  slo: () => request<SloReport>("/api/slo", { timeoutMs: 15000 }),
   ask: (question: string) =>
     request<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }), timeoutMs: 20000 }),
   contact: (payload: { name: string; email: string; message: string; company: string }) =>

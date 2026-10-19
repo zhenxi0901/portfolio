@@ -17,6 +17,7 @@ import (
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
 	"github.com/zhenxi0901/portfolio/api/internal/ratelimit"
+	"github.com/zhenxi0901/portfolio/api/internal/slo"
 )
 
 type Server struct {
@@ -26,6 +27,7 @@ type Server struct {
 	reg     *prometheus.Registry
 	ask     *ask.Service
 	contact *contact.Service
+	slo     *slo.Service
 	started time.Time
 	visits  atomic.Int64 // requests other than probes, to spot an instance's first visitor
 }
@@ -46,6 +48,11 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 		log.Info("ask: retrieval-only mode (set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL to enable the LLM)")
 	}
 
+	var uptime slo.Source
+	if cfg.SLOFromMonitoring {
+		uptime = slo.NewMonitoring()
+	}
+
 	return &Server{
 		cfg:     cfg,
 		log:     log,
@@ -53,6 +60,7 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 		reg:     reg,
 		ask:     ask.NewService(facts, llm, m, log),
 		contact: contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log),
+		slo:     slo.New(uptime, log),
 		started: time.Now(),
 	}, nil
 }
@@ -83,6 +91,11 @@ func (s *Server) Handler() http.Handler {
 	})
 	mux.Handle("GET /metrics", promhttp.HandlerFor(s.reg, promhttp.HandlerOpts{}))
 	mux.HandleFunc("GET /api/status", s.handleStatus)
+	// This site's availability as Cloud Monitoring's uptime checks saw it. Cached for 5 minutes.
+	mux.HandleFunc("GET /api/slo", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		writeJSON(w, http.StatusOK, s.slo.Report(r.Context()))
+	})
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)
