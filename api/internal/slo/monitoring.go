@@ -38,22 +38,33 @@ func NewMonitoring() *Monitoring {
 
 const filter = `metric.type = "monitoring.googleapis.com/uptime_check/check_passed" AND resource.type = "uptime_url"`
 
-// Days returns WindowDays 24-hour buckets ending at end, oldest first; buckets with no data are zero.
-func (m *Monitoring) Days(ctx context.Context, end time.Time) ([]Day, error) {
+// Days returns WindowDays 24-hour buckets ending at end, oldest first (empty buckets are zero),
+// and the start of the first hour with a check in it. Counts are read hourly so that start is
+// accurate to the hour, then summed into days.
+func (m *Monitoring) Days(ctx context.Context, end time.Time) ([]Day, time.Time, error) {
 	project, token, err := m.credentials(ctx)
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 	start := end.Add(-WindowDays * day)
 	checks, err := m.counts(ctx, project, token, start, end, "ALIGN_COUNT")
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 	passed, err := m.counts(ctx, project, token, start, end, "ALIGN_COUNT_TRUE")
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
-	return buckets(end, checks, passed), nil
+	var first time.Time
+	for t, n := range checks {
+		if n > 0 && (first.IsZero() || t.Before(first)) {
+			first = t
+		}
+	}
+	if !first.IsZero() {
+		first = first.Add(-time.Hour)
+	}
+	return buckets(end, checks, passed), first, nil
 }
 
 // buckets lays the counts onto WindowDays slots, keyed by each point's end time. Monitoring aligns
@@ -95,7 +106,7 @@ func (m *Monitoring) counts(ctx context.Context, project, token string, start, e
 	q.Set("filter", filter)
 	q.Set("interval.startTime", start.UTC().Format(time.RFC3339))
 	q.Set("interval.endTime", end.UTC().Format(time.RFC3339))
-	q.Set("aggregation.alignmentPeriod", "86400s")
+	q.Set("aggregation.alignmentPeriod", "3600s")
 	q.Set("aggregation.perSeriesAligner", aligner)
 	q.Set("aggregation.crossSeriesReducer", "REDUCE_SUM")
 	u := fmt.Sprintf("%s/projects/%s/timeSeries?%s", m.api, url.PathEscape(project), q.Encode())

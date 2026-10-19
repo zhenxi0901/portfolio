@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 
 const pct = (x: number, digits = 3) => `${(x * 100).toFixed(digits)}%`;
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const dayTime = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 function dayTone(checks: number, passed: number, target: number) {
   if (!checks) return "bg-surface-2";
@@ -105,7 +107,7 @@ export function SloPanel() {
           </div>
 
           <p className="mt-4 text-xs leading-relaxed text-ink-3">
-            {r.since && `Measured since ${day(r.since)}; the 30-day window fills in from there. `}
+            {r.since && `Measured since ${dayTime(r.since)} your time; the 30-day window fills in from there. `}
             Read from Cloud Monitoring by this site&apos;s Go API, cached for five minutes
             {r.stale ? "; this is the last good reading, the latest fetch failed." : "."}
           </p>

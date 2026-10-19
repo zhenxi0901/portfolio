@@ -29,7 +29,7 @@ func TestSummariseBudget(t *testing.T) {
 	}
 	days[WindowDays-1].Passed -= 30
 
-	r := Summarise(days, end)
+	r := Summarise(days, end.Add(-10*day), end)
 	if !r.Available || r.Checks != 43200 || r.Passed != 43170 {
 		t.Fatalf("counts: %+v", r)
 	}
@@ -52,7 +52,7 @@ func TestSummariseBudget(t *testing.T) {
 }
 
 func TestSummariseWithoutData(t *testing.T) {
-	r := Summarise(make([]Day, WindowDays), time.Now())
+	r := Summarise(make([]Day, WindowDays), time.Time{}, time.Now())
 	if r.Available || r.Reason == "" {
 		t.Errorf("an empty window should be unavailable with a reason: %+v", r)
 	}
@@ -63,12 +63,12 @@ type fakeSource struct {
 	err   error
 }
 
-func (f *fakeSource) Days(_ context.Context, end time.Time) ([]Day, error) {
+func (f *fakeSource) Days(_ context.Context, end time.Time) ([]Day, time.Time, error) {
 	f.calls++
 	if f.err != nil {
-		return nil, f.err
+		return nil, time.Time{}, f.err
 	}
-	return []Day{{End: end, Checks: 10, Passed: 10}}, nil
+	return []Day{{End: end, Checks: 10, Passed: 10}}, end.Add(-time.Hour), nil
 }
 
 func TestReportCachesAndKeepsLastGood(t *testing.T) {
@@ -135,18 +135,21 @@ func TestMonitoringReadsCounts(t *testing.T) {
 		}
 		aligners = append(aligners, q.Get("aggregation.perSeriesAligner"))
 		n := map[string]string{"ALIGN_COUNT": "4320", "ALIGN_COUNT_TRUE": "4318"}[q.Get("aggregation.perSeriesAligner")]
-		// Today's bucket, and yesterday's.
+		// Hourly points: one this morning, one yesterday morning.
 		_, _ = io.WriteString(w, `{"timeSeries":[{"points":[
-			{"interval":{"endTime":"2026-10-19T06:30:00Z"},"value":{"int64Value":"`+n+`"}},
-			{"interval":{"endTime":"2026-10-18T06:30:00Z"},"value":{"int64Value":"`+n+`"}}]}]}`)
+			{"interval":{"endTime":"2026-10-19T06:00:00Z"},"value":{"int64Value":"`+n+`"}},
+			{"interval":{"endTime":"2026-10-18T06:00:00Z"},"value":{"int64Value":"`+n+`"}}]}]}`)
 	}))
 	defer api.Close()
 
 	m := NewMonitoring()
 	m.metadata, m.api = meta.URL, api.URL
-	days, err := m.Days(context.Background(), end)
+	days, first, err := m.Days(context.Background(), end)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if want := time.Date(2026, 10, 18, 5, 0, 0, 0, time.UTC); !first.Equal(want) {
+		t.Errorf("first check %v, want %v (start of the earliest hour)", first, want)
 	}
 	if len(days) != WindowDays {
 		t.Fatalf("%d buckets, want %d", len(days), WindowDays)
@@ -176,7 +179,7 @@ func TestMonitoringReportsAPIErrors(t *testing.T) {
 
 	m := NewMonitoring()
 	m.metadata, m.api = meta.URL, api.URL
-	if _, err := m.Days(context.Background(), time.Now()); err == nil || !strings.Contains(err.Error(), "403") {
+	if _, _, err := m.Days(context.Background(), time.Now()); err == nil || !strings.Contains(err.Error(), "403") {
 		t.Fatalf("want a 403 error, got %v", err)
 	}
 }
