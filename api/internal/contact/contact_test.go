@@ -150,3 +150,16 @@ func TestSlackStylePayload(t *testing.T) {
 		t.Errorf("unexpected payload %s", raw)
 	}
 }
+
+// A webhook URL is a credential; a transport error must not carry it into the logs.
+func TestDeliveryErrorsDoNotLeakTheWebhookURL(t *testing.T) {
+	// Nothing listens on this port, so the request fails in the transport.
+	s := newService(t, "http://127.0.0.1:1/api/webhooks/123/SECRET-TOKEN")
+	_, err := s.post(t.Context(), []byte("{}"))
+	if err == nil {
+		t.Fatal("expected a connection error")
+	}
+	if strings.Contains(err.Error(), "SECRET-TOKEN") || strings.Contains(err.Error(), "webhooks") {
+		t.Errorf("error leaks the URL: %v", err)
+	}
+}

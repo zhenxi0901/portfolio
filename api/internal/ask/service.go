@@ -123,6 +123,8 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// With an LLM configured, it rewrites the answer from the top facts; retrieval is the fallback.
+	// A fallback answer is not cached: the next visitor should get the LLM again once it is back.
+	cacheable := true
 	if s.llm != nil && len(res.Sources) > 0 {
 		lctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
@@ -131,6 +133,7 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 		answer, pt, ct, err := s.llm.Complete(lctx, systemPrompt, buildUserPrompt(q, res.Sources))
 		s.m.LLMDuration.Observe(time.Since(t0).Seconds())
 		if err != nil {
+			cacheable = false
 			llmSpan.SetAttributes(attribute.String("outcome", "failed, fell back to retrieval"))
 			s.log.Warn("ask: llm failed, falling back to retrieval", "err", err)
 		} else {
@@ -142,9 +145,11 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 		llmSpan.End()
 	}
 
-	_, store := tracer.Start(ctx, "ask.cache.store")
-	s.cache.put(key, out)
-	store.End()
+	if cacheable {
+		_, store := tracer.Start(ctx, "ask.cache.store")
+		s.cache.put(key, out)
+		store.End()
+	}
 	out.LatencyMs = time.Since(start).Milliseconds()
 	out.Trace = s.trace(ctx, start)
 	s.m.Ask.WithLabelValues(out.Mode, "false").Inc()

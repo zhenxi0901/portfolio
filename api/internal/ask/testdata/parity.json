@@ -1,7 +1,7 @@
 [
   {
     "question": "How did ZhenXi cut the cloud bill?",
-    "answer": "How I cut cloud spend by about 15%: Drop metrics nobody reads (Monitoring, done): Turned off three GKE metric packages after confirming 0 of 27 alerts and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape. Right-size Cloud SQL (Database, done): 4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal. Size pods to need, scale nodes to load (Compute, done): Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter.",
+    "answer": "How I cut cloud spend by about 15%: Drop metrics nobody reads (Monitoring, done): Turned off three GKE metric packages after confirming 0 of the 27 alerts then in place and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape. Right-size Cloud SQL (Database, done): 4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal. Size pods to need, scale nodes to load (Compute, done): Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter.",
     "sources": [
       "cost-review"
     ]
@@ -135,14 +135,14 @@
   },
   {
     "question": "Have you written a postmortem?",
-    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 36 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. The health check that only worked from inside: Cloud Run's front end answers some paths ending in “z” itself, so /healthz returned 404 to every outside check while the app was healthy.",
+    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 32 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. The health check that only worked from inside: Cloud Run's front end answers some paths ending in “z” itself, so /healthz returned 404 to every outside check while the app was healthy.",
     "sources": [
       "postmortems"
     ]
   },
   {
     "question": "What is this site's uptime?",
-    "answer": "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, the contact form and the live status panel. It exposes Prometheus metrics, is built by GitHub Actions and deployed with Terraform. Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
+    "answer": "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
     "sources": [
       "site",
       "postmortems"
@@ -158,7 +158,7 @@
   },
   {
     "question": "Any incidents or outages on this site?",
-    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 36 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. A failing check on a healthy site: The smoke test reported /metrics as broken while Cloud Run's logs showed every /metrics request returning 200.",
+    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 32 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. A failing check on a healthy site: The smoke test reported /metrics as broken while Cloud Run's logs showed every /metrics request returning 200.",
     "sources": [
       "postmortems",
       "site"

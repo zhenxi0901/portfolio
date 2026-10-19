@@ -34,7 +34,7 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		elapsed := time.Since(start)
 
 		route := routeLabel(r)
-		s.metrics.Requests.WithLabelValues(route, r.Method, strconv.Itoa(rec.code)).Inc()
+		s.metrics.Requests.WithLabelValues(route, methodLabel(r.Method), strconv.Itoa(rec.code)).Inc()
 		s.metrics.Duration.WithLabelValues(route).Observe(elapsed.Seconds())
 		// Probes, uptime checks and scrapes would drown out real traffic on the status page and in
 		// the logs (the uptime checks alone are about 4,300 requests a day).
@@ -139,6 +139,26 @@ func recoverer(log *slog.Logger, next http.Handler) http.Handler {
 
 // clientIP returns the caller's address. Behind Cloud Run's front end the real client is the
 // last X-Forwarded-For entry (anything to its left can be supplied by the client).
+// methodLabel keeps the method label bounded: Go's server accepts any token as a method, and each
+// new one would otherwise be a metric series that is never freed.
+func methodLabel(m string) string {
+	switch m {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodOptions:
+		return m
+	}
+	return "other"
+}
+
+// rateKey groups IPv6 clients by /64. A host usually controls a whole /64, so a bucket per address
+// would be dodged by rotating addresses.
+func rateKey(ip string) string {
+	a := net.ParseIP(ip)
+	if a == nil || a.To4() != nil {
+		return ip
+	}
+	return a.Mask(net.CIDRMask(64, 128)).String() + "/64"
+}
+
 func clientIP(r *http.Request, trustProxy bool) string {
 	if trustProxy {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {

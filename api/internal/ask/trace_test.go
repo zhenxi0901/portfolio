@@ -2,6 +2,7 @@ package ask
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -66,7 +67,21 @@ func TestAnswersCarryTheirOwnTrace(t *testing.T) {
 }
 
 func TestNoTraceWithoutARecorder(t *testing.T) {
+	// A live provider, so the request really has a span: only the missing recorder keeps the trace off.
+	_, shutdown := tracing.Setup("test", "test", nil)
+	defer func() { _ = shutdown(t.Context()) }()
 	if out := askTraced(t, newSvc(t, nil), "Which GPUs has ZhenXi used?"); out.Trace != nil {
 		t.Errorf("trace without a recorder: %+v", out.Trace)
+	}
+}
+
+// A failed LLM call answers from retrieval but must not cache that fallback.
+func TestLLMFallbackIsNotCached(t *testing.T) {
+	llm := &fakeLLM{err: errors.New("upstream 503")}
+	svc := newSvc(t, llm)
+	ask(t, svc, "How did ZhenXi cut the cloud bill?")
+	llm.err, llm.answer = nil, "About 15%, by reaping orphaned topics first."
+	if out := ask(t, svc, "How did ZhenXi cut the cloud bill?"); out.Cached || out.Mode != "llm" {
+		t.Errorf("second ask: cached=%v mode=%s, want a fresh LLM answer", out.Cached, out.Mode)
 	}
 }

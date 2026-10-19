@@ -72,7 +72,7 @@ func staticHandler(dir string) http.Handler {
 			if st, err := fs.Stat(root, variant); err == nil {
 				w.Header().Set("Content-Length", strconv.FormatInt(st.Size(), 10))
 			}
-			http.ServeFileFS(w, r, root, variant)
+			http.ServeFileFS(variantWriter{w}, r, root, variant)
 			return
 		}
 
@@ -86,6 +86,21 @@ func staticHandler(dir string) http.Handler {
 		files.ServeHTTP(w, r2)
 	})
 }
+
+// variantWriter drops the variant's encoding and length when ServeFileFS answers without its body
+// (a redirect for /index.html, or a failed If-Match), so the response never promises bytes it does
+// not send. 304s are already cleaned up by net/http.
+type variantWriter struct{ http.ResponseWriter }
+
+func (v variantWriter) WriteHeader(code int) {
+	if code != http.StatusOK {
+		v.Header().Del("Content-Encoding")
+		v.Header().Del("Content-Length")
+	}
+	v.ResponseWriter.WriteHeader(code)
+}
+
+func (v variantWriter) Unwrap() http.ResponseWriter { return v.ResponseWriter }
 
 // precompressed returns the best variant of name that the client accepts, if any, and
 // whether any variant exists at all (so the response must carry Vary either way).

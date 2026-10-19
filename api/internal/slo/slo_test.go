@@ -204,3 +204,20 @@ func TestBadge(t *testing.T) {
 		}
 	}
 }
+
+type ctxSource struct{ err error }
+
+func (c *ctxSource) Days(ctx context.Context, end time.Time) ([]Day, time.Time, error) {
+	c.err = ctx.Err()
+	return []Day{{End: end, Checks: 1, Passed: 1}}, end, nil
+}
+
+// The first caller leaving must not cancel the fetch every other caller is waiting on.
+func TestFetchSurvivesTheCallerLeaving(t *testing.T) {
+	src := &ctxSource{}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if r := New(src, quiet).Report(ctx); !r.Available || src.err != nil {
+		t.Errorf("report %+v, fetch context error %v", r, src.err)
+	}
+}

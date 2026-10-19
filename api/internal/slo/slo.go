@@ -32,8 +32,10 @@ type Report struct {
 	Reason     string  `json:"reason,omitempty"`
 	Target     float64 `json:"target"`
 	WindowDays int     `json:"window_days"`
-	Checks     int64   `json:"checks"`
-	Passed     int64   `json:"passed"`
+	// Samples of uptime_check/check_passed, not probes: Monitoring records several per probe (about
+	// one every 10 s per location), so these are only meaningful as a ratio.
+	Checks int64 `json:"checks"`
+	Passed int64 `json:"passed"`
 	// Share of checks that passed.
 	Availability float64 `json:"availability"`
 	// The error budget for a full window, and how much of it is left (negative once overspent).
@@ -80,7 +82,11 @@ func (s *Service) Report(ctx context.Context) Report {
 	if now.Before(s.next) {
 		return s.last
 	}
-	days, first, err := s.src.Days(ctx, now)
+	// The fetch is shared by every caller that waits on it, so it must not die with the first
+	// caller's connection; it gets its own deadline instead.
+	fctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+	defer cancel()
+	days, first, err := s.src.Days(fctx, now)
 	if err != nil {
 		s.log.Warn("slo: could not read uptime checks", "err", err)
 		s.next = now.Add(retryAfter)
