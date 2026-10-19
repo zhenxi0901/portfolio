@@ -38,7 +38,7 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		s.metrics.Duration.WithLabelValues(route).Observe(elapsed.Seconds())
 		// Probes, uptime checks and scrapes would drown out real traffic on the status page and in
 		// the logs (the uptime checks alone are about 4,300 requests a day).
-		probe := probeRoutes[route]
+		probe := machineRoutes[route]
 		if !probe {
 			s.metrics.Window.Add(float64(elapsed.Microseconds()) / 1000)
 		}
@@ -55,7 +55,12 @@ func (s *Server) observe(next http.Handler) http.Handler {
 	})
 }
 
-var probeRoutes = map[string]bool{"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true}
+// machineRoutes are requested by machines, not visitors: probes, uptime checks, scrapes, and the image
+// proxies that fetch the badge and the profile card. They stay out of the status page's numbers,
+// out of the logs at Info, and never count as an instance's first visitor (timing.go).
+var machineRoutes = map[string]bool{
+	"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true, "/api/badge/uptime": true, "/api/card.svg": true,
+}
 
 // routeLabel keeps metric cardinality bounded: the mux pattern, never the raw path.
 func routeLabel(r *http.Request) string {

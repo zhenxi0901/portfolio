@@ -13,21 +13,33 @@ export function LiveState() {
   const [r, setR] = useState<Reading | null>(null);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     let alive = true;
+    let busy = false;
     const check = async () => {
+      // A hidden tab does not check: a status page left open would otherwise keep an instance warm.
+      if (busy || document.hidden) return;
+      busy = true;
       const t0 = performance.now();
       const status = await api.status().catch(() => null);
       const ms = performance.now() - t0;
       const slo = await api.slo().catch(() => null);
+      busy = false;
       if (!alive) return;
       setR({ at: new Date(), ms, status, slo });
       timer = setTimeout(check, EVERY);
     };
+    const onVisible = () => {
+      if (document.hidden) return;
+      clearTimeout(timer);
+      check();
+    };
     check();
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -37,9 +49,10 @@ export function LiveState() {
   const tone = !r ? "bg-ink-3" : !up ? "bg-critical" : frozen ? "bg-p-ai" : "bg-good";
 
   return (
-    <div className="mt-10 rounded-3xl border border-line bg-surface p-6" aria-live="polite">
+    <div className="mt-10 rounded-3xl border border-line bg-surface p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="flex items-center gap-3 text-2xl font-semibold tracking-[-0.03em]">
+        {/* Only the state is live: the time and latency change every minute and would be re-read. */}
+        <p className="flex items-center gap-3 text-2xl font-semibold tracking-[-0.03em]" aria-live="polite">
           <span className={cn("size-3 rounded-full", tone, r && up && "animate-pulse")} aria-hidden />
           {state}
         </p>

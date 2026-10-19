@@ -1,6 +1,26 @@
 {
-  "generated": "2026-10-19T11:16:07.229Z",
+  "generated": "2026-10-19T11:50:03.205Z",
+  "totals": {
+    "releases": 37,
+    "commits": 49,
+    "drills": 1
+  },
   "entries": [
+    {
+      "kind": "deploy",
+      "at": "2026-10-19T11:24:07.000Z",
+      "sha": "464e8da",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39244188283",
+      "release": "v2026.10.19.46",
+      "minutes": 1.5,
+      "commits": [
+        {
+          "sha": "464e8da",
+          "title": "Changelog: attribute commits by ancestry, and wrap long titles",
+          "linked": true
+        }
+      ]
+    },
     {
       "kind": "deploy",
       "at": "2026-10-19T11:08:16.000Z",
@@ -11,27 +31,33 @@
       "commits": [
         {
           "sha": "a1935b0",
-          "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7"
+          "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
+          "linked": true
         },
         {
           "sha": "1669b2e",
-          "title": "Merge pull request #1 from zhenxi0901/dependabot/go_modules/api/api-4e31519e38"
+          "title": "Merge pull request #1 from zhenxi0901/dependabot/go_modules/api/api-4e31519e38",
+          "linked": true
         },
         {
           "sha": "7c4bf02",
-          "title": "Merge pull request #2 from zhenxi0901/dependabot/npm_and_yarn/web/web-25ec6b7114"
+          "title": "Merge pull request #2 from zhenxi0901/dependabot/npm_and_yarn/web/web-25ec6b7114",
+          "linked": true
         },
         {
           "sha": "0df9735",
-          "title": "Bump the actions group across 1 directory with 12 updates"
+          "title": "Bump the actions group across 1 directory with 12 updates",
+          "linked": true
         },
         {
           "sha": "9a1c5c6",
-          "title": "Bump the web group in /web with 9 updates"
+          "title": "Bump the web group in /web with 9 updates",
+          "linked": true
         },
         {
           "sha": "5d84147",
-          "title": "Bump github.com/prometheus/client_golang in /api in the api group"
+          "title": "Bump github.com/prometheus/client_golang in /api in the api group",
+          "linked": true
         }
       ]
     },
@@ -45,7 +71,8 @@
       "commits": [
         {
           "sha": "17da88d",
-          "title": "Load test: read the status JSON with jq, not by piping curl into python"
+          "title": "Load test: read the status JSON with jq, not by piping curl into python",
+          "linked": true
         }
       ]
     },
@@ -59,7 +86,8 @@
       "commits": [
         {
           "sha": "747ef92",
-          "title": "Status page, changelog, decision records and a live profile card"
+          "title": "Status page, changelog, decision records and a live profile card",
+          "linked": true
         }
       ]
     },
@@ -73,7 +101,8 @@
       "commits": [
         {
           "sha": "9dfbfb6",
-          "title": "Close the contact-form postmortem's last two action items"
+          "title": "Close the contact-form postmortem's last two action items",
+          "linked": true
         }
       ]
     },
@@ -95,7 +124,8 @@
       "commits": [
         {
           "sha": "71a47b9",
-          "title": "Safer releases: check before traffic, roll back, gate on the error budget"
+          "title": "Safer releases: check before traffic, roll back, gate on the error budget",
+          "linked": true
         }
       ]
     },
@@ -103,13 +133,14 @@
       "kind": "deploy",
       "at": "2026-10-19T09:40:21.000Z",
       "sha": "8d3a21e",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39231686708",
+      "url": null,
       "release": null,
       "minutes": 1,
       "commits": [
         {
           "sha": "8d3a21e",
-          "title": "README: the drill, the tour, DORA metrics and the new pipeline"
+          "title": "README: the drill, the tour, DORA metrics and the new pipeline",
+          "linked": false
         }
       ]
     },
@@ -117,13 +148,14 @@
       "kind": "deploy",
       "at": "2026-10-19T09:25:04.000Z",
       "sha": "a8cd886",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39229778052",
+      "url": null,
       "release": null,
       "minutes": 1,
       "commits": [
         {
           "sha": "a8cd886",
-          "title": "README: retake the hero screenshot"
+          "title": "README: retake the hero screenshot",
+          "linked": false
         }
       ]
     },
@@ -131,21 +163,24 @@
       "kind": "deploy",
       "at": "2026-10-19T09:09:10.000Z",
       "sha": "3a3d9c5",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39227765203",
+      "url": null,
       "release": null,
       "minutes": 1.1,
       "commits": [
         {
           "sha": "3a3d9c5",
-          "title": "Site fixes from a review: focus, live regions, timers and facts"
+          "title": "Site fixes from a review: focus, live regions, timers and facts",
+          "linked": false
         },
         {
           "sha": "2905b83",
-          "title": "API fixes from a review: errors, limits, caching, traces"
+          "title": "API fixes from a review: errors, limits, caching, traces",
+          "linked": false
         },
         {
           "sha": "b3c2bfa",
-          "title": "Deploy the image CI tested, and only from this repository's main"
+          "title": "Deploy the image CI tested, and only from this repository's main",
+          "linked": false
         }
       ]
     },
@@ -153,13 +188,14 @@
       "kind": "deploy",
       "at": "2026-10-19T08:12:38.000Z",
       "sha": "c3bf624",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39220865794",
+      "url": null,
       "release": null,
       "minutes": 2.4,
       "commits": [
         {
           "sha": "c3bf624",
-          "title": "Answer trace: full-width bars on phones"
+          "title": "Answer trace: full-width bars on phones",
+          "linked": false
         }
       ]
     },
@@ -167,13 +203,14 @@
       "kind": "deploy",
       "at": "2026-10-19T08:01:58.000Z",
       "sha": "0859de6",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39219622048",
+      "url": null,
       "release": null,
       "minutes": 2.3,
       "commits": [
         {
           "sha": "0859de6",
-          "title": "Real traces for the Ask console: OpenTelemetry to Cloud Trace"
+          "title": "Real traces for the Ask console: OpenTelemetry to Cloud Trace",
+          "linked": false
         }
       ]
     },
@@ -181,25 +218,29 @@
       "kind": "deploy",
       "at": "2026-10-19T07:37:02.000Z",
       "sha": "3b74859",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39216895392",
+      "url": null,
       "release": null,
       "minutes": 2.3,
       "commits": [
         {
           "sha": "3b74859",
-          "title": "Light theme: product tags readable; Lighthouse audits both themes"
+          "title": "Light theme: product tags readable; Lighthouse audits both themes",
+          "linked": false
         },
         {
           "sha": "9c9d9f4",
-          "title": "Lighthouse check: fix a broken string in the failure report"
+          "title": "Lighthouse check: fix a broken string in the failure report",
+          "linked": false
         },
         {
           "sha": "108e73f",
-          "title": "\"You're on call\": an incident drill; Lighthouse check names what fails"
+          "title": "\"You're on call\": an incident drill; Lighthouse check names what fails",
+          "linked": false
         },
         {
           "sha": "8e8b5bb",
-          "title": "Lighthouse budgets in CI, an uptime badge, and a 60-second tour"
+          "title": "Lighthouse budgets in CI, an uptime badge, and a 60-second tour",
+          "linked": false
         }
       ]
     },
@@ -207,13 +248,14 @@
       "kind": "deploy",
       "at": "2026-10-19T07:11:17.000Z",
       "sha": "b0d5e6c",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39214125750",
+      "url": null,
       "release": null,
       "minutes": 2.3,
       "commits": [
         {
           "sha": "b0d5e6c",
-          "title": "DORA metrics for this site, from its own deploy history"
+          "title": "DORA metrics for this site, from its own deploy history",
+          "linked": false
         }
       ]
     },
@@ -221,13 +263,14 @@
       "kind": "deploy",
       "at": "2026-10-19T06:42:09.000Z",
       "sha": "468793b",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39211307354",
+      "url": null,
       "release": null,
       "minutes": 1.3,
       "commits": [
         {
           "sha": "468793b",
-          "title": "MIT licence for the code; a social preview image for the repo"
+          "title": "MIT licence for the code; a social preview image for the repo",
+          "linked": false
         }
       ]
     },
@@ -235,13 +278,14 @@
       "kind": "deploy",
       "at": "2026-10-19T06:38:22.000Z",
       "sha": "8d89d26",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39210933904",
+      "url": null,
       "release": null,
       "minutes": 1.5,
       "commits": [
         {
           "sha": "8d89d26",
-          "title": "Writing: two longer posts from the research and the cost review"
+          "title": "Writing: two longer posts from the research and the cost review",
+          "linked": false
         }
       ]
     },
@@ -249,13 +293,14 @@
       "kind": "deploy",
       "at": "2026-10-19T06:33:02.000Z",
       "sha": "fa54b29",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39210423918",
+      "url": null,
       "release": null,
       "minutes": 1.5,
       "commits": [
         {
           "sha": "fa54b29",
-          "title": "SLO: read hourly points so \"measured since\" is accurate to the hour"
+          "title": "SLO: read hourly points so \"measured since\" is accurate to the hour",
+          "linked": false
         }
       ]
     },
@@ -263,13 +308,14 @@
       "kind": "deploy",
       "at": "2026-10-19T06:27:08.000Z",
       "sha": "0a1fd3e",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39209847020",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "0a1fd3e",
-          "title": "A real SLO for this site, measured from outside"
+          "title": "A real SLO for this site, measured from outside",
+          "linked": false
         }
       ]
     },
@@ -277,13 +323,14 @@
       "kind": "deploy",
       "at": "2026-10-19T06:19:02.000Z",
       "sha": "a20a962",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39209077862",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "a20a962",
-          "title": "Share cards per page, live commit tile, a cluster event log, fixes"
+          "title": "Share cards per page, live commit tile, a cluster event log, fixes",
+          "linked": false
         }
       ]
     },
@@ -291,13 +338,14 @@
       "kind": "deploy",
       "at": "2026-10-19T06:00:41.000Z",
       "sha": "f39546e",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39207362206",
+      "url": null,
       "release": null,
       "minutes": 1.3,
       "commits": [
         {
           "sha": "f39546e",
-          "title": "Take the résumé off the site and out of the repo"
+          "title": "Take the résumé off the site and out of the repo",
+          "linked": false
         }
       ]
     },
@@ -305,13 +353,14 @@
       "kind": "deploy",
       "at": "2026-10-16T04:26:11.000Z",
       "sha": "e3f87ee",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38850493043",
+      "url": null,
       "release": null,
       "minutes": 1.3,
       "commits": [
         {
           "sha": "e3f87ee",
-          "title": "README: screenshots of a case study page and a postmortem"
+          "title": "README: screenshots of a case study page and a postmortem",
+          "linked": false
         }
       ]
     },
@@ -319,13 +368,14 @@
       "kind": "deploy",
       "at": "2026-10-16T04:14:31.000Z",
       "sha": "201e71e",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38849491071",
+      "url": null,
       "release": null,
       "minutes": 1.3,
       "commits": [
         {
           "sha": "201e71e",
-          "title": "Caption contrast on the tinted result and lesson boxes"
+          "title": "Caption contrast on the tinted result and lesson boxes",
+          "linked": false
         }
       ]
     },
@@ -333,13 +383,14 @@
       "kind": "deploy",
       "at": "2026-10-16T03:31:49.000Z",
       "sha": "9b3547a",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38845849909",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "9b3547a",
-          "title": "A page for each case study; deep links into the interactive tabs"
+          "title": "A page for each case study; deep links into the interactive tabs",
+          "linked": false
         }
       ]
     },
@@ -347,13 +398,14 @@
       "kind": "deploy",
       "at": "2026-10-16T03:24:42.000Z",
       "sha": "79c1661",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38845246477",
+      "url": null,
       "release": null,
       "minutes": 1.5,
       "commits": [
         {
           "sha": "79c1661",
-          "title": "Postmortems from running this site; contact form fails closed"
+          "title": "Postmortems from running this site; contact form fails closed",
+          "linked": false
         }
       ]
     },
@@ -361,13 +413,14 @@
       "kind": "deploy",
       "at": "2026-10-16T03:07:32.000Z",
       "sha": "cd2451b",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38843818154",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "cd2451b",
-          "title": "Faster on phones, accessibility issues fixed"
+          "title": "Faster on phones, accessibility issues fixed",
+          "linked": false
         }
       ]
     },
@@ -375,13 +428,14 @@
       "kind": "deploy",
       "at": "2026-10-16T02:03:53.000Z",
       "sha": "7c7be8e",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38838349866",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "7c7be8e",
-          "title": "Fix overlapping trace labels, drop a stray link, right-size work history"
+          "title": "Fix overlapping trace labels, drop a stray link, right-size work history",
+          "linked": false
         }
       ]
     },
@@ -389,13 +443,14 @@
       "kind": "deploy",
       "at": "2026-10-15T08:58:40.000Z",
       "sha": "cbf0f8e",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38709362112",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "cbf0f8e",
-          "title": "README: screenshots and what the site covers now"
+          "title": "README: screenshots and what the site covers now",
+          "linked": false
         }
       ]
     },
@@ -403,13 +458,14 @@
       "kind": "deploy",
       "at": "2026-10-15T08:45:25.000Z",
       "sha": "6dfcc52",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38707762661",
+      "url": null,
       "release": null,
       "minutes": 1.5,
       "commits": [
         {
           "sha": "6dfcc52",
-          "title": "Command palette finds sections by what is in them; name its button"
+          "title": "Command palette finds sections by what is in them; name its button",
+          "linked": false
         }
       ]
     },
@@ -417,13 +473,14 @@
       "kind": "deploy",
       "at": "2026-10-15T08:22:07.000Z",
       "sha": "3563c2f",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38704979186",
+      "url": null,
       "release": null,
       "minutes": 1.5,
       "commits": [
         {
           "sha": "3563c2f",
-          "title": "Résumé: give the AI agent platform its own section"
+          "title": "Résumé: give the AI agent platform its own section",
+          "linked": false
         }
       ]
     },
@@ -431,13 +488,14 @@
       "kind": "deploy",
       "at": "2026-10-15T08:06:37.000Z",
       "sha": "4356f2a",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38703173611",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "4356f2a",
-          "title": "Two products and the FYP; SLOs and error budgets; the AI infra up close"
+          "title": "Two products and the FYP; SLOs and error budgets; the AI infra up close",
+          "linked": false
         }
       ]
     },
@@ -445,13 +503,14 @@
       "kind": "deploy",
       "at": "2026-10-15T07:44:38.000Z",
       "sha": "86a24f1",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38700633362",
+      "url": null,
       "release": null,
       "minutes": 1.5,
       "commits": [
         {
           "sha": "86a24f1",
-          "title": "Résumé: describe the AI platform instead of naming the product"
+          "title": "Résumé: describe the AI platform instead of naming the product",
+          "linked": false
         }
       ]
     },
@@ -459,13 +518,14 @@
       "kind": "deploy",
       "at": "2026-10-15T07:36:40.000Z",
       "sha": "795805c",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38699760720",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "795805c",
-          "title": "Name the three products plainly, and turn monitoring and cost into something to play with"
+          "title": "Name the three products plainly, and turn monitoring and cost into something to play with",
+          "linked": false
         }
       ]
     },
@@ -473,13 +533,14 @@
       "kind": "deploy",
       "at": "2026-10-15T07:05:52.000Z",
       "sha": "5b4981e",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/38696338465",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "5b4981e",
-          "title": "Add an AI platform chapter, research explainers and a trace of each visit"
+          "title": "Add an AI platform chapter, research explainers and a trace of each visit",
+          "linked": false
         }
       ]
     },
@@ -487,13 +548,14 @@
       "kind": "deploy",
       "at": "2026-10-01T07:36:33.000Z",
       "sha": "ccd58d5",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/36831181372",
+      "url": null,
       "release": null,
       "minutes": 1.3,
       "commits": [
         {
           "sha": "ccd58d5",
-          "title": "Deliver contact messages to Discord before telling the visitor they were sent"
+          "title": "Deliver contact messages to Discord before telling the visitor they were sent",
+          "linked": false
         }
       ]
     },
@@ -501,13 +563,14 @@
       "kind": "deploy",
       "at": "2026-10-01T04:48:09.000Z",
       "sha": "cfcdeb9",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/36816689438",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "cfcdeb9",
-          "title": "Make the smoke test reliable and run it in CI and after every deploy"
+          "title": "Make the smoke test reliable and run it in CI and after every deploy",
+          "linked": false
         }
       ]
     },
@@ -515,13 +578,14 @@
       "kind": "deploy",
       "at": "2026-10-01T04:42:07.000Z",
       "sha": "b80efa7",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/36816255446",
+      "url": null,
       "release": null,
       "minutes": 1.1,
       "commits": [
         {
           "sha": "b80efa7",
-          "title": "Serve the site precompressed with brotli and gzip"
+          "title": "Serve the site precompressed with brotli and gzip",
+          "linked": false
         }
       ]
     },
@@ -529,13 +593,14 @@
       "kind": "deploy",
       "at": "2026-10-01T04:22:53.000Z",
       "sha": "a6d6d3c",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/36814739690",
+      "url": null,
       "release": null,
       "minutes": 1.4,
       "commits": [
         {
           "sha": "a6d6d3c",
-          "title": "Point the site and résumé at the live Cloud Run URL"
+          "title": "Point the site and résumé at the live Cloud Run URL",
+          "linked": false
         }
       ]
     },
@@ -543,21 +608,24 @@
       "kind": "deploy",
       "at": "2026-10-01T04:13:57.000Z",
       "sha": "36bdb78",
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/36814045053",
+      "url": null,
       "release": null,
       "minutes": 1.2,
       "commits": [
         {
           "sha": "36bdb78",
-          "title": "api: add /api/health for checks that go through Cloud Run's front end"
+          "title": "api: add /api/health for checks that go through Cloud Run's front end",
+          "linked": false
         },
         {
           "sha": "9217f04",
-          "title": "ci: generate Next.js route types before typechecking"
+          "title": "ci: generate Next.js route types before typechecking",
+          "linked": false
         },
         {
           "sha": "6310860",
-          "title": "Portfolio site: Next.js front end, Go API, CI/CD and Terraform"
+          "title": "Portfolio site: Next.js front end, Go API, CI/CD and Terraform",
+          "linked": false
         }
       ]
     }

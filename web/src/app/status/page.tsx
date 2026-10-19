@@ -4,13 +4,16 @@ import { LiveState } from "@/components/status/live-state";
 import { SloPanel } from "@/components/sections/slo-panel";
 import { incidents } from "@/content/status";
 import { pageMetadata } from "@/lib/page-metadata";
+import { SITE_URL } from "@/lib/site";
 
-export const metadata = pageMetadata({
+const base = pageMetadata({
   title: "Status: is this site up?",
   description:
     "Live state, 30 days of availability against a 99.9% SLO, how the site is watched, and its incident history, with a feed to subscribe to.",
   path: "/status",
 });
+// Feed readers find the incident feed from the page itself.
+export const metadata = { ...base, alternates: { ...base.alternates, types: { "application/atom+xml": "/status/feed.xml" } } };
 
 const REPO = "https://github.com/zhenxi0901/portfolio";
 
@@ -26,7 +29,7 @@ export default function StatusPage() {
   return (
     <ArticleShell back={{ href: "/#status", label: "How this site runs" }}>
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <p className="font-mono text-xs text-ink-3">portfolio-emsghin2iq-as.a.run.app · Cloud Run, asia-southeast1</p>
+        <p className="font-mono text-xs text-ink-3">{new URL(SITE_URL).host} · Cloud Run, asia-southeast1</p>
         <a href="/status/feed.xml" className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink">
           <Rss size={14} aria-hidden /> Subscribe to incidents
         </a>
@@ -54,7 +57,7 @@ export default function StatusPage() {
         </ul>
       </Part>
 
-      <Part title="Incident history" aside={`${incidents.length} since launch, all resolved`}>
+      <Part title="Incident history" aside={`${incidents.length} so far, all resolved`}>
         <ol className="space-y-3">
           {incidents.map((i) => (
             <li key={i.id}>

@@ -20,16 +20,11 @@ func (s *Server) timing(next http.Handler) http.Handler {
 		start := time.Now()
 		tail := rev
 		// Probes, health checks and scrapes are not visitors: they must not use up the first request.
-		if !machinePaths[r.URL.Path] && s.visits.Add(1) == 1 {
+		if !machineRoutes[r.URL.Path] && s.visits.Add(1) == 1 {
 			tail = fmt.Sprintf(`, cold;dur=%.0f;desc="process age at first request"`, ms(start.Sub(s.started))) + tail
 		}
 		next.ServeHTTP(&timingWriter{ResponseWriter: w, start: start, tail: tail}, r)
 	})
-}
-
-// Badges and the profile card are fetched by image proxies, not visitors.
-var machinePaths = map[string]bool{
-	"/healthz": true, "/readyz": true, "/api/health": true, "/metrics": true, "/api/badge/uptime": true, "/api/card.svg": true,
 }
 
 // timingWriter stamps Server-Timing at the moment the status line is written, so "app" is the

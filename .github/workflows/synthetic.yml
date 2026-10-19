@@ -26,18 +26,29 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      actions: read # when the previous check ran
     steps:
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ secrets.WATCHER_SA }}
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
-      - name: Contact messages that could not be delivered, last 65 minutes
+      - name: Contact messages that could not be delivered since the last check
         env:
           PROJECT: ${{ secrets.GCP_PROJECT }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          since=$(date -u -d '65 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
-          filter="resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"portfolio\" AND jsonPayload.msg=\"contact: undelivered\" AND timestamp>=\"$since\""
+          # Scheduled runs start late or are skipped at busy times, so look back to just before the
+          # previous run started (5 minutes of overlap) rather than a fixed hour; never more than 6 h.
+          prev=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow synthetic.yml --limit 2 --json createdAt --jq '.[1].createdAt // empty')
+          start=$(( $(date -u +%s) - 3900 ))
+          if [ -n "$prev" ]; then start=$(( $(date -u -d "$prev" +%s) - 300 )); fi
+          floor=$(( $(date -u +%s) - 6 * 3600 ))
+          if [ "$start" -lt "$floor" ]; then start=$floor; fi
+          since=$(date -u -d "@$start" +%Y-%m-%dT%H:%M:%SZ)
+          # Visitors' messages only: a synthetic check that failed and then succeeded on a retry is not
+          # someone who was asked to email instead (the contact job reports its own failures).
+          filter="resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"portfolio\" AND jsonPayload.msg=\"contact: undelivered\" AND jsonPayload.synthetic=false AND timestamp>=\"$since\""
           found=$(gcloud logging read "$filter" --project "$PROJECT" --limit 50 --format 'value(timestamp,jsonPayload.reason,jsonPayload.synthetic)')
           if [ -z "$found" ]; then
             echo "None since $since." | tee -a "$GITHUB_STEP_SUMMARY"
@@ -69,4 +80,10 @@ jobs:
             echo "::error::The contact form answered $code after $attempt attempts: $(cat reply.json 2>/dev/null)"
             exit 1
           fi
-          echo "Delivered through the webhook in attempt $attempt (202)." | tee -a "$GITHUB_STEP_SUMMARY"
+          # 202 alone would also be the answer to a visitor's message: if the server did not recognise
+          # the token, the check went out as one, and that is a failure.
+          if ! jq -e '.synthetic == true' reply.json >/dev/null; then
+            echo "::error::Delivered, but not recognised as a synthetic check (token mismatch?); it went out as a visitor's message."
+            exit 1
+          fi
+          echo "Delivered through the webhook in attempt $attempt (202, recognised as a check)." | tee -a "$GITHUB_STEP_SUMMARY"

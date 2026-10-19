@@ -28,10 +28,13 @@ export function CostReview() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <ol role="tablist" aria-label="Cost moves" className="flex min-w-0 gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
           {levers.map((x, k) => (
-            <li key={x.title} className="shrink-0">
+            // presentation: a tablist must own its tabs directly.
+            <li key={x.title} role="presentation" className="shrink-0">
               <button
                 type="button"
                 role="tab"
+                id={`cost-tab-${k}`}
+                aria-controls="cost-panel"
                 aria-selected={k === i}
                 onClick={() => setI(k)}
                 className={cn(
@@ -65,7 +68,7 @@ export function CostReview() {
 
         {/* Only the move's content is keyed (to replay its entrance); the Previous/Next buttons stay
             mounted so they keep focus, and the live region stays put so the change is announced. */}
-        <article className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-7">
+        <article id="cost-panel" role="tabpanel" aria-labelledby={`cost-tab-${i}`} className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-7">
           <div aria-live="polite">
             <div key={i} className="step-in">
               <div className="flex flex-wrap items-center gap-2">

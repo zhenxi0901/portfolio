@@ -2,8 +2,9 @@ name: deploy
 run-name: ${{ inputs.rollback_drill && 'Rollback drill' || '' }}
 
 # Releases the image CI built, tested and attested for a commit on main. Nothing is built here.
+#   0. Release only main's head: a re-run of an older CI run must not put an older commit back.
 #   1. Find that image by its commit, and refuse it unless its provenance and SBOM attestations
-#      verify as made by this repository's CI.
+#      verify as made by this repository's CI on main.
 #   2. Hold the release if the site's own error budget is spent (scripts/budget-gate.sh).
 #   3. Start the new revision with no traffic and smoke-test it at its own URL.
 #   4. Move all traffic to it and check again; if the live checks fail, move traffic back.
@@ -28,12 +29,17 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+# Every step's shell is bash with pipefail, so a command that fails inside a pipe fails its step
+# (without it, a failed gcloud piped into jq reads as an empty answer).
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  deploy:
+  # Only main's head is ever released. Re-running an older CI run, or an old deploy, would otherwise
+  # put an older commit back in production. A superseded run cancels itself (no red run, no failure
+  # email): the newer commit's own run releases it.
+  current:
     # A push to main in this repository whose CI passed. The branch filter alone is not enough: it
     # also matches a pull request from a fork whose own branch is called main. A manual run releases
     # main's head, and only if CI has already pushed a tested image for it (checked below).
@@ -44,7 +50,31 @@ jobs:
           github.event.workflow_run.event == 'push' &&
           github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write # to cancel this run when it is superseded
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Release only main's head
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$head" = "$SHA" ]; then exit 0; fi
+          echo "::notice::${SHA:0:7} is no longer the head of main (${head:0:7}); that commit's own run releases it."
+          gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY"
+          sleep 120 # cancelling is asynchronous: this job must not finish successfully meanwhile
+          exit 1
+
+  deploy:
+    needs: current
+    runs-on: ubuntu-latest
     environment: production
+    # Job-level, so a run that is skipped or cancelled never displaces a release waiting its turn.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
@@ -82,8 +112,10 @@ jobs:
           DIGEST: ${{ steps.image.outputs.digest }}
         run: |
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          # Made by ci.yml on main: a pull request's run in this repository can attest too, but only
+          # main's runs can push an image, and only main's attestations count here.
           for type in https://slsa.dev/provenance/v1 https://spdx.dev/Document/v2.3; do
-            gh attestation verify "oci://$IMAGE@$DIGEST" --repo "$GITHUB_REPOSITORY" \
+            gh attestation verify "oci://$IMAGE@$DIGEST" --repo "$GITHUB_REPOSITORY" --source-ref refs/heads/main \
               --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" --predicate-type "$type"
           done
 
@@ -93,16 +125,22 @@ jobs:
           OVERRIDE: ${{ inputs.budget_override }}
         run: |
           url=$(gcloud run services describe "$SERVICE" --region "$REGION" --format 'value(status.url)')
-          COMMIT_MESSAGE=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA" --jq .commit.message) \
-            bash scripts/budget-gate.sh "$url"
+          # Its own assignment, so a failed lookup fails the step instead of reading as "not a fix".
+          message=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA" --jq .commit.message)
+          COMMIT_MESSAGE="$message" bash scripts/budget-gate.sh "$url"
 
       - name: Note the revision serving now
         id: before
         run: |
           rev=$(gcloud run services describe "$SERVICE" --region "$REGION" --format=json |
             jq -r '[.status.traffic[] | select(.percent == 100)][0].revisionName // empty')
+          # Without a revision to go back to there is no rollback, so nothing is released.
+          if [ -z "$rev" ]; then
+            echo "::error::No single revision is serving all traffic, so a failed release could not be rolled back."
+            exit 1
+          fi
           echo "revision=$rev" >> "$GITHUB_OUTPUT"
-          echo "Serving now: ${rev:-unknown}"
+          echo "Serving now: $rev"
 
       - name: Start the new revision with no traffic
         id: candidate
@@ -149,9 +187,7 @@ jobs:
       # Mitigate first: put traffic back on the revision that was serving, then confirm it answers.
       - name: Roll back to the previous revision
         id: rollback
-        if: >-
-          (failure() || steps.verify.outcome == 'failure') &&
-          steps.switch.outcome == 'success' && steps.before.outputs.revision != ''
+        if: (failure() || steps.verify.outcome == 'failure') && steps.switch.outcome == 'success'
         env:
           PREV: ${{ steps.before.outputs.revision }}
           DRILL: ${{ inputs.rollback_drill }}
@@ -175,12 +211,22 @@ jobs:
         if: (failure() || steps.verify.outcome == 'failure') && steps.candidate.outcome == 'success'
         run: gcloud run services update-traffic "$SERVICE" --region "$REGION" --remove-tags candidate --quiet
 
+      # Verify may fail in a drill (continue-on-error); the drill itself passes only if the rollback did.
+      - name: The drill's rollback worked
+        if: always() && inputs.rollback_drill == true && steps.rollback.outcome != 'success'
+        run: |
+          echo "::error::Rollback drill failed: the rollback did not run, or traffic did not return."
+          exit 1
+
   # Every release is a GitHub release: the commits it shipped, the image digest, and the SBOM and
   # provenance CI attested for it. Separate from the deploy job, which never gets write access here.
   release:
     needs: deploy
     if: inputs.rollback_drill != true
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     permissions:
       contents: write # create the tag and the release
       actions: read # fetch the SBOM and provenance from CI's run

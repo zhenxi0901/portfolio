@@ -54,7 +54,7 @@ func TestCardShowsTheLiveNumbers(t *testing.T) {
 		s := string(svg)
 		for _, want := range []string{
 			"99.99%", // floored, never rounded up to a 100.00% it is not
-			"97%", ">32<", "4.4 min", ">0%<", "deploys, 30 days",
+			"97.0%", ">32<", "4.4 min", ">0%<", "deploys, 30 days",
 			"committed 1 h ago", "releases open", "traffic back in 20 s, 19 Oct", "as of 12:00 UTC",
 		} {
 			if !strings.Contains(s, want) {
@@ -91,7 +91,7 @@ func TestCardWithNothingMeasured(t *testing.T) {
 
 func TestFrozenReleasesAreFlagged(t *testing.T) {
 	s := string(SVG(Data{Commit: "x", Region: "r", SLOAvailable: true, Availability: 0.99, BudgetRemaining: -0.5, Releases: "frozen", Now: now}, true))
-	if !strings.Contains(s, "releases frozen: reliability fixes only") || !strings.Contains(s, ">0%<") {
+	if !strings.Contains(s, "releases frozen: reliability fixes only") || !strings.Contains(s, ">0.0%<") {
 		t.Errorf("frozen state not shown: %s", s)
 	}
 }
@@ -114,5 +114,37 @@ func TestLoadDeliveryErrors(t *testing.T) {
 	_ = os.WriteFile(bad, []byte("{"), 0o600)
 	if _, err := LoadDelivery(bad); err == nil {
 		t.Error("bad JSON should be an error")
+	}
+}
+
+// A drill whose steps could not be timed has no restore time; the card says when, not "0 s".
+func TestDrillWithoutARestoreTime(t *testing.T) {
+	d := delivery(t)
+	d.Safeguards.LastDrill.RestoreSeconds = nil
+	s := string(SVG(Data{Commit: "x", Region: "r", Delivery: d, Now: now}, true))
+	if strings.Contains(s, "traffic back in") || !strings.Contains(s, "last rollback drill: 19 Oct") {
+		t.Errorf("want the drill's date without a restore time:\n%s", s)
+	}
+}
+
+// When Monitoring cannot be read, the card shows the last good numbers with their own time.
+func TestStaleReadingIsLabelled(t *testing.T) {
+	read := now.Add(-3 * time.Hour)
+	s := string(SVG(Data{Commit: "x", Region: "r", SLOAvailable: true, Availability: 1, BudgetRemaining: 1, Releases: "open",
+		SLOUpdated: read, SLOStale: true, Now: now}, true))
+	if !strings.Contains(s, "last good reading 19 Oct 09:00 UTC") || strings.Contains(s, "12:00 UTC") {
+		t.Errorf("stale reading not labelled with its own time:\n%s", s)
+	}
+}
+
+// The real file the pipeline writes must load: a change in its shape would otherwise leave every
+// delivery number on the card as "n/a" without any error.
+func TestLoadsTheGeneratedDeliveryFile(t *testing.T) {
+	d, err := LoadDelivery("../../../web/src/content/generated/delivery.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.WindowDays != 30 || d.Head == nil || d.Head.SHA == "" {
+		t.Errorf("generated delivery.json lost fields the card needs: %+v", d)
 	}
 }

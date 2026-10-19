@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { api, type SloReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const pct = (x: number, digits = 3) => `${(x * 100).toFixed(digits)}%`;
+// Rounded down, as the badge and the profile card do (slo.FloorPct in Go), so the three always agree
+// and none of them shows 100% while some of the budget is spent. The nudge absorbs float error.
+const pct = (x: number, digits = 3) => `${(Math.floor(x * 100 * 10 ** digits + 1e-6) / 10 ** digits).toFixed(digits)}%`;
 
 /** How long the checks have been running, from the report's own timestamps. */
 function span(since: string, updated: string) {

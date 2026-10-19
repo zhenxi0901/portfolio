@@ -4,9 +4,11 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sync/atomic"
@@ -75,8 +77,12 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 	rec, closeTraces := tracing.Setup("portfolio", cfg.Version+"@"+short(cfg.Commit), export)
 
 	delivery, err := card.LoadDelivery(filepath.Join(cfg.StaticDir, "delivery.json"))
-	if err != nil {
-		log.Info("card: no delivery numbers; the profile card shows the live ones only", "err", err)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		log.Info("card: no delivery.json; the profile card shows the live numbers only")
+	case err != nil:
+		// The file is there but unreadable: the card would quietly show "n/a" everywhere.
+		log.Error("card: delivery.json does not parse", "err", err)
 	}
 
 	return &Server{
@@ -139,6 +145,7 @@ func (s *Server) Handler() http.Handler {
 		svg := card.SVG(card.Data{
 			Commit: short(s.cfg.Commit), Region: s.cfg.Region,
 			SLOAvailable: rep.Available, Availability: rep.Availability, BudgetRemaining: rep.BudgetRemaining, Releases: rep.Releases,
+			SLOUpdated: rep.Updated, SLOStale: rep.Stale, UptimeLabel: rep.UptimeLabel(),
 			Delivery: s.delivery, Now: time.Now(),
 		}, r.URL.Query().Get("theme") != "light")
 		w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")

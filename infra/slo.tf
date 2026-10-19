@@ -29,7 +29,8 @@ resource "google_monitoring_uptime_check_config" "site" {
   depends_on = [google_project_service.apis]
 }
 
-# Read-only access to the check results, for /api/slo. The runtime identity has no other project role.
+# Read-only access to the check results, for /api/slo. Its only other project role is
+# cloudtrace.agent (tracing.tf).
 resource "google_project_iam_member" "runtime_reads_monitoring" {
   project = var.project_id
   role    = "roles/monitoring.viewer"

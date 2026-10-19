@@ -97,8 +97,9 @@ export function Drill() {
             "rounded-3xl border p-5 sm:p-6",
             phase === "paged" ? "border-critical/60 bg-[color-mix(in_oklab,var(--critical)_10%,var(--surface))]" : "border-good/50 bg-surface",
           )}
-          role="status"
         >
+          {/* Not a live region: the clock and budget change on every move and would be re-read each
+              time. Focus moves to the title on each phase change, and the feed below announces results. */}
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs">
             <span className={phase === "paged" ? "text-critical" : "text-good"}>
               {phase === "paged" ? (silenced ? "PAGE SILENCED, STILL BURNING" : "PAGE, FIRING") : phase === "mitigated" ? "MITIGATED, VERIFYING" : "RESOLVED"}

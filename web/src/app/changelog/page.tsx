@@ -6,12 +6,17 @@ import { cn } from "@/lib/utils";
 
 // Written by scripts/delivery-stats.mjs in CI from this repository's commits, deploy runs and
 // releases. Typed explicitly: a JSON import's inferred types would break on an empty list.
-type Commit = { sha: string; title: string };
-type Base = { at: string; sha: string; url: string };
+type Commit = { sha: string; title: string; linked?: boolean };
+// url is null for runs from before the content cleanup: listed, not linked (see delivery-stats.mjs).
+type Base = { at: string; sha: string; url: string | null };
 type Entry =
   | (Base & { kind: "deploy"; release: string | null; minutes: number; commits: Commit[] })
   | (Base & { kind: "failed" | "drill" | "stopped" | "held"; title: string; restoreSeconds: number | null });
-const changelog = generated as { generated: string; entries: Entry[] };
+const changelog = generated as {
+  generated: string;
+  totals: { releases: number; commits: number; drills: number };
+  entries: Entry[];
+};
 
 const REPO = "https://github.com/zhenxi0901/portfolio";
 const TZ = "Asia/Singapore";
@@ -40,16 +45,21 @@ const NOTICE = {
   drill: {
     icon: ArrowCounterClockwise,
     tone: "text-accent-ink",
-    text: (e: NoticeEntry) => `Rollback drill: traffic back on the old revision ${e.restoreSeconds} s after the switch`,
+    text: (e: NoticeEntry) =>
+      e.restoreSeconds != null
+        ? `Rollback drill: traffic back on the old revision ${e.restoreSeconds} s after the switch`
+        : "Rollback drill: traffic back on the old revision",
   },
   stopped: { icon: ShieldCheck, tone: "text-p-ai", text: () => "Stopped before taking traffic: the new revision failed its checks" },
   held: { icon: Pause, tone: "text-p-ai", text: () => "Held by the error-budget gate" },
 };
 
 export default function ChangelogPage() {
-  const entries = changelog.entries;
-  const releases = entries.filter((e) => e.kind === "deploy");
-  const shipped = releases.reduce((n, e) => n + (e.kind === "deploy" ? e.commits.length : 0), 0);
+  const { entries, totals } = changelog;
+  const listed = entries.filter((e) => e.kind === "deploy").length;
+  // The oldest listed release that became a GitHub release (they started with the signed pipeline).
+  const firstTag =
+    [...entries].reverse().find((e): e is Extract<Entry, { kind: "deploy" }> => e.kind === "deploy" && e.release !== null)?.release ?? null;
   const days = [...new Set(entries.map((e) => dayKey(e.at)))];
 
   return (
@@ -57,16 +67,21 @@ export default function ChangelogPage() {
       <p className="mt-8 font-mono text-xs text-ink-3">Written by the pipeline · Singapore time</p>
       <h1 className="mt-4 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">Changelog</h1>
       <p className="mt-6 max-w-[62ch] text-lg leading-relaxed text-ink-2">
-        Every release of this site to production, with the commits it shipped: {releases.length} releases and {shipped} commits so far.
-        Since 19 October each one is also a{" "}
-        <a href={`${REPO}/releases`} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-ink">
-          GitHub release
-        </a>{" "}
-        with its SBOM and build provenance, and a{" "}
-        <a href={`${REPO}/releases.atom`} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-ink">
-          feed
-        </a>{" "}
-        you can follow.
+        Every release of this site to production, with the commits it shipped: {totals.releases} releases and {totals.commits} commits so
+        far{listed < totals.releases ? `; the latest ${listed} are listed here` : ""}.{" "}
+        {firstTag && (
+          <>
+            Since {firstTag}, each one is also a{" "}
+            <a href={`${REPO}/releases`} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-ink">
+              GitHub release
+            </a>{" "}
+            with its SBOM and build provenance, and a{" "}
+            <a href={`${REPO}/releases.atom`} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-ink">
+              feed
+            </a>{" "}
+            you can follow.
+          </>
+        )}
       </p>
 
       <div className="mt-12 space-y-12">
@@ -82,10 +97,14 @@ export default function ChangelogPage() {
               </h2>
               <ol className="mt-2">
                 {today.map((e) => (
-                  <li key={`${e.url}-${e.kind}`} className="grid grid-cols-[3.5rem_1fr] gap-x-3 border-b border-line/60 py-4 last:border-0">
-                    <a href={e.url} target="_blank" rel="noreferrer" className="pt-0.5 font-mono text-xs text-ink-3 hover:text-ink">
-                      {time(e.at)}
-                    </a>
+                  <li key={`${e.sha}-${e.kind}-${e.at}`} className="grid grid-cols-[3.5rem_1fr] gap-x-3 border-b border-line/60 py-4 last:border-0">
+                    {e.url ? (
+                      <a href={e.url} target="_blank" rel="noreferrer" className="pt-0.5 font-mono text-xs text-ink-3 hover:text-ink">
+                        {time(e.at)}
+                      </a>
+                    ) : (
+                      <span className="pt-0.5 font-mono text-xs text-ink-3">{time(e.at)}</span>
+                    )}
                     {e.kind === "deploy" ? (
                       <div>
                         <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-ink-2">
@@ -99,7 +118,7 @@ export default function ChangelogPage() {
                               {e.release}
                             </a>
                           ) : (
-                            <span className="font-mono text-xs text-ink-3">release</span>
+                            <span className="font-mono text-xs text-ink-3">no GitHub release</span>
                           )}
                           <span className="font-mono text-xs text-ink-3">
                             {e.commits.length ? `${e.commits.length} commit${e.commits.length === 1 ? "" : "s"}` : "redeploy"} · deploy {e.minutes} min
@@ -108,14 +127,18 @@ export default function ChangelogPage() {
                         <ul className="mt-2 space-y-1.5">
                           {e.commits.map((c) => (
                             <li key={c.sha} className="flex gap-3 text-[15px] leading-snug">
-                              <a
-                                href={`${REPO}/commit/${c.sha}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="shrink-0 pt-0.5 font-mono text-xs text-ink-3 hover:text-ink"
-                              >
-                                {c.sha}
-                              </a>
+                              {c.linked ? (
+                                <a
+                                  href={`${REPO}/commit/${c.sha}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="shrink-0 pt-0.5 font-mono text-xs text-ink-3 hover:text-ink"
+                                >
+                                  {c.sha}
+                                </a>
+                              ) : (
+                                <span className="shrink-0 pt-0.5 font-mono text-xs text-ink-3">{c.sha}</span>
+                              )}
                               {/* Titles can hold long unbroken tokens (a branch name in a merge commit). */}
                               <span className="min-w-0 [overflow-wrap:anywhere]">{c.title}</span>
                             </li>

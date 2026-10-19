@@ -148,8 +148,17 @@ func TestDiscordPayload(t *testing.T) {
 func TestSlackStylePayload(t *testing.T) {
 	m := Message{Name: "Ann", Email: "a@b.co", Message: "hello there"}
 	raw, _ := json.Marshal(webhookPayload("https://hooks.slack.com/services/T/B/x", m))
-	if string(raw) != `{"text":"New message from Ann \u003ca@b.co\u003e:\nhello there"}` {
+	if string(raw) != `{"text":"New message from Ann (a@b.co):\nhello there"}` {
 		t.Errorf("unexpected payload %s", raw)
+	}
+}
+
+// A visitor's text must not become Slack markup: no channel-wide pings, no disguised links.
+func TestSlackStylePayloadIsEscaped(t *testing.T) {
+	m := Message{Name: "<!channel>", Email: "a@b.co", Message: "see <https://evil.example|your invoice> & reply"}
+	p := webhookPayload("https://hooks.slack.com/services/T/B/x", m).(map[string]string)
+	if strings.ContainsAny(p["text"], "<>") || !strings.Contains(p["text"], "&lt;!channel&gt;") || !strings.Contains(p["text"], "&amp; reply") {
+		t.Errorf("visitor text not escaped: %q", p["text"])
 	}
 }
 
@@ -187,8 +196,9 @@ func stored(t *testing.T, s *Service) bool {
 func TestSyntheticCheckIsDeliveredMarkedAndNotStored(t *testing.T) {
 	url, calls, bodies := webhook(t, http.StatusNoContent)
 	s := newService(t, url).WithSyntheticToken("s3cret")
-	if rec := sendWith(s, valid, "s3cret"); rec.Code != http.StatusAccepted {
-		t.Fatalf("status %d, want 202", rec.Code)
+	rec := sendWith(s, valid, "s3cret")
+	if rec.Code != http.StatusAccepted || !strings.Contains(rec.Body.String(), `"synthetic":true`) {
+		t.Fatalf("status %d body %s, want 202 with synthetic:true", rec.Code, rec.Body.String())
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("webhook called %d times, want 1", calls.Load())
@@ -218,6 +228,18 @@ func TestSyntheticTokenMustMatch(t *testing.T) {
 		if !stored(t, svc) {
 			t.Errorf("%s: a visitor's message was not stored", name)
 		}
+	}
+}
+
+// A check that proves delivery cannot pass where there is nothing to deliver to, even where a
+// visitor's message would be accepted (the webhook is not required off Cloud Run).
+func TestSyntheticCheckWithoutAWebhookFails(t *testing.T) {
+	s := newService(t, "").WithSyntheticToken("s3cret")
+	if rec := sendWith(s, valid, "s3cret"); rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("status %d, want 503", rec.Code)
+	}
+	if rec := send(s, valid); rec.Code != http.StatusAccepted || strings.Contains(rec.Body.String(), "synthetic") {
+		t.Errorf("a visitor's message: status %d body %s, want a plain 202", rec.Code, rec.Body.String())
 	}
 }
 
