@@ -177,6 +177,14 @@ html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
   from { transform: translateY(14px); }
 }
 
+/* The section the guided tour is showing. */
+h2[data-tour] {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
+}
+
 /* The hop a request is travelling on the AI platform map. */
 .map-flow {
   stroke-dasharray: 6 6;

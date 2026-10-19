@@ -13,6 +13,7 @@ import { Ask } from "@/components/sections/ask";
 import { Status } from "@/components/sections/status";
 import { Postmortems } from "@/components/sections/postmortems";
 import { Writing } from "@/components/sections/writing";
+import { Tour } from "@/components/site/tour";
 import { Contact } from "@/components/sections/contact";
 
 export default function Home() {
@@ -42,6 +43,7 @@ export default function Home() {
       </main>
       <Footer />
       <Dock />
+      <Tour />
     </>
   );
 }

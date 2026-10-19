@@ -19,6 +19,7 @@ import { cases, profile } from "@/content/profile";
 import { postmortems } from "@/content/postmortems";
 import { posts } from "@/content/writing";
 import { goTo, openPlatformTab, scrollToId } from "@/lib/utils";
+import { startTour } from "@/components/site/tour";
 
 export function CommandPalette() {
   const { open, setOpen } = usePalette();
@@ -94,6 +95,9 @@ export function CommandPalette() {
           ))}
         </Command.Group>
         <Command.Group heading="Actions">
+          <Item keywords={["tour", "overview", "highlights", "recruiter", "quick"]} icon={<ArrowRight size={16} />} onSelect={() => run(startTour)}>
+            Take the 60-second tour
+          </Item>
           <Item
             icon={<Copy size={16} />}
             onSelect={() =>

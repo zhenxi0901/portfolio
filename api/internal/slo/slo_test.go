@@ -183,3 +183,22 @@ func TestMonitoringReportsAPIErrors(t *testing.T) {
 		t.Fatalf("want a 403 error, got %v", err)
 	}
 }
+
+func TestBadge(t *testing.T) {
+	cases := []struct {
+		r             Report
+		message, colr string
+	}{
+		{Report{}, "measuring", "lightgrey"},
+		{Report{Available: true, Availability: 1}, "100.00%", "brightgreen"},
+		// Rounded down, so 99.899% never shows as meeting a 99.9% objective.
+		{Report{Available: true, Availability: 0.99899}, "99.89%", "yellow"},
+		{Report{Available: true, Availability: 0.95}, "95.00%", "red"},
+	}
+	for _, c := range cases {
+		b := Badge(c.r)
+		if b.SchemaVersion != 1 || b.Message != c.message || b.Color != c.colr {
+			t.Errorf("Badge(%v) = %+v, want %s %s", c.r.Availability, b, c.message, c.colr)
+		}
+	}
+}
