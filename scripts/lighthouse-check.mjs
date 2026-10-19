@@ -2,7 +2,10 @@
 // drops below its budget. Accessibility and SEO must stay at 100; performance has a floor rather
 // than a target, because shared CI runners are noisy.
 //
-//   node scripts/lighthouse-check.mjs http://localhost:8080/ http://localhost:8080/writing/...
+//   node scripts/lighthouse-check.mjs http://localhost:8080/ dark:http://localhost:8080/ ...
+//
+// Pages are audited in the light theme unless prefixed with "dark:". The theme is set explicitly,
+// because headless Chrome otherwise follows the machine's setting (light on CI, often dark locally).
 import { execFileSync } from "node:child_process";
 import { appendFileSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -23,9 +26,12 @@ const dir = REPORTS ?? mkdtempSync(join(tmpdir(), "lh-"));
 mkdirSync(dir, { recursive: true });
 const rows = [];
 let failed = false;
-for (const [i, url] of urls.entries()) {
+for (const [i, arg] of urls.entries()) {
+  const dark = arg.startsWith("dark:");
+  const url = dark ? arg.slice(5) : arg;
   const out = join(dir, `${i}.json`);
-  const args = ["--yes", LIGHTHOUSE, url, "--output=json", `--output-path=${out}`, "--quiet", "--chrome-flags=--headless=new --no-sandbox"];
+  const scheme = `--blink-settings=preferredColorScheme=${dark ? 0 : 1}`;
+  const args = ["--yes", LIGHTHOUSE, url, "--output=json", `--output-path=${out}`, "--quiet", `--chrome-flags=--headless=new --no-sandbox ${scheme}`];
   // Windows can only run npx through a shell, which needs the spaced argument quoted.
   const win = process.platform === "win32";
   execFileSync("npx", win ? args.map((a) => (a.includes(" ") ? `"${a}"` : a)) : args, { stdio: "inherit", shell: win });
@@ -37,7 +43,7 @@ for (const [i, url] of urls.entries()) {
     const audits = report.categories[k].auditRefs
       .filter((r) => r.weight > 0 && report.audits[r.id].score !== null && report.audits[r.id].score < 1)
       .map((r) => r.id);
-    console.error(`::error::${url}: ${k} ${Math.round(scores[k] * 100)} is under ${Math.round(BUDGET[k] * 100)} (${audits.join(", ")})`);
+    console.error(`::error::${url}${dark ? " (dark)" : ""}: ${k} ${Math.round(scores[k] * 100)} is under ${Math.round(BUDGET[k] * 100)} (${audits.join(", ")})`);
     // And the elements involved, so a failure can be fixed without reproducing it.
     for (const id of audits) {
       for (const item of (report.audits[id].details?.items ?? []).slice(0, 5)) {
@@ -47,7 +53,7 @@ for (const [i, url] of urls.entries()) {
     }
   }
   failed ||= misses.length > 0;
-  rows.push([url, ...Object.keys(BUDGET).map((k) => `${Math.round(scores[k] * 100)}${scores[k] < BUDGET[k] ? " ✗" : ""}`)]);
+  rows.push([`${url}${dark ? " (dark)" : ""}`, ...Object.keys(BUDGET).map((k) => `${Math.round(scores[k] * 100)}${scores[k] < BUDGET[k] ? " ✗" : ""}`)]);
 }
 
 const table = [

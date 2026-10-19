@@ -72,7 +72,9 @@ jobs:
       # The footer promises accessibility and SEO at 100 on every release; this is what keeps it true.
       - name: Lighthouse budgets
         env: { LIGHTHOUSE_REPORTS: lighthouse }
-        run: node scripts/lighthouse-check.mjs http://localhost:8080/ http://localhost:8080/work/gke http://localhost:8080/writing/serving-llm-agents
+        run: >-
+          node scripts/lighthouse-check.mjs http://localhost:8080/ dark:http://localhost:8080/
+          http://localhost:8080/work/ai-platform http://localhost:8080/writing/serving-llm-agents http://localhost:8080/oncall
       - uses: actions/upload-artifact@v5
         if: always()
         with: { name: lighthouse, path: lighthouse, retention-days: 7 }
