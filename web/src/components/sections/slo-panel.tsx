@@ -5,6 +5,12 @@ import { api, type SloReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const pct = (x: number, digits = 3) => `${(x * 100).toFixed(digits)}%`;
+
+/** How long the checks have been running, from the report's own timestamps. */
+function span(since: string, updated: string) {
+  const h = (Date.parse(updated) - Date.parse(since)) / 36e5;
+  return h < 48 ? `${Math.max(1, Math.round(h))} h` : `${Math.round(h / 24)} days`;
+}
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 const dayTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -70,7 +76,8 @@ export function SloPanel() {
         <>
           <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
             <div className="flex flex-col-reverse justify-end">
-              <dt className="mt-1 text-sm text-ink-2">availability, {r.checks.toLocaleString("en-US")} checks</dt>
+              {/* Monitoring stores several samples per probe, so the counts are not shown as "checks". */}
+              <dt className="mt-1 text-sm text-ink-2">availability over {r.since ? span(r.since, r.updated) : "the window"}</dt>
               <dd className="text-3xl font-semibold tracking-[-0.03em]">{pct(r.availability)}</dd>
             </div>
             <div className="flex flex-col-reverse justify-end">
@@ -80,8 +87,8 @@ export function SloPanel() {
               <dd className={cn("text-3xl font-semibold tracking-[-0.03em]", budgetTone)}>{pct(Math.max(-9.99, r.budget_remaining), 1)}</dd>
             </div>
             <div className="col-span-2 flex flex-col-reverse justify-end sm:col-span-1">
-              <dt className="mt-1 text-sm text-ink-2">checks failed</dt>
-              <dd className="text-3xl font-semibold tracking-[-0.03em]">{(r.checks - r.passed).toLocaleString("en-US")}</dd>
+              <dt className="mt-1 text-sm text-ink-2">downtime the checks saw</dt>
+              <dd className="text-3xl font-semibold tracking-[-0.03em]">{r.downtime_minutes.toFixed(1)} min</dd>
             </div>
           </dl>
 
@@ -94,7 +101,7 @@ export function SloPanel() {
               {r.days.map((d) => (
                 <span
                   key={d.end}
-                  title={d.checks ? `${day(d.end)}: ${pct(d.passed / d.checks)} of ${d.checks.toLocaleString("en-US")} checks` : `${day(d.end)}: not measured yet`}
+                  title={d.checks ? `${day(d.end)}: ${pct(d.passed / d.checks)} available` : `${day(d.end)}: not measured yet`}
                   className={cn("flex-1 rounded-[3px]", dayTone(d.checks, d.passed, r.target))}
                 />
               ))}

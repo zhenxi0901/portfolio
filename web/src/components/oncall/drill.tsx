@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowCounterClockwise, BellRinging, CheckCircle, MagnifyingGlass, Wrench, XCircle } from "@phosphor-icons/react";
 import { scenario, type Move } from "@/content/oncall";
@@ -24,12 +24,23 @@ export function Drill() {
   const [mitigatedAt, setMitigatedAt] = useState<number | null>(null);
   const [silenced, setSilenced] = useState(false);
   const feed = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  // Each phase change removes the button that was just pressed, so focus is moved on purpose:
+  // to the page when it fires, to "Confirm recovery" after the rollback, to the debrief at the end.
+  const focusNext = useRef<"pager" | "verify" | "debrief" | null>(null);
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target) return;
+    focusNext.current = null;
+    root.current?.querySelector<HTMLElement>(`[data-focus="${target}"]`)?.focus();
+  }, [phase, log.length]);
 
   const used = new Set(log.map((e) => e.move.id));
   const burning = phase === "paged";
   const spent = (mitigatedAt ?? minutes) * scenario.burnPerMinute;
 
   const start = () => {
+    focusNext.current = "pager";
     setPhase("paged");
     setMinutes(0);
     setLog([]);
@@ -42,11 +53,15 @@ export function Drill() {
     setMinutes(at);
     setLog((l) => [...l, { move, at }]);
     if (move.effect === "mitigate") {
+      focusNext.current = "verify";
       setMitigatedAt(at);
       setPhase("mitigated");
     }
     if (move.effect === "silence") setSilenced(true);
-    if (move.effect === "verify") setPhase("resolved");
+    if (move.effect === "verify") {
+      focusNext.current = "debrief";
+      setPhase("resolved");
+    }
     requestAnimationFrame(() => feed.current?.scrollTo({ top: 0, behavior: "smooth" }));
   };
 
@@ -74,7 +89,7 @@ export function Drill() {
   const acts = scenario.moves.filter((m) => m.kind === "act" && (m.effect === "verify" ? phase !== "paged" : phase === "paged"));
 
   return (
-    <div className="mt-10 grid gap-4 lg:grid-cols-12">
+    <div ref={root} className="mt-10 grid gap-4 lg:grid-cols-12">
       {/* The incident: pager, clock, budget, and what you have found. */}
       <div className="flex flex-col gap-4 lg:col-span-7">
         <div
@@ -90,7 +105,9 @@ export function Drill() {
             </span>
             <span className="text-ink-3">paged at {scenario.start}</span>
           </p>
-          <p className="mt-2 text-xl font-semibold tracking-[-0.02em]">{scenario.page.title}</p>
+          <p tabIndex={-1} data-focus="pager" className="mt-2 text-xl font-semibold tracking-[-0.02em] outline-none">
+            {scenario.page.title}
+          </p>
           <p className="mt-1 text-sm leading-relaxed text-ink-2">{scenario.page.detail}</p>
           <dl className="mt-5 grid grid-cols-2 gap-4">
             <div className="flex flex-col-reverse justify-end">
@@ -124,6 +141,16 @@ export function Drill() {
 
       {/* What you can do. */}
       <div className="flex flex-col gap-4 lg:col-span-5">
+        {/* Phones stack the columns, so the latest result also shows here, next to the buttons. The
+            feed above is the live region; this copy is not announced twice. */}
+        {phase !== "resolved" && log.length > 0 && (
+          <div aria-hidden className="rounded-3xl border border-line-strong bg-surface-2/60 p-4 lg:hidden">
+            <p className="font-mono text-[11px] text-ink-3">
+              {clock(log[log.length - 1].at)} {log[log.length - 1].move.label}
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{log[log.length - 1].move.result}</p>
+          </div>
+        )}
         {phase !== "resolved" && (
           <>
             <MoveGroup title="Investigate" icon={<MagnifyingGlass size={16} />} moves={looks} used={used} onPlay={play} />
@@ -164,6 +191,7 @@ function MoveGroup({
                 type="button"
                 disabled={done}
                 onClick={() => onPlay(m)}
+                data-focus={m.effect === "verify" ? "verify" : undefined}
                 className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line px-3.5 py-2.5 text-left text-sm transition-colors hover:border-ink-3 disabled:opacity-45 disabled:hover:border-line"
               >
                 <span>{m.label}</span>
@@ -195,7 +223,7 @@ function Debrief({ log, minutes, spent, onRestart }: { log: Entry[]; minutes: nu
   return (
     <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
       <p className="font-mono text-xs text-good">YOUR POSTMORTEM</p>
-      <p className="mt-2 text-xl font-semibold tracking-[-0.02em]">
+      <p tabIndex={-1} data-focus="debrief" className="mt-2 text-xl font-semibold tracking-[-0.02em] outline-none">
         Burn stopped after {mitigateMinutes} minutes, closed after {minutes}
       </p>
       <p className="mt-1 text-sm text-ink-2">
@@ -235,8 +263,10 @@ function Debrief({ log, minutes, spent, onRestart }: { log: Entry[]; minutes: nu
       </ol>
 
       <p className="mt-5 text-sm leading-relaxed text-ink-2">
-        Root cause: a parser release changed how payloads are detected, so one gateway version&apos;s messages parsed to nothing. Every
-        pod stayed Ready and nothing errored, which is why the freshness SLO, not an error alert, caught it.
+        Root cause: a parser release at 01:12 changed how payloads are detected, so one gateway version&apos;s messages parsed to
+        nothing. Every pod stayed Ready and nothing errored, which is why the freshness SLO, not an error alert, caught it. With 3 of
+        40 sites stale the burn was about 15x, and a fast-burn page needs the whole last hour above 14.4x: that is why it fired an
+        hour after the release.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">

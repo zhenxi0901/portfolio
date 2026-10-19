@@ -464,7 +464,7 @@ export const costReview = {
       headline: "-40%",
       headlineNote: "samples per scrape, after turning off three unused metric packages",
       visual: { kind: "bars", rows: [{ label: "All samples per scrape", before: 43580, after: 26150 }] },
-      detail: "Turned off three GKE metric packages after confirming 0 of 27 alerts and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape.",
+      detail: "Turned off three GKE metric packages after confirming 0 of the 27 alerts then in place and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape.",
       guardrail: "Kept cAdvisor, the biggest remaining source, because three memory alerts depend on it.",
       status: "done",
     },

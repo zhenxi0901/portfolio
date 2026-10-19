@@ -20,7 +20,8 @@ export const scenario = {
   start: "02:14",
   page: {
     title: "Telemetry fresh: fast burn",
-    detail: "Burn rate 14.4x over both 1 hour and 5 minutes. At this rate the 30-day error budget lasts about two days.",
+    detail:
+      "Burn rate above 14.4x over both the last hour and the last 5 minutes. At this rate the 30-day error budget lasts about two days.",
   },
   /** Budget spent per simulated minute at 14.4x on a 30-day window: 14.4 / 43,200. */
   burnPerMinute: 14.4 / (30 * 24 * 60),
@@ -53,7 +54,7 @@ export const scenario = {
       minutes: 3,
       evidence: "parser",
       result:
-        "At INFO, not ERROR: \"payload layout not recognised, 0 readings extracted\" for one gateway payload version, from 02:01 onwards. All 3 stale sites use that version.",
+        "At INFO, not ERROR: \"payload layout not recognised, 0 readings extracted\" for one gateway payload version, from 01:12 onwards. All 3 stale sites use that version.",
     },
     {
       id: "dependencies",
@@ -78,7 +79,7 @@ export const scenario = {
       minutes: 2,
       evidence: "change",
       result:
-        "At 02:01 the pipeline promoted a new parser image by digest. Its change log mentions refactoring payload detection. The previous digest ran cleanly for nine days.",
+        "At 01:12 the pipeline promoted a new parser image by digest. Its change log mentions refactoring payload detection. The previous digest ran cleanly for nine days.",
     },
     {
       id: "observability",

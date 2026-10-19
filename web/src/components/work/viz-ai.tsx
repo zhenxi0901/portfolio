@@ -29,14 +29,13 @@ export function AiViz() {
         </ol>
         {!reduce && (
           <div aria-hidden className="pointer-events-none absolute inset-x-3 top-1/2 hidden h-px bg-line-strong sm:block">
-            {/* Full-width carrier translated by its own width: the dot rides its left edge. */}
-            <motion.div
-              className="absolute inset-0"
-              animate={{ x: ["0%", "100%"] }}
+            {/* The dot moves along the line itself. (A full-width carrier translated by its own width
+                looked the same but stuck out past the line, widening any page without a clipping parent.) */}
+            <motion.span
+              className="absolute -top-[3px] size-[7px] -translate-x-1/2 rounded-full bg-accent-ink"
+              animate={{ left: ["0%", "100%"] }}
               transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.6 }}
-            >
-              <span className="absolute -left-[3px] -top-[3px] size-[7px] rounded-full bg-accent-ink" />
-            </motion.div>
+            />
           </div>
         )}
       </div>

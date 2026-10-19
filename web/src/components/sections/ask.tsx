@@ -22,8 +22,16 @@ type Answer = AskResult & { question: string; offline?: boolean; anchors: Record
 let knowledge: Promise<Fact[]> | null = null;
 function loadKnowledge() {
   knowledge ??= fetch("/knowledge.json")
-    .then((r) => r.json())
-    .then((j: { facts: Fact[] }) => j.facts);
+    .then((r) => {
+      if (!r.ok) throw new Error(`knowledge.json: ${r.status}`);
+      return r.json();
+    })
+    .then((j: { facts: Fact[] }) => j.facts)
+    .catch((e) => {
+      // Forget the failure, so the next question tries again instead of reusing it all visit.
+      knowledge = null;
+      throw e;
+    });
   return knowledge;
 }
 
