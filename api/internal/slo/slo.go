@@ -46,9 +46,10 @@ type Report struct {
 	Stale bool `json:"stale,omitempty"`
 }
 
-// Source returns per-day check counts for the WindowDays days ending at end, oldest first.
+// Source returns per-day check counts for the WindowDays days ending at end, oldest first, and
+// when the first check in the window ran (zero if none did).
 type Source interface {
-	Days(ctx context.Context, end time.Time) ([]Day, error)
+	Days(ctx context.Context, end time.Time) ([]Day, time.Time, error)
 }
 
 type Service struct {
@@ -77,7 +78,7 @@ func (s *Service) Report(ctx context.Context) Report {
 	if now.Before(s.next) {
 		return s.last
 	}
-	days, err := s.src.Days(ctx, now)
+	days, first, err := s.src.Days(ctx, now)
 	if err != nil {
 		s.log.Warn("slo: could not read uptime checks", "err", err)
 		s.next = now.Add(retryAfter)
@@ -88,7 +89,7 @@ func (s *Service) Report(ctx context.Context) Report {
 		s.last = unavailable("Measurements are unavailable right now.")
 		return s.last
 	}
-	s.last = Summarise(days, now)
+	s.last = Summarise(days, first, now)
 	s.next = now.Add(cacheFor)
 	return s.last
 }
@@ -99,8 +100,9 @@ func unavailable(reason string) Report {
 
 func budgetMinutes() float64 { return (1 - Target) * WindowDays * 24 * 60 }
 
-// Summarise turns daily counts into the report: availability, error budget and downtime.
-func Summarise(days []Day, now time.Time) Report {
+// Summarise turns daily counts into the report: availability, error budget and downtime. first is
+// when the earliest check in the window ran; downtime is the failed share of the time since then.
+func Summarise(days []Day, first, now time.Time) Report {
 	r := Report{
 		Available:     true,
 		Target:        Target,
@@ -112,19 +114,17 @@ func Summarise(days []Day, now time.Time) Report {
 	for _, d := range days {
 		r.Checks += d.Checks
 		r.Passed += d.Passed
-		if d.Checks > 0 && r.Since == nil {
-			since := d.End.Add(-day).UTC()
-			r.Since = &since
-		}
 	}
-	if r.Checks == 0 {
+	if r.Checks == 0 || first.IsZero() {
 		r.Available = false
 		r.Reason = "No checks recorded yet."
 		return r
 	}
+	since := first.UTC()
+	r.Since = &since
 	r.Availability = float64(r.Passed) / float64(r.Checks)
 	failed := 1 - r.Availability
-	measured := now.Sub(*r.Since).Minutes()
+	measured := now.Sub(since).Minutes()
 	if limit := float64(WindowDays * 24 * 60); measured > limit {
 		measured = limit
 	}
