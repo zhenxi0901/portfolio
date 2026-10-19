@@ -1,11 +1,11 @@
 {
-  "generated": "2026-10-19T07:04:17.594Z",
+  "generated": "2026-10-19T08:50:43.690Z",
   "windowDays": 30,
-  "deploys": 24,
+  "deploys": 28,
   "daysWithDeploys": 4,
   "leadTimeMinutes": {
-    "median": 4.233333333333333,
-    "commits": 26
+    "median": 4.3,
+    "commits": 33
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -14,131 +14,163 @@
     "count": 0
   },
   "deployMinutes": {
-    "median": 1.3833333333333333
+    "median": 1.4083333333333332
   },
   "perDay": [
     {
-      "end": "2026-09-20T07:04:17.594Z",
+      "date": "2026-09-20",
       "deploys": 0
     },
     {
-      "end": "2026-09-21T07:04:17.594Z",
+      "date": "2026-09-21",
       "deploys": 0
     },
     {
-      "end": "2026-09-22T07:04:17.594Z",
+      "date": "2026-09-22",
       "deploys": 0
     },
     {
-      "end": "2026-09-23T07:04:17.594Z",
+      "date": "2026-09-23",
       "deploys": 0
     },
     {
-      "end": "2026-09-24T07:04:17.594Z",
+      "date": "2026-09-24",
       "deploys": 0
     },
     {
-      "end": "2026-09-25T07:04:17.594Z",
+      "date": "2026-09-25",
       "deploys": 0
     },
     {
-      "end": "2026-09-26T07:04:17.594Z",
+      "date": "2026-09-26",
       "deploys": 0
     },
     {
-      "end": "2026-09-27T07:04:17.594Z",
+      "date": "2026-09-27",
       "deploys": 0
     },
     {
-      "end": "2026-09-28T07:04:17.594Z",
+      "date": "2026-09-28",
       "deploys": 0
     },
     {
-      "end": "2026-09-29T07:04:17.594Z",
+      "date": "2026-09-29",
       "deploys": 0
     },
     {
-      "end": "2026-09-30T07:04:17.594Z",
+      "date": "2026-09-30",
       "deploys": 0
     },
     {
-      "end": "2026-10-01T07:04:17.594Z",
-      "deploys": 4
+      "date": "2026-10-01",
+      "deploys": 5
     },
     {
-      "end": "2026-10-02T07:04:17.594Z",
-      "deploys": 1
-    },
-    {
-      "end": "2026-10-03T07:04:17.594Z",
+      "date": "2026-10-02",
       "deploys": 0
     },
     {
-      "end": "2026-10-04T07:04:17.594Z",
+      "date": "2026-10-03",
       "deploys": 0
     },
     {
-      "end": "2026-10-05T07:04:17.594Z",
+      "date": "2026-10-04",
       "deploys": 0
     },
     {
-      "end": "2026-10-06T07:04:17.594Z",
+      "date": "2026-10-05",
       "deploys": 0
     },
     {
-      "end": "2026-10-07T07:04:17.594Z",
+      "date": "2026-10-06",
       "deploys": 0
     },
     {
-      "end": "2026-10-08T07:04:17.594Z",
+      "date": "2026-10-07",
       "deploys": 0
     },
     {
-      "end": "2026-10-09T07:04:17.594Z",
+      "date": "2026-10-08",
       "deploys": 0
     },
     {
-      "end": "2026-10-10T07:04:17.594Z",
+      "date": "2026-10-09",
       "deploys": 0
     },
     {
-      "end": "2026-10-11T07:04:17.594Z",
+      "date": "2026-10-10",
       "deploys": 0
     },
     {
-      "end": "2026-10-12T07:04:17.594Z",
+      "date": "2026-10-11",
       "deploys": 0
     },
     {
-      "end": "2026-10-13T07:04:17.594Z",
+      "date": "2026-10-12",
       "deploys": 0
     },
     {
-      "end": "2026-10-14T07:04:17.594Z",
+      "date": "2026-10-13",
       "deploys": 0
     },
     {
-      "end": "2026-10-15T07:04:17.594Z",
+      "date": "2026-10-14",
       "deploys": 0
     },
     {
-      "end": "2026-10-16T07:04:17.594Z",
-      "deploys": 13
+      "date": "2026-10-15",
+      "deploys": 7
     },
     {
-      "end": "2026-10-17T07:04:17.594Z",
-      "deploys": 0
-    },
-    {
-      "end": "2026-10-18T07:04:17.594Z",
-      "deploys": 0
-    },
-    {
-      "end": "2026-10-19T07:04:17.594Z",
+      "date": "2026-10-16",
       "deploys": 6
+    },
+    {
+      "date": "2026-10-17",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-18",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-19",
+      "deploys": 10
     }
   ],
   "recent": [
+    {
+      "sha": "c3bf624",
+      "title": "Answer trace: full-width bars on phones",
+      "ended": "2026-10-19T08:12:38.000Z",
+      "minutes": 2.4,
+      "leadMinutes": 6.9,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39220865794"
+    },
+    {
+      "sha": "0859de6",
+      "title": "Real traces for the Ask console: OpenTelemetry to Cloud Trace",
+      "ended": "2026-10-19T08:01:58.000Z",
+      "minutes": 2.3,
+      "leadMinutes": 6.9,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39219622048"
+    },
+    {
+      "sha": "3b74859",
+      "title": "Light theme: product tags readable; Lighthouse audits both themes",
+      "ended": "2026-10-19T07:37:02.000Z",
+      "minutes": 2.3,
+      "leadMinutes": 6.7,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39216895392"
+    },
+    {
+      "sha": "b0d5e6c",
+      "title": "DORA metrics for this site, from its own deploy history",
+      "ended": "2026-10-19T07:11:17.000Z",
+      "minutes": 2.3,
+      "leadMinutes": 4.9,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39214125750"
+    },
     {
       "sha": "468793b",
       "title": "MIT licence for the code; a social preview image for the repo",
@@ -154,38 +186,6 @@
       "minutes": 1.5,
       "leadMinutes": 4.1,
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39210933904"
-    },
-    {
-      "sha": "fa54b29",
-      "title": "SLO: read hourly points so \"measured since\" is accurate to the hour",
-      "ended": "2026-10-19T06:33:02.000Z",
-      "minutes": 1.5,
-      "leadMinutes": 4.3,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39210423918"
-    },
-    {
-      "sha": "0a1fd3e",
-      "title": "A real SLO for this site, measured from outside",
-      "ended": "2026-10-19T06:27:08.000Z",
-      "minutes": 1.4,
-      "leadMinutes": 4.4,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39209847020"
-    },
-    {
-      "sha": "a20a962",
-      "title": "Share cards per page, live commit tile, a cluster event log, fixes",
-      "ended": "2026-10-19T06:19:02.000Z",
-      "minutes": 1.4,
-      "leadMinutes": 4.3,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39209077862"
-    },
-    {
-      "sha": "f39546e",
-      "title": "Take the résumé off the site and out of the repo",
-      "ended": "2026-10-19T06:00:41.000Z",
-      "minutes": 1.3,
-      "leadMinutes": 4.1,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39207362206"
     }
   ]
 }

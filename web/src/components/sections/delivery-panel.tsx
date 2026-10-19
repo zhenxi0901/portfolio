@@ -1,8 +1,26 @@
-import delivery from "@/content/generated/delivery.json";
+import generated from "@/content/generated/delivery.json";
 import { cn } from "@/lib/utils";
 
-// Written by scripts/delivery-stats.mjs in the deploy job, from this repository's commits and
-// deploy runs, just before the image is built. The committed copy is only a snapshot for local builds.
+// Written by scripts/delivery-stats.mjs in CI on main, from this repository's commits and deploy
+// runs, just before the image is built. The committed copy is only a snapshot for local builds.
+//
+// Typed explicitly: TypeScript infers a JSON import's types from whatever the file holds, so a month
+// with no deploys ("recent": []) would type as never[] and fail the build, which would then block the
+// very deploy that could fix it.
+type Delivery = {
+  generated: string;
+  windowDays: number;
+  deploys: number;
+  daysWithDeploys: number;
+  leadTimeMinutes: { median: number | null; commits: number };
+  changeFailureRate: number | null;
+  failedDeploys: number;
+  restoreMinutes: { median: number | null; count: number };
+  deployMinutes: { median: number | null };
+  perDay: { date: string; deploys: number }[];
+  recent: { sha: string; title: string; ended: string; minutes: number; leadMinutes: number | null; url: string }[];
+};
+const delivery = generated as Delivery;
 
 function duration(min: number | null) {
   if (min === null) return "n/a";
@@ -10,6 +28,9 @@ function duration(min: number | null) {
   if (min < 1440) return `${(min / 60).toFixed(1)} h`;
   return `${(min / 1440).toFixed(1)} days`;
 }
+
+const dayLabel = (date: string) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 const asOf = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
@@ -21,13 +42,20 @@ export function DeliveryPanel() {
   const tiles = [
     { value: String(d.deploys), label: `deploys to production, on ${d.daysWithDeploys} of ${d.windowDays} days` },
     { value: duration(d.leadTimeMinutes.median), label: `median lead time, commit to live (${d.leadTimeMinutes.commits} commits)` },
-    {
-      value: `${(d.changeFailureRate * 100).toFixed(0)}%`,
-      label: `change failure rate: ${d.failedDeploys} of ${d.deploys + d.failedDeploys} deploys failed their live checks`,
-    },
+    d.changeFailureRate === null
+      ? { value: "n/a", label: "change failure rate: nothing deployed in the window" }
+      : {
+          value: `${(d.changeFailureRate * 100).toFixed(0)}%`,
+          label: `change failure rate: ${d.failedDeploys} of ${d.deploys + d.failedDeploys} deploys failed their live checks`,
+        },
     {
       value: d.restoreMinutes.count ? duration(d.restoreMinutes.median) : "n/a",
-      label: d.restoreMinutes.count ? "median time to restore after a failed deploy" : "time to restore: no failed deploy to recover from",
+      // A failed deploy with no later success yet (or not yet counted) is not "nothing to recover from".
+      label: d.restoreMinutes.count
+        ? "median time to restore after a failed deploy"
+        : d.failedDeploys
+          ? "time to restore: the recovering deploy is counted on the next build"
+          : "time to restore: no failed deploy to recover from",
     },
   ];
 
@@ -57,8 +85,8 @@ export function DeliveryPanel() {
         >
           {d.perDay.map((day) => (
             <span
-              key={day.end}
-              title={`${asOf(day.end).split(",")[0]}: ${day.deploys} deploy${day.deploys === 1 ? "" : "s"}`}
+              key={day.date}
+              title={`${dayLabel(day.date)}: ${day.deploys} deploy${day.deploys === 1 ? "" : "s"}`}
               className={cn("flex-1 rounded-[3px]", day.deploys ? "bg-accent-ink" : "bg-surface-2")}
               style={{ height: day.deploys ? `${Math.max(14, (day.deploys / peak) * 100)}%` : "4px" }}
             />
@@ -66,8 +94,8 @@ export function DeliveryPanel() {
         </div>
         <p className="mt-2 flex justify-between font-mono text-[11px] text-ink-3">
           <span>{d.windowDays} days ago</span>
-          <span>deploys per day</span>
-          <span>last deploy</span>
+          <span>deploys per day, Singapore time</span>
+          <span>today</span>
         </p>
       </div>
 
@@ -86,8 +114,8 @@ export function DeliveryPanel() {
       </ol>
 
       <p className="mt-4 text-xs leading-relaxed text-ink-3">
-        Computed by the deploy pipeline from this repository&apos;s commits and deploy runs, just before it built the image you are
-        looking at. A deploy counts as failed only if it reached Cloud Run and then failed its live checks. Problems that did not come from
+        Computed by the pipeline from this repository&apos;s commits and deploy runs as of the time above, before it built the
+        image you are looking at. A deploy counts as failed only if it reached Cloud Run and then failed its live checks. Problems that did not come from
         a deploy are in the postmortems below.
       </p>
     </div>

@@ -1,6 +1,7 @@
 name: deploy
 
-# Promotes a commit that passed CI to Cloud Run. Keyless: GitHub OIDC -> Workload Identity Federation.
+# Promotes the image CI built and tested for a commit on main to Cloud Run, by digest. Nothing is
+# built here. Keyless: GitHub OIDC -> Workload Identity Federation.
 # Needs repository variables GCP_PROJECT, GCP_REGION, WIF_PROVIDER, DEPLOYER_SA (from `terraform output`).
 on:
   workflow_run:
@@ -12,7 +13,6 @@ on:
 permissions:
   contents: read
   id-token: write
-  actions: read # the delivery metrics read this repository's deploy runs
 
 concurrency:
   group: deploy-production
@@ -20,47 +20,42 @@ concurrency:
 
 jobs:
   deploy:
-    # Skips (rather than fails) until the GCP repository variables from `terraform output` are set.
-    if: ${{ vars.GCP_PROJECT != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
+    # A push to main in this repository whose CI passed. The branch filter alone is not enough: it
+    # also matches a pull request from a fork whose own branch is called main. A manual run deploys
+    # main's head, and only if CI has already pushed a tested image for it (checked below).
+    if: >-
+      vars.GCP_PROJECT != '' && (
+        github.event_name == 'workflow_dispatch' || (
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     environment: production
     env:
       IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/portfolio/site
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with: { ref: "${{ env.SHA }}" }
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.DEPLOYER_SA }}
-      - uses: google-github-actions/setup-gcloud@v2
-      - run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
-      - uses: docker/setup-buildx-action@v3
-      # DORA metrics for the status section, from this repository's commits and deploy runs. If the
-      # GitHub API is unavailable the committed snapshot ships instead.
-      - name: Delivery metrics
-        continue-on-error: true
-        working-directory: web
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/delivery-stats.mjs
-      - name: Build and push
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ env.IMAGE }}:${{ env.SHA }}
-          build-args: |
-            VERSION=main
-            COMMIT=${{ env.SHA }}
-          cache-from: type=gha
-      - name: Deploy the exact digest that was built
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+      - name: Find the image CI tested
+        id: image
+        run: |
+          digest=$(gcloud artifacts docker images describe "$IMAGE:$SHA" --format='value(image_summary.digest)' 2>/dev/null) || true
+          if [ -z "$digest" ]; then
+            echo "::error::No image for $SHA. CI pushes one only after every check passes; there is nothing tested to deploy."
+            exit 1
+          fi
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Deploy the digest CI tested
         run: |
           gcloud run deploy portfolio \
             --region ${{ vars.GCP_REGION }} \
-            --image "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}" \
+            --image "$IMAGE@${{ steps.image.outputs.digest }}" \
             --quiet
       - name: Verify
         run: |

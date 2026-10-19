@@ -1,13 +1,14 @@
 // DORA metrics for this site, from the repository's own history: commits on main and the deploy
-// workflow's runs. Runs in the deploy job just before the image is built (and by hand to refresh
-// the committed snapshot), writing src/content/generated/delivery.json.
+// workflow's runs. Runs in CI on pushes to main, just before the image is built and tested (and by
+// hand to refresh the committed snapshot), writing src/content/generated/delivery.json.
 //
 //   GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/name node scripts/delivery-stats.mjs
 //
 // Definitions (DORA's four keys, as applied here):
 //   deploys              successful runs of deploy.yml in the window
 //   lead time            commit time to the end of the first successful deploy that contains it
-//   change failure rate  deploy runs that failed after reaching Cloud Run, out of all that did
+//   change failure rate  deploy runs (and earlier attempts of re-run ones) that failed after
+//                        reaching Cloud Run, out of all that reached it; null when none did
 //   time to restore      for each failed deploy, time until the next successful one
 import { mkdir, writeFile } from "node:fs/promises";
 
@@ -57,37 +58,46 @@ const candidates = (await all(`/actions/workflows/deploy.yml/runs?created=>=${si
   .filter((r) => r.status === "completed" && ["success", "failure"].includes(r.conclusion))
   .map((r) => ({
     id: r.id,
+    attempt: r.run_attempt ?? 1,
     sha: r.head_sha,
     ok: r.conclusion === "success",
     started: new Date(r.run_started_at ?? r.created_at),
     ended: new Date(r.updated_at),
     url: r.html_url,
-  }))
-  .filter((r) => index.has(r.sha))
-  .sort((a, b) => a.ended - b.ended);
+  }));
 
 // A failed run only counts if it got as far as changing production: the deploy step succeeded and
 // a later step (the live verification) failed. A run that failed while building changed nothing.
-const DEPLOY_STEP = "Deploy the exact digest that was built";
+// (The step was renamed when deploys started promoting CI's image; both names count.)
+const DEPLOY_STEPS = new Set(["Deploy the exact digest that was built", "Deploy the digest CI tested"]);
+const reachedProduction = async (jobsPath) => {
+  const { jobs } = await gh(jobsPath);
+  return jobs.some((j) => j.steps?.some((st) => DEPLOY_STEPS.has(st.name) && st.conclusion === "success"));
+};
 const runs = [];
 for (const r of candidates) {
-  if (r.ok) {
-    runs.push(r);
-    continue;
+  if (r.ok) runs.push(r);
+  else if (await reachedProduction(`/actions/runs/${r.id}/jobs`)) runs.push(r);
+  // A run that was re-run only shows its latest attempt; earlier attempts that failed after
+  // deploying were failed changes too.
+  for (let n = 1; n < r.attempt; n++) {
+    const a = await gh(`/actions/runs/${r.id}/attempts/${n}`);
+    if (a.conclusion === "failure" && (await reachedProduction(`/actions/runs/${r.id}/attempts/${n}/jobs`))) {
+      runs.push({ ...r, ok: false, ended: new Date(a.updated_at), started: new Date(a.run_started_at ?? a.created_at) });
+    }
   }
-  const { jobs } = await gh(`/actions/runs/${r.id}/jobs`);
-  const reached = jobs.some((j) => j.steps?.some((st) => st.name === DEPLOY_STEP && st.conclusion === "success"));
-  if (reached) runs.push(r);
 }
+runs.sort((a, b) => a.ended - b.ended);
 
+// Every successful deploy counts, including a redeploy of an older commit.
 const deploys = runs.filter((r) => r.ok);
 
-// Lead time: each commit to the first successful deploy of it or a newer commit.
+// Lead time: each commit in the window to the first successful deploy of it or a newer commit.
 const leadMinutes = [];
 const leadBySha = new Map();
 for (const c of commits) {
   const i = index.get(c.sha);
-  const d = deploys.find((r) => index.get(r.sha) <= i && r.ended >= c.at);
+  const d = deploys.find((r) => index.has(r.sha) && index.get(r.sha) <= i && r.ended >= c.at);
   if (!d) continue;
   const m = (d.ended - c.at) / 6e4;
   leadMinutes.push(m);
@@ -101,11 +111,20 @@ const restoreMinutes = failed
   .map((d, k) => (d ? (d.ended - failed[k].ended) / 6e4 : null))
   .filter((m) => m !== null);
 
+// Calendar days in Singapore time (UTC+8), the oldest first, ending today.
+const SGT = 8 * 36e5;
+const dayOf = (t) => new Date(t.getTime() + SGT).toISOString().slice(0, 10);
+const today = Date.parse(dayOf(now));
 const perDay = Array.from({ length: WINDOW_DAYS }, (_, k) => {
-  const end = new Date(now.getTime() - (WINDOW_DAYS - 1 - k) * 864e5);
-  const start = new Date(end.getTime() - 864e5);
-  return { end: end.toISOString(), deploys: deploys.filter((d) => d.ended > start && d.ended <= end).length };
+  const date = new Date(today - (WINDOW_DAYS - 1 - k) * 864e5).toISOString().slice(0, 10);
+  return { date, deploys: deploys.filter((d) => dayOf(d.ended) === date).length };
 });
+
+// Titles for deploys of commits older than the window (a redeploy), fetched one by one.
+const titles = new Map(commits.map((c) => [c.sha, c.title]));
+for (const d of deploys.slice(-6)) {
+  if (!titles.has(d.sha)) titles.set(d.sha, (await gh(`/commits/${d.sha}`)).commit.message.split("\n")[0]);
+}
 
 const result = {
   generated: now.toISOString(),
@@ -113,7 +132,8 @@ const result = {
   deploys: deploys.length,
   daysWithDeploys: perDay.filter((d) => d.deploys > 0).length,
   leadTimeMinutes: { median: median(leadMinutes), commits: leadMinutes.length },
-  changeFailureRate: runs.length ? failed.length / runs.length : 0,
+  // null, not 0, when nothing deployed: "0% of nothing" is not a rate.
+  changeFailureRate: runs.length ? failed.length / runs.length : null,
   failedDeploys: failed.length,
   restoreMinutes: { median: median(restoreMinutes), count: restoreMinutes.length },
   deployMinutes: { median: median(deploys.map((d) => (d.ended - d.started) / 6e4)) },
@@ -123,7 +143,7 @@ const result = {
     .reverse()
     .map((d) => ({
       sha: d.sha.slice(0, 7),
-      title: commits[index.get(d.sha)].title,
+      title: titles.get(d.sha),
       ended: d.ended.toISOString(),
       minutes: Math.round(((d.ended - d.started) / 6e4) * 10) / 10,
       leadMinutes: leadBySha.has(d.sha) ? Math.round(leadBySha.get(d.sha) * 10) / 10 : null,
@@ -135,5 +155,5 @@ await mkdir(new URL(".", OUT), { recursive: true });
 await writeFile(OUT, JSON.stringify(result, null, 2) + "\n");
 console.log(
   `delivery: ${result.deploys} deploys on ${result.daysWithDeploys} days, median lead ${result.leadTimeMinutes.median?.toFixed(1)} min, ` +
-    `CFR ${(result.changeFailureRate * 100).toFixed(1)}% (${failed.length} of ${runs.length})`,
+    `CFR ${result.changeFailureRate === null ? "n/a" : (result.changeFailureRate * 100).toFixed(1) + "%"} (${failed.length} of ${runs.length})`,
 );

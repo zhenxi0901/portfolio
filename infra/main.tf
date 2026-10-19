@@ -37,7 +37,8 @@ resource "google_artifact_registry_repository" "portfolio" {
   location      = var.region
   description   = "Portfolio site images"
 
-  # Keep the ten newest images; anything older and untagged is removed.
+  # Images older than 30 days are deleted, tagged or not, except the ten newest, which are always
+  # kept (KEEP wins over DELETE), so the live image and recent rollback targets survive a quiet month.
   cleanup_policies {
     id     = "keep-recent"
     action = "KEEP"
