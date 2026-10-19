@@ -39,6 +39,12 @@ variable "enable_contact_webhook" {
   default     = false
 }
 
+variable "enable_synthetic_check" {
+  description = "Give the service the synthetic contact check's token from the portfolio-contact-synthetic-token secret. Add a secret version first."
+  type        = bool
+  default     = false
+}
+
 variable "enable_llm" {
   description = "Wire an OpenAI-compatible LLM into the Ask console (key goes in Secret Manager)."
   type        = bool

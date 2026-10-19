@@ -99,8 +99,16 @@ export const postmortems: Postmortem[] = [
       { what: "Keep the webhook URL in Secret Manager; Terraform creates the empty secret and wires it to the service.", done: true, commit: "ccd58d5" },
       { what: "Tests for the contact package: from none to 77% coverage.", done: true, commit: "ccd58d5" },
       { what: "Fail closed on Cloud Run: no webhook means a 503 and the email fallback, never “sent”.", done: true, when: "16 Oct" },
-      { what: "Alert when undelivered messages appear. The counter exists (contact_submissions_total, result=\"undelivered\"); nothing pages on it yet.", done: false },
-      { what: "A synthetic end-to-end contact check that delivers a marked test message the receiver filters out.", done: false },
+      {
+        what: "Alert when a message goes undelivered: every hour a scheduled check searches Cloud Run's logs for one, and a hit fails the check, which emails me. A free GitHub Action rather than a Cloud Monitoring alert policy, which is billed per condition.",
+        done: true,
+        when: "19 Oct",
+      },
+      {
+        what: "A synthetic end-to-end check twice a day: a message marked by a secret token goes through the live form and the real webhook, and is posted silently so it notifies no one.",
+        done: true,
+        when: "19 Oct",
+      },
     ],
     lesson: "Only say “done” after the durable handoff.",
   },

@@ -129,7 +129,10 @@ jobs:
           NEW: ${{ steps.candidate.outputs.revision }}
         run: gcloud run services update-traffic "$SERVICE" --region "$REGION" --to-revisions "$NEW=100" --quiet
 
+      # In a drill this step fails on purpose; the run then passes only if the rollback works.
       - name: Verify
+        id: verify
+        continue-on-error: ${{ inputs.rollback_drill == true }}
         env:
           DRILL: ${{ inputs.rollback_drill }}
         run: |
@@ -146,7 +149,9 @@ jobs:
       # Mitigate first: put traffic back on the revision that was serving, then confirm it answers.
       - name: Roll back to the previous revision
         id: rollback
-        if: failure() && steps.switch.outcome == 'success' && steps.before.outputs.revision != ''
+        if: >-
+          (failure() || steps.verify.outcome == 'failure') &&
+          steps.switch.outcome == 'success' && steps.before.outputs.revision != ''
         env:
           PREV: ${{ steps.before.outputs.revision }}
           DRILL: ${{ inputs.rollback_drill }}
@@ -167,13 +172,14 @@ jobs:
           fi
 
       - name: Take the candidate tag off a revision that failed
-        if: failure() && steps.candidate.outcome == 'success'
+        if: (failure() || steps.verify.outcome == 'failure') && steps.candidate.outcome == 'success'
         run: gcloud run services update-traffic "$SERVICE" --region "$REGION" --remove-tags candidate --quiet
 
   # Every release is a GitHub release: the commits it shipped, the image digest, and the SBOM and
   # provenance CI attested for it. Separate from the deploy job, which never gets write access here.
   release:
     needs: deploy
+    if: inputs.rollback_drill != true
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the tag and the release

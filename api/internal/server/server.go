@@ -76,7 +76,7 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 		metrics: m,
 		reg:     reg,
 		ask:     ask.NewService(facts, llm, m, log).WithTraces(rec, cfg.TraceExport),
-		contact: contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log),
+		contact: contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log).WithSyntheticToken(cfg.ContactSyntheticToken),
 		slo:     slo.New(uptime, log),
 		started: time.Now(),
 

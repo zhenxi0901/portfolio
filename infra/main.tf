@@ -155,6 +155,18 @@ resource "google_cloud_run_v2_service" "portfolio" {
           }
         }
       }
+      dynamic "env" {
+        for_each = var.enable_synthetic_check ? [1] : []
+        content {
+          name = "CONTACT_SYNTHETIC_TOKEN"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.synthetic_token.secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
       startup_probe {
         http_get { path = "/readyz" }
         period_seconds    = 2
@@ -172,12 +184,18 @@ resource "google_cloud_run_v2_service" "portfolio" {
   # else, and because traffic is pinned, a change Terraform makes here goes live with the next
   # release rather than straight away. `gcloud run deploy` also writes a service-level scaling block
   # of zeros (same as unset; the real limits are in template.scaling), which would otherwise show as
-  # drift after every deploy.
+  # drift after every deploy. It also names the revision in the template so it can tag it; Terraform
+  # clears that name on its next apply (a revision name cannot be reused with a new configuration),
+  # which costs one revision that takes no traffic.
   lifecycle {
     ignore_changes = [template[0].containers[0].image, client, client_version, scaling, traffic]
   }
   # A revision that reads a secret fails unless the runtime identity can already read it.
-  depends_on = [google_project_service.apis, google_secret_manager_secret_iam_member.runtime_reads_contact_webhook]
+  depends_on = [
+    google_project_service.apis,
+    google_secret_manager_secret_iam_member.runtime_reads_contact_webhook,
+    google_secret_manager_secret_iam_member.runtime_reads_synthetic_token,
+  ]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "public" {

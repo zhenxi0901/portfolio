@@ -4,6 +4,7 @@ package contact
 import (
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,11 +37,28 @@ type Service struct {
 	dir            string
 	webhook        string
 	requireWebhook bool
+	synthetic      string // token that marks a scheduled end-to-end check; empty disables it
 	m              *metrics.Metrics
 	log            *slog.Logger
 	mu             sync.Mutex
 	client         *http.Client
 	retryWait      time.Duration
+}
+
+// SyntheticHeader carries the synthetic check's token. A request that presents it goes through the
+// whole path, webhook included, but is posted silently and marked, and never stored or counted as
+// a visitor's message.
+const SyntheticHeader = "X-Synthetic-Check"
+
+// WithSyntheticToken enables the scheduled end-to-end check (.github/workflows/synthetic.yml).
+func (s *Service) WithSyntheticToken(token string) *Service {
+	s.synthetic = token
+	return s
+}
+
+func (s *Service) isSynthetic(r *http.Request) bool {
+	got := r.Header.Get(SyntheticHeader)
+	return s.synthetic != "" && got != "" && subtle.ConstantTimeCompare([]byte(got), []byte(s.synthetic)) == 1
 }
 
 func NewService(dir, webhook string, requireWebhook bool, m *metrics.Metrics, log *slog.Logger) *Service {
@@ -55,10 +73,11 @@ func NewService(dir, webhook string, requireWebhook bool, m *metrics.Metrics, lo
 }
 
 type Message struct {
-	Name     string    `json:"name"`
-	Email    string    `json:"email"`
-	Message  string    `json:"message"`
-	Received time.Time `json:"received"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Message   string    `json:"message"`
+	Received  time.Time `json:"received"`
+	Synthetic bool      `json:"-"`
 }
 
 func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
@@ -79,10 +98,11 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	msg := Message{
-		Name:     strings.TrimSpace(in.Name),
-		Email:    strings.TrimSpace(in.Email),
-		Message:  strings.TrimSpace(in.Message),
-		Received: time.Now().UTC(),
+		Name:      strings.TrimSpace(in.Name),
+		Email:     strings.TrimSpace(in.Email),
+		Message:   strings.TrimSpace(in.Message),
+		Received:  time.Now().UTC(),
+		Synthetic: s.isSynthetic(r),
 	}
 	if problem := validate(msg); problem != "" {
 		s.reply(w, http.StatusBadRequest, "invalid", map[string]any{"error": problem})
@@ -91,13 +111,17 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	// Without a webhook the message would only reach this instance's disk. Where that disk is
 	// thrown away, say so rather than "sent" (see the contact-form postmortem on the site).
 	if s.webhook == "" && s.requireWebhook {
+		s.undelivered(msg, "no webhook configured", nil)
 		s.reply(w, http.StatusServiceUnavailable, "undelivered", map[string]any{"error": "Messages can't be delivered right now."})
 		return
 	}
-	if err := s.store(msg); err != nil {
-		s.log.Error("contact: store failed", "err", err)
-		s.reply(w, http.StatusInternalServerError, "error", map[string]any{"error": "Could not save your message."})
-		return
+	// A synthetic check is not a visitor's message: it is delivered, not kept.
+	if !msg.Synthetic {
+		if err := s.store(msg); err != nil {
+			s.log.Error("contact: store failed", "err", err)
+			s.reply(w, http.StatusInternalServerError, "error", map[string]any{"error": "Could not save your message."})
+			return
+		}
 	}
 	// Deliver before replying. On Cloud Run an instance gets almost no CPU once the response is
 	// written, so a send left running in the background could stall, and the visitor would be
@@ -105,13 +129,28 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	// WithoutCancel: a visitor closing the tab mid-send should not abort a send that is underway.
 	if s.webhook != "" {
 		if err := s.forward(context.WithoutCancel(r.Context()), msg); err != nil {
-			s.log.Error("contact: webhook delivery failed", "err", err)
+			s.undelivered(msg, "webhook delivery failed", err)
 			s.reply(w, http.StatusBadGateway, "undelivered", map[string]any{"error": "Could not deliver your message."})
 			return
 		}
 	}
+	if msg.Synthetic {
+		s.log.Info("contact: synthetic check delivered", "forwarded", s.webhook != "")
+		s.reply(w, http.StatusAccepted, "synthetic", map[string]any{"ok": true})
+		return
+	}
 	s.log.Info("contact: message received", "chars", utf8.RuneCountInString(msg.Message), "forwarded", s.webhook != "")
 	s.reply(w, http.StatusAccepted, "accepted", map[string]any{"ok": true})
+}
+
+// undelivered logs one line per message the visitor was told to email about instead. The scheduled
+// check in .github/workflows/synthetic.yml searches the logs for exactly this message, so keep it.
+func (s *Service) undelivered(m Message, reason string, err error) {
+	attrs := []any{"reason", reason, "synthetic", m.Synthetic}
+	if err != nil {
+		attrs = append(attrs, "err", err)
+	}
+	s.log.Error("contact: undelivered", attrs...)
 }
 
 func validate(m Message) string {
@@ -214,7 +253,7 @@ func webhookPayload(webhook string, m Message) any {
 		// Plain content is capped at 2,000 characters and messages may be 4,000, so the message
 		// goes in an embed (4,096). The content line carries no visitor input, and mentions are
 		// disabled so "@everyone" in a message pings nobody.
-		return map[string]any{
+		p := map[string]any{
 			"content":          "New message from the portfolio site",
 			"allowed_mentions": map[string]any{"parse": []string{}},
 			"embeds": []map[string]any{{
@@ -224,9 +263,20 @@ func webhookPayload(webhook string, m Message) any {
 				"timestamp":   m.Received.Format(time.RFC3339),
 			}},
 		}
+		if m.Synthetic {
+			p["content"] = "Synthetic check of the contact form: delivered, no action needed"
+			p["flags"] = discordSuppressNotifications
+		}
+		return p
+	}
+	if m.Synthetic {
+		return map[string]string{"text": "Synthetic check of the contact form: delivered, no action needed"}
 	}
 	return map[string]string{"text": fmt.Sprintf("New message from %s <%s>:\n%s", m.Name, m.Email, m.Message)}
 }
+
+// Discord's SUPPRESS_NOTIFICATIONS message flag: posted, but nobody is notified.
+const discordSuppressNotifications = 1 << 12
 
 func (s *Service) reply(w http.ResponseWriter, code int, result string, body map[string]any) {
 	s.m.Contact.WithLabelValues(result).Inc()
