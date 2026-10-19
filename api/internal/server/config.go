@@ -26,6 +26,9 @@ type Config struct {
 	// Cloud Run, where the metadata server provides the project and a token.
 	SLOFromMonitoring bool
 
+	// Export the Ask API's OpenTelemetry spans to Cloud Trace. On by default on Cloud Run.
+	TraceExport bool
+
 	LLMBaseURL string
 	LLMAPIKey  string
 	LLMModel   string
@@ -48,6 +51,8 @@ func ConfigFromEnv() Config {
 		ContactWebhook: os.Getenv("CONTACT_WEBHOOK_URL"),
 		ContactRequireWebhook: os.Getenv("CONTACT_REQUIRE_WEBHOOK") == "true" ||
 			(os.Getenv("K_SERVICE") != "" && os.Getenv("CONTACT_REQUIRE_WEBHOOK") != "false"),
+		TraceExport: os.Getenv("TRACE_EXPORT") == "cloudtrace" ||
+			(os.Getenv("K_SERVICE") != "" && os.Getenv("TRACE_EXPORT") != "none"),
 		SLOFromMonitoring: os.Getenv("SLO_SOURCE") == "monitoring" ||
 			(os.Getenv("K_SERVICE") != "" && os.Getenv("SLO_SOURCE") != "none"),
 		LLMBaseURL: strings.TrimRight(os.Getenv("LLM_BASE_URL"), "/"),

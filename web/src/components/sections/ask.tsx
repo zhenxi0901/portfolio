@@ -8,6 +8,7 @@ import { retrieve } from "@/lib/retrieval";
 import type { Fact } from "@/content/knowledge";
 import { scrollToId } from "@/lib/utils";
 import { SectionHeading } from "@/components/site/section-heading";
+import { AnswerTrace } from "@/components/sections/answer-trace";
 
 const SUGGESTIONS = [
   "How did you cut the cloud bill?",
@@ -73,7 +74,7 @@ export function Ask() {
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
         <SectionHeading
           title="Ask about my experience"
-          lead="A small retrieval service over everything on this page, with an optional LLM on top. It answers only from these facts and shows its sources."
+          lead="A small retrieval service over everything on this page, with an optional LLM on top. It answers only from these facts, shows its sources, and shows its own OpenTelemetry trace."
         />
         <div className="mt-12 overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
           <form
@@ -185,9 +186,11 @@ function AnswerView({ a }: { a: Answer }) {
           {a.mode === "llm" ? "LLM, grounded in retrieved facts" : a.offline ? "retrieval in your browser (API offline)" : "retrieval (BM25)"}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Lightning size={13} /> {a.latency_ms} ms{a.cached ? ", from cache" : ""}
+          <Lightning size={13} /> {a.trace ? `${a.trace.total_ms.toFixed(2)} ms in the server` : `${a.latency_ms} ms`}
+          {a.cached ? ", from cache" : ""}
         </span>
       </div>
+      {a.trace && <AnswerTrace trace={a.trace} />}
     </motion.div>
   );
 }

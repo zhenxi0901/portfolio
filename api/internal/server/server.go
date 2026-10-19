@@ -2,6 +2,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -15,9 +16,17 @@ import (
 
 	"github.com/zhenxi0901/portfolio/api/internal/ask"
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
+	"github.com/zhenxi0901/portfolio/api/internal/gcp"
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
 	"github.com/zhenxi0901/portfolio/api/internal/ratelimit"
 	"github.com/zhenxi0901/portfolio/api/internal/slo"
+	"github.com/zhenxi0901/portfolio/api/internal/tracing"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Server struct {
@@ -29,7 +38,9 @@ type Server struct {
 	contact *contact.Service
 	slo     *slo.Service
 	started time.Time
-	visits  atomic.Int64 // requests other than probes, to spot an instance's first visitor
+	// Flushes spans still waiting for export; called on shutdown.
+	closeTraces func(context.Context) error
+	visits      atomic.Int64 // requests other than probes, to spot an instance's first visitor
 }
 
 func New(cfg Config, log *slog.Logger) (*Server, error) {
@@ -48,22 +59,33 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 		log.Info("ask: retrieval-only mode (set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL to enable the LLM)")
 	}
 
+	meta := gcp.NewMetadata()
 	var uptime slo.Source
 	if cfg.SLOFromMonitoring {
-		uptime = slo.NewMonitoring()
+		uptime = slo.NewMonitoring(meta)
 	}
+	var export sdktrace.SpanExporter
+	if cfg.TraceExport {
+		export = tracing.NewCloudTrace(meta)
+	}
+	rec, closeTraces := tracing.Setup("portfolio", cfg.Version+"@"+short(cfg.Commit), export)
 
 	return &Server{
 		cfg:     cfg,
 		log:     log,
 		metrics: m,
 		reg:     reg,
-		ask:     ask.NewService(facts, llm, m, log),
+		ask:     ask.NewService(facts, llm, m, log).WithTraces(rec, cfg.TraceExport),
 		contact: contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log),
 		slo:     slo.New(uptime, log),
 		started: time.Now(),
+
+		closeTraces: closeTraces,
 	}, nil
 }
+
+// Close flushes anything still buffered (spans waiting for export).
+func (s *Server) Close(ctx context.Context) error { return s.closeTraces(ctx) }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -104,7 +126,7 @@ func (s *Server) Handler() http.Handler {
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)
-	mux.Handle("POST /api/ask", s.limit("ask", askLimit, http.HandlerFunc(s.ask.Handle)))
+	mux.Handle("POST /api/ask", s.traced("POST /api/ask", s.limit("ask", askLimit, http.HandlerFunc(s.ask.Handle))))
 	mux.Handle("POST /api/contact", s.limit("contact", contactLimit, http.HandlerFunc(s.contact.Handle)))
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such endpoint"})
@@ -173,6 +195,24 @@ func (s *Server) limit(route string, l *ratelimit.Limiter, next http.Handler) ht
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// traced starts the request's server span; the handler's own spans hang off it. Only the Ask API is
+// traced: it is the one route with a pipeline worth looking inside.
+func (s *Server) traced(route string, next http.Handler) http.Handler {
+	tr := otel.Tracer("portfolio/http")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tr.Start(r.Context(), route,
+			trace.WithSpanKind(trace.SpanKindServer),
+			trace.WithAttributes(attribute.String("http.request.method", r.Method), attribute.String("http.route", route)))
+		defer span.End()
+		rec := &statusRecorder{ResponseWriter: w, code: http.StatusOK}
+		next.ServeHTTP(rec, r.WithContext(ctx))
+		span.SetAttributes(attribute.Int("http.response.status_code", rec.code))
+		if rec.code >= 500 {
+			span.SetStatus(codes.Error, http.StatusText(rec.code))
+		}
 	})
 }
 

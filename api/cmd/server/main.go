@@ -65,6 +65,9 @@ func main() {
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		logger.Error("shutdown", "err", err)
 	}
+	if err := srv.Close(shutdownCtx); err != nil {
+		logger.Error("flush traces", "err", err)
+	}
 	logger.Info("stopped")
 }
 

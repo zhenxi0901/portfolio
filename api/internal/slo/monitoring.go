@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
+
+	"github.com/zhenxi0901/portfolio/api/internal/gcp"
 )
 
 // Monitoring reads uptime-check results from the Cloud Monitoring API with the runtime identity's
@@ -18,22 +16,12 @@ import (
 //
 // It counts every uptime check in the project; this project has one, on /api/health.
 type Monitoring struct {
-	client   *http.Client
-	metadata string // metadata server base URL
-	api      string // Monitoring API base URL
-
-	mu      sync.Mutex
-	project string
-	token   string
-	expires time.Time
+	meta *gcp.Metadata
+	api  string // Monitoring API base URL
 }
 
-func NewMonitoring() *Monitoring {
-	return &Monitoring{
-		client:   &http.Client{Timeout: 8 * time.Second},
-		metadata: "http://metadata.google.internal/computeMetadata/v1",
-		api:      "https://monitoring.googleapis.com/v3",
-	}
+func NewMonitoring(meta *gcp.Metadata) *Monitoring {
+	return &Monitoring{meta: meta, api: "https://monitoring.googleapis.com/v3"}
 }
 
 const filter = `metric.type = "monitoring.googleapis.com/uptime_check/check_passed" AND resource.type = "uptime_url"`
@@ -42,7 +30,7 @@ const filter = `metric.type = "monitoring.googleapis.com/uptime_check/check_pass
 // and the start of the first hour with a check in it. Counts are read hourly so that start is
 // accurate to the hour, then summed into days.
 func (m *Monitoring) Days(ctx context.Context, end time.Time) ([]Day, time.Time, error) {
-	project, token, err := m.credentials(ctx)
+	project, token, err := m.meta.Credentials(ctx)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
@@ -123,7 +111,11 @@ func (m *Monitoring) counts(ctx context.Context, project, token string, start, e
 			} `json:"points"`
 		} `json:"timeSeries"`
 	}
-	if err := m.getJSON(ctx, u, map[string]string{"Authorization": "Bearer " + token}, &body); err != nil {
+	b, err := gcp.Get(ctx, m.meta.Client, u, map[string]string{"Authorization": "Bearer " + token})
+	if err == nil {
+		err = json.Unmarshal(b, &body)
+	}
+	if err != nil {
 		return nil, fmt.Errorf("timeSeries %s: %w", aligner, err)
 	}
 	out := map[time.Time]int64{}
@@ -137,62 +129,4 @@ func (m *Monitoring) counts(ctx context.Context, project, token string, start, e
 		}
 	}
 	return out, nil
-}
-
-// credentials returns the project ID and an access token, both from the metadata server.
-func (m *Monitoring) credentials(ctx context.Context) (string, string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	meta := map[string]string{"Metadata-Flavor": "Google"}
-	if m.project == "" {
-		b, err := m.get(ctx, m.metadata+"/project/project-id", meta)
-		if err != nil {
-			return "", "", fmt.Errorf("project id: %w", err)
-		}
-		m.project = strings.TrimSpace(string(b))
-	}
-	if m.token == "" || time.Now().After(m.expires) {
-		var tok struct {
-			AccessToken string `json:"access_token"`
-			ExpiresIn   int    `json:"expires_in"`
-		}
-		if err := m.getJSON(ctx, m.metadata+"/instance/service-accounts/default/token", meta, &tok); err != nil {
-			return "", "", fmt.Errorf("token: %w", err)
-		}
-		m.token = tok.AccessToken
-		// Refresh a minute early so a token never expires mid-request.
-		m.expires = time.Now().Add(time.Duration(tok.ExpiresIn)*time.Second - time.Minute)
-	}
-	return m.project, m.token, nil
-}
-
-func (m *Monitoring) getJSON(ctx context.Context, u string, headers map[string]string, v any) error {
-	b, err := m.get(ctx, u, headers)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, v)
-}
-
-func (m *Monitoring) get(ctx context.Context, u string, headers map[string]string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	resp, err := m.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(b[:min(len(b), 200)])))
-	}
-	return b, nil
 }

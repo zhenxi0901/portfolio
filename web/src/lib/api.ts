@@ -35,12 +35,21 @@ export type SloReport = {
   stale?: boolean;
 };
 
+/** The OpenTelemetry spans of one Ask request (see api/internal/tracing). */
+export type AskTrace = {
+  trace_id: string;
+  total_ms: number;
+  exported: boolean;
+  spans: { name: string; id: string; parent?: string; start_ms: number; duration_ms: number; attrs?: Record<string, string> }[];
+};
+
 export type AskResult = {
   answer: string;
   sources: { id: string; title: string }[];
   mode: "llm" | "retrieval";
   latency_ms: number;
   cached: boolean;
+  trace?: AskTrace;
 };
 
 export class ApiError extends Error {
