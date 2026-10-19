@@ -1,11 +1,11 @@
 {
-  "generated": "2026-10-19T11:50:03.205Z",
+  "generated": "2026-10-19T12:06:08.635Z",
   "windowDays": 30,
-  "deploys": 37,
+  "deploys": 38,
   "daysWithDeploys": 4,
   "leadTimeMinutes": {
-    "median": 5.6,
-    "commits": 49
+    "median": 5.8,
+    "commits": 50
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -21,15 +21,15 @@
     "heldByBudget": 0,
     "rollbacks": 0,
     "lastDrill": {
-      "ended": "2026-10-19T10:03:20.000Z",
-      "restoreSeconds": 20,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39234411668"
+      "ended": "2026-10-19T12:05:49.000Z",
+      "restoreSeconds": 17,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39249180137"
     }
   },
   "head": {
-    "sha": "464e8da",
-    "title": "Changelog: attribute commits by ancestry, and wrap long titles",
-    "committed": "2026-10-19T11:17:29.000Z"
+    "sha": "97ac23e",
+    "title": "Fixes from a full review: releases, the changelog, the card and claims",
+    "committed": "2026-10-19T11:55:32.000Z"
   },
   "perDay": [
     {
@@ -150,10 +150,18 @@
     },
     {
       "date": "2026-10-19",
-      "deploys": 19
+      "deploys": 20
     }
   ],
   "recent": [
+    {
+      "sha": "97ac23e",
+      "title": "Fixes from a full review: releases, the changelog, the card and claims",
+      "ended": "2026-10-19T12:03:39.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 8.1,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39248925939"
+    },
     {
       "sha": "464e8da",
       "title": "Changelog: attribute commits by ancestry, and wrap long titles",
@@ -193,14 +201,6 @@
       "minutes": 1.6,
       "leadMinutes": 6.5,
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39235917460"
-    },
-    {
-      "sha": "71a47b9",
-      "title": "Safer releases: check before traffic, roll back, gate on the error budget",
-      "ended": "2026-10-19T10:00:30.000Z",
-      "minutes": 1.8,
-      "leadMinutes": 7,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39234070054"
     }
   ]
 }
