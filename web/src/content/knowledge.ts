@@ -15,6 +15,7 @@ import { budgetPolicy, burnRules, investigation, slos, sreTerms } from "@/conten
 import { productOrder, products } from "@/content/products";
 import { postmortems } from "@/content/postmortems";
 import { posts } from "@/content/writing";
+import { decisions } from "@/content/decisions";
 
 // Facts the "Ask" console retrieves from. Built from profile.ts so there is one source of truth;
 // exported at build time as /knowledge.json, which the Go API loads too.
@@ -203,6 +204,27 @@ export function buildKnowledge(): Fact[] {
       "the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. " +
       "Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute " +
       "from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
+  });
+
+  facts.push({
+    id: "releases",
+    title: "How this site releases",
+    anchor: "status",
+    lead: "Every push to main goes out the same way, and each step can stop it.",
+    text:
+      "CI builds the image once, smoke-tests it, holds it to Lighthouse budgets and a critical-CVE gate, then pushes it with an SBOM and signed build provenance. " +
+      "The deploy releases that exact digest without rebuilding: it verifies the attestations, holds the release if the site's error budget is spent, " +
+      "starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back on its own if that fails. " +
+      "A rollback drill rehearses this in production; the first one had traffic back on the old revision 20 seconds after the switch. " +
+      "Every release becomes a GitHub release, and the changelog page lists each one with the commits it shipped.",
+  });
+
+  facts.push({
+    id: "decisions",
+    title: "Architecture decisions for this site",
+    anchor: "status",
+    lead: "Why this site is built the way it is, as architecture decision records (ADRs):",
+    text: decisions.map((d) => `${d.title}.`).join(" ") + " Each record gives the context, what the choice buys and what it costs.",
   });
 
   facts.push({

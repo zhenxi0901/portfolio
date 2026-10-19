@@ -27,7 +27,10 @@ func (s *Server) timing(next http.Handler) http.Handler {
 	})
 }
 
-var machinePaths = map[string]bool{"/healthz": true, "/readyz": true, "/api/health": true, "/metrics": true}
+// Badges and the profile card are fetched by image proxies, not visitors.
+var machinePaths = map[string]bool{
+	"/healthz": true, "/readyz": true, "/api/health": true, "/metrics": true, "/api/badge/uptime": true, "/api/card.svg": true,
+}
 
 // timingWriter stamps Server-Timing at the moment the status line is written, so "app" is the
 // time the server took to start answering.

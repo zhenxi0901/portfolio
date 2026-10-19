@@ -1,6 +1,7 @@
-// DORA metrics for this site, from the repository's own history: commits on main and the deploy
-// workflow's runs. Runs in CI on pushes to main, just before the image is built and tested (and by
-// hand to refresh the committed snapshot), writing src/content/generated/delivery.json.
+// DORA metrics and the changelog for this site, from the repository's own history: commits on main
+// and the deploy workflow's runs. Runs in CI on pushes to main, just before the image is built and
+// tested (and by hand to refresh the committed snapshots), writing src/content/generated/
+// delivery.json (the last 30 days) and changelog.json (every release since the first).
 //
 //   GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/name node scripts/delivery-stats.mjs
 //
@@ -19,7 +20,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 const REPO = process.env.GITHUB_REPOSITORY ?? "zhenxi0901/portfolio";
 const TOKEN = process.env.GITHUB_TOKEN;
 const WINDOW_DAYS = 30;
-const OUT = new URL("../src/content/generated/delivery.json", import.meta.url);
+const CHANGELOG_LIMIT = 100;
+const GENERATED = new URL("../src/content/generated/", import.meta.url);
 
 async function gh(path) {
   const res = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
@@ -46,19 +48,20 @@ const median = (xs) => {
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
+const round1 = (x) => Math.round(x * 10) / 10;
 
 const now = new Date();
 const since = new Date(now.getTime() - WINDOW_DAYS * 864e5);
 
-// Newest first, as the API returns them; main is linear, so index order is ancestry order.
-const commits = (await all(`/commits?sha=main&since=${since.toISOString()}`)).map((c) => ({
+// Every commit on main, newest first; main is linear, so index order is ancestry order.
+const commits = (await all(`/commits?sha=main`)).map((c) => ({
   sha: c.sha,
   at: new Date(c.commit.committer.date),
   title: c.commit.message.split("\n")[0],
 }));
 const index = new Map(commits.map((c, i) => [c.sha, i]));
 
-const candidates = (await all(`/actions/workflows/deploy.yml/runs?created=>=${since.toISOString().slice(0, 10)}`, "workflow_runs"))
+const candidates = (await all(`/actions/workflows/deploy.yml/runs`, "workflow_runs"))
   .filter((r) => r.status === "completed" && ["success", "failure"].includes(r.conclusion))
   .map((r) => ({
     id: r.id,
@@ -75,41 +78,37 @@ const candidates = (await all(`/actions/workflows/deploy.yml/runs?created=>=${si
 // users to it succeeded; earlier deploys switched traffic in the deploy step itself (both of the
 // older names). A run that failed before that point changed nothing users could see.
 const TRAFFIC_STEPS = new Set(["Deploy the exact digest that was built", "Deploy the digest CI tested", "Send traffic to the new revision"]);
-const step = (jobs, name) => jobs.flatMap((j) => j.steps ?? []).find((st) => st.name === name);
+const step = (steps, name) => steps.find((st) => st.name === name);
 async function inspect(jobsPath) {
   const { jobs } = await gh(jobsPath);
-  const all = jobs.flatMap((j) => j.steps ?? []);
-  const traffic = all.find((st) => TRAFFIC_STEPS.has(st.name) && st.conclusion === "success");
-  const rollback = step(jobs, "Roll back to the previous revision");
+  const steps = jobs.flatMap((j) => j.steps ?? []);
+  const traffic = steps.find((st) => TRAFFIC_STEPS.has(st.name) && st.conclusion === "success");
+  const rollback = step(steps, "Roll back to the previous revision");
   const rolledBack = rollback?.conclusion === "success";
   return {
     tookTraffic: Boolean(traffic),
     rolledBack,
     restoreMs: rolledBack && traffic ? Date.parse(rollback.completed_at) - Date.parse(traffic.completed_at) : null,
-    stoppedBeforeTraffic: step(jobs, "Check the new revision before it takes traffic")?.conclusion === "failure",
-    heldByBudget: step(jobs, "Check the error budget")?.conclusion === "failure",
+    stoppedBeforeTraffic: step(steps, "Check the new revision before it takes traffic")?.conclusion === "failure",
+    heldByBudget: step(steps, "Check the error budget")?.conclusion === "failure",
   };
 }
 
-const runs = [];
-const drills = [];
-let stoppedBeforeTraffic = 0;
-let heldByBudget = 0;
+// One event per run, and per earlier failed attempt of a run that was re-run (the API only shows a
+// run's latest attempt): what it did to production. Runs that failed before changing anything
+// (no tested image, a failed build in the old pipeline) are not events.
+const events = [];
 async function record(r, jobsPath) {
-  if (r.ok && !r.drill) return runs.push(r);
+  if (r.ok && !r.drill) return events.push({ ...r, kind: "deploy" });
   const s = await inspect(jobsPath);
   if (r.drill) {
-    if (s.rolledBack) drills.push({ ended: r.ended, restoreSeconds: Math.round(s.restoreMs / 1000), url: r.url });
-    return;
-  }
-  if (s.stoppedBeforeTraffic) stoppedBeforeTraffic++;
-  if (s.heldByBudget) heldByBudget++;
-  if (s.tookTraffic) runs.push({ ...r, ok: false, restoreMs: s.restoreMs });
+    if (s.rolledBack) events.push({ ...r, kind: "drill", restoreMs: s.restoreMs });
+  } else if (s.tookTraffic) events.push({ ...r, kind: "failed", rolledBack: s.rolledBack, restoreMs: s.restoreMs });
+  else if (s.stoppedBeforeTraffic) events.push({ ...r, kind: "stopped" });
+  else if (s.heldByBudget) events.push({ ...r, kind: "held" });
 }
 for (const r of candidates) {
   await record(r, `/actions/runs/${r.id}/jobs`);
-  // A run that was re-run only shows its latest attempt; earlier attempts that failed after their
-  // revision took traffic were failed changes too.
   for (let n = 1; n < r.attempt; n++) {
     const a = await gh(`/actions/runs/${r.id}/attempts/${n}`);
     if (a.conclusion !== "failure") continue;
@@ -117,18 +116,20 @@ for (const r of candidates) {
     await record(attempt, `/actions/runs/${r.id}/attempts/${n}/jobs`);
   }
 }
-runs.sort((a, b) => a.ended - b.ended);
-drills.sort((a, b) => a.ended - b.ended);
+events.sort((a, b) => a.ended - b.ended);
 
-// Every successful deploy counts, including a redeploy of an older commit.
-const deploys = runs.filter((r) => r.ok);
+const allDeploys = events.filter((e) => e.kind === "deploy");
+const recent = events.filter((e) => e.ended >= since);
+const deploys = recent.filter((e) => e.kind === "deploy");
+const failed = recent.filter((e) => e.kind === "failed");
+const tookTraffic = deploys.length + failed.length;
 
 // Lead time: each commit in the window to the first successful deploy of it or a newer commit.
 const leadMinutes = [];
 const leadBySha = new Map();
-for (const c of commits) {
+for (const c of commits.filter((c) => c.at >= since)) {
   const i = index.get(c.sha);
-  const d = deploys.find((r) => index.has(r.sha) && index.get(r.sha) <= i && r.ended >= c.at);
+  const d = allDeploys.find((r) => index.has(r.sha) && index.get(r.sha) <= i && r.ended >= c.at);
   if (!d) continue;
   const m = (d.ended - c.at) / 6e4;
   leadMinutes.push(m);
@@ -136,11 +137,10 @@ for (const c of commits) {
 }
 
 // Failures and recovery: an automatic rollback if there was one, else the next successful deploy.
-const failed = runs.filter((r) => !r.ok);
 const restoreMinutes = failed
   .map((f) => {
     if (f.restoreMs != null) return f.restoreMs / 6e4;
-    const next = deploys.find((d) => d.ended > f.ended);
+    const next = allDeploys.find((d) => d.ended > f.ended);
     return next ? (next.ended - f.ended) / 6e4 : null;
   })
   .filter((m) => m !== null);
@@ -154,48 +154,83 @@ const perDay = Array.from({ length: WINDOW_DAYS }, (_, k) => {
   return { date, deploys: deploys.filter((d) => dayOf(d.ended) === date).length };
 });
 
-// Titles for deploys of commits older than the window (a redeploy), fetched one by one.
 const titles = new Map(commits.map((c) => [c.sha, c.title]));
-for (const d of deploys.slice(-6)) {
-  if (!titles.has(d.sha)) titles.set(d.sha, (await gh(`/commits/${d.sha}`)).commit.message.split("\n")[0]);
-}
+const titleOf = async (sha) => {
+  if (!titles.has(sha)) titles.set(sha, (await gh(`/commits/${sha}`)).commit.message.split("\n")[0]);
+  return titles.get(sha);
+};
+const lastDrill = events.filter((e) => e.kind === "drill").at(-1);
 
-const result = {
+// The commit this image is being built from (CI sets GITHUB_SHA), for the live card on the profile.
+const head = commits.find((c) => c.sha === process.env.GITHUB_SHA) ?? commits[0];
+
+const delivery = {
   generated: now.toISOString(),
   windowDays: WINDOW_DAYS,
   deploys: deploys.length,
   daysWithDeploys: perDay.filter((d) => d.deploys > 0).length,
   leadTimeMinutes: { median: median(leadMinutes), commits: leadMinutes.length },
   // null, not 0, when nothing deployed: "0% of nothing" is not a rate.
-  changeFailureRate: runs.length ? failed.length / runs.length : null,
+  changeFailureRate: tookTraffic ? failed.length / tookTraffic : null,
   failedDeploys: failed.length,
   restoreMinutes: { median: median(restoreMinutes), count: restoreMinutes.length },
   deployMinutes: { median: median(deploys.map((d) => (d.ended - d.started) / 6e4)) },
   safeguards: {
-    stoppedBeforeTraffic,
-    heldByBudget,
-    rollbacks: failed.filter((f) => f.restoreMs != null).length,
-    lastDrill: drills.length
-      ? { ended: drills.at(-1).ended.toISOString(), restoreSeconds: drills.at(-1).restoreSeconds, url: drills.at(-1).url }
+    stoppedBeforeTraffic: recent.filter((e) => e.kind === "stopped").length,
+    heldByBudget: recent.filter((e) => e.kind === "held").length,
+    rollbacks: failed.filter((f) => f.rolledBack).length,
+    lastDrill: lastDrill
+      ? { ended: lastDrill.ended.toISOString(), restoreSeconds: Math.round(lastDrill.restoreMs / 1000), url: lastDrill.url }
       : null,
   },
+  head: head ? { sha: head.sha.slice(0, 7), title: head.title, committed: head.at.toISOString() } : null,
   perDay,
-  recent: deploys
-    .slice(-6)
-    .reverse()
-    .map((d) => ({
-      sha: d.sha.slice(0, 7),
-      title: titles.get(d.sha),
-      ended: d.ended.toISOString(),
-      minutes: Math.round(((d.ended - d.started) / 6e4) * 10) / 10,
-      leadMinutes: leadBySha.has(d.sha) ? Math.round(leadBySha.get(d.sha) * 10) / 10 : null,
-      url: d.url,
-    })),
+  recent: await Promise.all(
+    deploys
+      .slice(-6)
+      .reverse()
+      .map(async (d) => ({
+        sha: d.sha.slice(0, 7),
+        title: await titleOf(d.sha),
+        ended: d.ended.toISOString(),
+        minutes: round1((d.ended - d.started) / 6e4),
+        leadMinutes: leadBySha.has(d.sha) ? round1(leadBySha.get(d.sha)) : null,
+        url: d.url,
+      })),
+  ),
 };
 
-await mkdir(new URL(".", OUT), { recursive: true });
-await writeFile(OUT, JSON.stringify(result, null, 2) + "\n");
+// The changelog: what each deploy shipped (the commits since the previous successful deploy, newest
+// first), the GitHub release it became, and the runs that stopped, were held, rolled back or were drills.
+const tagBySha = new Map();
+for (const r of await all(`/releases`)) {
+  if (/^[0-9a-f]{40}$/.test(r.target_commitish)) tagBySha.set(r.target_commitish, r.tag_name);
+}
+const entries = [];
+let shippedTo = commits.length; // index of the oldest commit not yet shipped, plus one
+for (const e of events) {
+  const base = { kind: e.kind, at: e.ended.toISOString(), sha: e.sha.slice(0, 7), url: e.url };
+  if (e.kind !== "deploy") {
+    entries.push({ ...base, title: await titleOf(e.sha), restoreSeconds: e.restoreMs != null ? Math.round(e.restoreMs / 1000) : null });
+    continue;
+  }
+  const i = index.get(e.sha);
+  const shipped = i !== undefined && i < shippedTo ? commits.slice(i, shippedTo) : [];
+  if (shipped.length) shippedTo = i;
+  entries.push({
+    ...base,
+    release: tagBySha.get(e.sha) ?? null,
+    minutes: round1((e.ended - e.started) / 6e4),
+    commits: shipped.map((c) => ({ sha: c.sha.slice(0, 7), title: c.title })),
+  });
+}
+const changelog = { generated: now.toISOString(), entries: entries.reverse().slice(0, CHANGELOG_LIMIT) };
+
+await mkdir(GENERATED, { recursive: true });
+await writeFile(new URL("delivery.json", GENERATED), JSON.stringify(delivery, null, 2) + "\n");
+await writeFile(new URL("changelog.json", GENERATED), JSON.stringify(changelog, null, 2) + "\n");
 console.log(
-  `delivery: ${result.deploys} deploys on ${result.daysWithDeploys} days, median lead ${result.leadTimeMinutes.median?.toFixed(1)} min, ` +
-    `CFR ${result.changeFailureRate === null ? "n/a" : (result.changeFailureRate * 100).toFixed(1) + "%"} (${failed.length} of ${runs.length})`,
+  `delivery: ${delivery.deploys} deploys on ${delivery.daysWithDeploys} days, median lead ${delivery.leadTimeMinutes.median?.toFixed(1)} min, ` +
+    `CFR ${delivery.changeFailureRate === null ? "n/a" : (delivery.changeFailureRate * 100).toFixed(1) + "%"} (${failed.length} of ${tookTraffic}); ` +
+    `changelog: ${changelog.entries.length} entries`,
 );

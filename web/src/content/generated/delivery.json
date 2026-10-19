@@ -1,11 +1,11 @@
 {
-  "generated": "2026-10-19T09:51:11.255Z",
+  "generated": "2026-10-19T10:11:33.165Z",
   "windowDays": 30,
-  "deploys": 31,
+  "deploys": 32,
   "daysWithDeploys": 4,
   "leadTimeMinutes": {
     "median": 4.433333333333334,
-    "commits": 38
+    "commits": 39
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -20,7 +20,16 @@
     "stoppedBeforeTraffic": 0,
     "heldByBudget": 0,
     "rollbacks": 0,
-    "lastDrill": null
+    "lastDrill": {
+      "ended": "2026-10-19T10:03:20.000Z",
+      "restoreSeconds": 20,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39234411668"
+    }
+  },
+  "head": {
+    "sha": "9dfbfb6",
+    "title": "Close the contact-form postmortem's last two action items",
+    "committed": "2026-10-19T10:08:45.000Z"
   },
   "perDay": [
     {
@@ -141,10 +150,18 @@
     },
     {
       "date": "2026-10-19",
-      "deploys": 13
+      "deploys": 14
     }
   ],
   "recent": [
+    {
+      "sha": "71a47b9",
+      "title": "Safer releases: check before traffic, roll back, gate on the error budget",
+      "ended": "2026-10-19T10:00:30.000Z",
+      "minutes": 1.8,
+      "leadMinutes": 7,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39234070054"
+    },
     {
       "sha": "8d3a21e",
       "title": "README: the drill, the tour, DORA metrics and the new pipeline",
@@ -184,14 +201,6 @@
       "minutes": 2.3,
       "leadMinutes": 6.9,
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39219622048"
-    },
-    {
-      "sha": "3b74859",
-      "title": "Light theme: product tags readable; Lighthouse audits both themes",
-      "ended": "2026-10-19T07:37:02.000Z",
-      "minutes": 2.3,
-      "leadMinutes": 6.7,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39216895392"
     }
   ]
 }

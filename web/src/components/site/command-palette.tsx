@@ -94,6 +94,21 @@ export function CommandPalette() {
             </Item>
           ))}
         </Command.Group>
+        <Command.Group heading="How this site runs">
+          <Item keywords={["status", "uptime", "up", "down", "incidents", "availability", "feed"]} icon={<Article size={16} />} onSelect={() => run(() => goTo("/status"))}>
+            Status page
+          </Item>
+          <Item keywords={["changelog", "releases", "deploys", "history", "what changed"]} icon={<Article size={16} />} onSelect={() => run(() => goTo("/changelog"))}>
+            Changelog
+          </Item>
+          <Item
+            keywords={["decisions", "adr", "architecture", "why", "trade-offs", "design"]}
+            icon={<Article size={16} />}
+            onSelect={() => run(() => goTo("/decisions"))}
+          >
+            Architecture decisions
+          </Item>
+        </Command.Group>
         <Command.Group heading="Actions">
           <Item keywords={["tour", "overview", "highlights", "recruiter", "quick"]} icon={<ArrowRight size={16} />} onSelect={() => run(startTour)}>
             Take the 60-second tour

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/zhenxi0901/portfolio/api/internal/ask"
+	"github.com/zhenxi0901/portfolio/api/internal/card"
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
 	"github.com/zhenxi0901/portfolio/api/internal/gcp"
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
@@ -37,7 +39,9 @@ type Server struct {
 	ask     *ask.Service
 	contact *contact.Service
 	slo     *slo.Service
-	started time.Time
+	// Delivery numbers baked into the image (/delivery.json) for the profile card; nil if absent.
+	delivery *card.Delivery
+	started  time.Time
 	// Flushes spans still waiting for export; called on shutdown.
 	closeTraces func(context.Context) error
 	visits      atomic.Int64 // requests other than probes, to spot an instance's first visitor
@@ -70,15 +74,21 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 	}
 	rec, closeTraces := tracing.Setup("portfolio", cfg.Version+"@"+short(cfg.Commit), export)
 
+	delivery, err := card.LoadDelivery(filepath.Join(cfg.StaticDir, "delivery.json"))
+	if err != nil {
+		log.Info("card: no delivery numbers; the profile card shows the live ones only", "err", err)
+	}
+
 	return &Server{
-		cfg:     cfg,
-		log:     log,
-		metrics: m,
-		reg:     reg,
-		ask:     ask.NewService(facts, llm, m, log).WithTraces(rec, cfg.TraceExport),
-		contact: contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log).WithSyntheticToken(cfg.ContactSyntheticToken),
-		slo:     slo.New(uptime, log),
-		started: time.Now(),
+		delivery: delivery,
+		cfg:      cfg,
+		log:      log,
+		metrics:  m,
+		reg:      reg,
+		ask:      ask.NewService(facts, llm, m, log).WithTraces(rec, cfg.TraceExport),
+		contact:  contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log).WithSyntheticToken(cfg.ContactSyntheticToken),
+		slo:      slo.New(uptime, log),
+		started:  time.Now(),
 
 		closeTraces: closeTraces,
 	}, nil
@@ -123,6 +133,18 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		writeJSON(w, http.StatusOK, slo.Badge(s.slo.Report(r.Context())))
 	})
+	// The live card on the GitHub profile: ?theme=light for light mode.
+	mux.HandleFunc("GET /api/card.svg", func(w http.ResponseWriter, r *http.Request) {
+		rep := s.slo.Report(r.Context())
+		svg := card.SVG(card.Data{
+			Commit: short(s.cfg.Commit), Region: s.cfg.Region,
+			SLOAvailable: rep.Available, Availability: rep.Availability, BudgetRemaining: rep.BudgetRemaining, Releases: rep.Releases,
+			Delivery: s.delivery, Now: time.Now(),
+		}, r.URL.Query().Get("theme") != "light")
+		w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		_, _ = w.Write(svg)
+	})
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)
@@ -132,7 +154,7 @@ func (s *Server) Handler() http.Handler {
 	// The catch-all wins over a method-specific pattern, so a known path with the wrong method would
 	// read as 404; answer 405 with the allowed method instead.
 	apiMethods := map[string]string{
-		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/badge/uptime": "GET, HEAD",
+		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD",
 		"/api/ask": "POST", "/api/contact": "POST",
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {

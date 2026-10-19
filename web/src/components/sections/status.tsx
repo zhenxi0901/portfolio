@@ -145,6 +145,22 @@ export function Status() {
       <SloPanel />
       <DeliveryPanel />
       <VisitTrace />
+
+      <nav aria-label="More on how this site runs" className="mt-4 grid gap-3 sm:grid-cols-3">
+        {[
+          { href: "/status", title: "Status page", text: "Live state, 30 days of availability, how it is watched, incident history and a feed." },
+          { href: "/changelog", title: "Changelog", text: "Every release to production and the commits it shipped, written by the pipeline." },
+          { href: "/decisions", title: "Decisions", text: "Why it is built this way: nine architecture decision records and what each one costs." },
+        ].map((l) => (
+          <a key={l.href} href={l.href} className="group rounded-3xl border border-line bg-surface p-5 transition-colors hover:border-ink-3">
+            <span className="flex items-center justify-between font-semibold">
+              {l.title}
+              <ArrowRight size={16} className="text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+            </span>
+            <span className="mt-1 block text-sm leading-relaxed text-ink-2">{l.text}</span>
+          </a>
+        ))}
+      </nav>
     </section>
   );
 }
