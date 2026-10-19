@@ -17,6 +17,7 @@ import { usePalette } from "@/components/providers";
 import { sections } from "@/components/site/nav-items";
 import { cases, profile } from "@/content/profile";
 import { postmortems } from "@/content/postmortems";
+import { posts } from "@/content/writing";
 import { goTo, openPlatformTab, scrollToId } from "@/lib/utils";
 
 export function CommandPalette() {
@@ -70,6 +71,13 @@ export function CommandPalette() {
           {cases.map((c) => (
             <Item key={c.id} keywords={c.stack} onSelect={() => run(() => goTo(`/work/${c.id}`))} icon={<Article size={16} />}>
               {c.title}
+            </Item>
+          ))}
+        </Command.Group>
+        <Command.Group heading="Writing">
+          {posts.map((p) => (
+            <Item key={p.slug} keywords={["post", "blog", "writing"]} onSelect={() => run(() => goTo(`/writing/${p.slug}`))} icon={<Article size={16} />}>
+              {p.title}
             </Item>
           ))}
         </Command.Group>
