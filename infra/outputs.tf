@@ -9,7 +9,7 @@ output "wif_provider" {
 }
 
 output "deployer_sa" {
-  description = "Set as the DEPLOYER_SA repository variable."
+  description = "Set as the DEPLOYER_SA repository secret."
   value       = google_service_account.deployer.email
 }
 

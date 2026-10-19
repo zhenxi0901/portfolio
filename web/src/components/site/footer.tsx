@@ -7,11 +7,11 @@ export function Footer() {
         <div className="space-y-1.5">
           <p>Designed and built by {profile.name}. Next.js, three.js and Go on Cloud Run.</p>
           <p>
-            Accessibility and SEO score 100 on every release: Lighthouse runs in{" "}
+            Accessibility and SEO score 100: on every release, Lighthouse in{" "}
             <a className="underline underline-offset-4 hover:text-ink" href={`${profile.github}/portfolio/actions/workflows/ci.yml`} target="_blank" rel="noreferrer">
               CI
             </a>{" "}
-            and blocks the deploy if they drop.
+            audits a page of every kind and blocks the deploy if either drops.
           </p>
         </div>
         <ul className="flex flex-wrap gap-x-5 gap-y-2">

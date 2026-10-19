@@ -241,3 +241,40 @@ func TestFetchSurvivesTheCallerLeaving(t *testing.T) {
 		t.Errorf("report %+v, fetch context error %v", r, src.err)
 	}
 }
+
+func TestFloorPct(t *testing.T) {
+	for _, c := range []struct {
+		x    float64
+		d    int
+		want float64
+	}{
+		{0.9984, 2, 99.84}, // 0.9984*10000 is 9983.999... in binary
+		{0.99996, 2, 99.99},
+		{1, 2, 100},
+		{0.9961, 1, 99.6},
+		{0.97, 1, 97},
+		{0, 1, 0},
+	} {
+		if got := FloorPct(c.x, c.d); !near(got, c.want) {
+			t.Errorf("FloorPct(%v, %d) = %v, want %v", c.x, c.d, got, c.want)
+		}
+	}
+}
+
+// A few hours of checks must not be labelled as a month.
+func TestUptimeLabel(t *testing.T) {
+	end := time.Date(2026, 10, 19, 12, 0, 0, 0, time.UTC)
+	start := end.Add(-6 * time.Hour)
+	if got := (Report{Since: &start, Updated: end}).UptimeLabel(); got != "uptime since 19 Oct" {
+		t.Errorf("6 h measured: %q", got)
+	}
+	full := end.Add(-30 * day)
+	if got := (Report{Since: &full, Updated: end}).UptimeLabel(); got != "uptime, 30 days" {
+		t.Errorf("full window: %q", got)
+	}
+	days := make([]Day, WindowDays)
+	days[WindowDays-1] = Day{End: end, Checks: 100, Passed: 100}
+	if b := Badge(Summarise(days, start, end)); b.Label != "uptime since 19 Oct" {
+		t.Errorf("badge label %q", b.Label)
+	}
+}

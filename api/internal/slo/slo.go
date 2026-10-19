@@ -127,7 +127,8 @@ func Badge(r Report) ShieldsBadge {
 	if !r.Available {
 		return b
 	}
-	b.Message = fmt.Sprintf("%.2f%%", math.Floor(r.Availability*10000)/100)
+	b.Label = r.UptimeLabel()
+	b.Message = fmt.Sprintf("%.2f%%", FloorPct(r.Availability, 2))
 	switch {
 	case r.Availability >= Target:
 		b.Color = "brightgreen"
@@ -137,6 +138,23 @@ func Badge(r Report) ShieldsBadge {
 		b.Color = "red"
 	}
 	return b
+}
+
+// UptimeLabel names the span the availability covers: "uptime, 30 days" once the window is full,
+// "uptime since 19 Oct" until then, so a few hours of data never read as a month.
+func (r Report) UptimeLabel() string {
+	if r.Since == nil || r.Updated.Sub(*r.Since) >= WindowDays*day-time.Hour {
+		return fmt.Sprintf("uptime, %d days", WindowDays)
+	}
+	return "uptime since " + r.Since.UTC().Format("2 Jan")
+}
+
+// FloorPct is x as a percentage rounded down to the given decimals, so a display never claims more
+// than was measured: 0.99996 is 99.99%, never 100.00%. The nudge absorbs binary floating-point
+// error, so 0.9984 is 99.84% rather than 99.83%. The badge and the profile card both use it.
+func FloorPct(x float64, decimals int) float64 {
+	p := math.Pow(10, float64(decimals))
+	return math.Floor(x*100*p+1e-6) / p
 }
 
 func unavailable(reason string) Report {

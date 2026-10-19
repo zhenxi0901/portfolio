@@ -1,5 +1,5 @@
 // Records what the browser's retrieval engine answers, so the Go engine can be tested against it.
-// Run: node scripts/gen-parity.ts   (Node 24 strips the TypeScript types natively)
+// Run: node scripts/gen-parity.mts   (Node 24 strips the TypeScript types natively)
 import { readFileSync, writeFileSync } from "node:fs";
 import { retrieve } from "../src/lib/retrieval.ts";
 

@@ -1,11 +1,11 @@
 {
-  "generated": "2026-10-19T11:16:07.229Z",
+  "generated": "2026-10-19T11:50:03.205Z",
   "windowDays": 30,
-  "deploys": 36,
+  "deploys": 37,
   "daysWithDeploys": 4,
   "leadTimeMinutes": {
-    "median": 5.4,
-    "commits": 48
+    "median": 5.6,
+    "commits": 49
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -14,7 +14,7 @@
     "count": 0
   },
   "deployMinutes": {
-    "median": 1.4166666666666667
+    "median": 1.4
   },
   "safeguards": {
     "stoppedBeforeTraffic": 0,
@@ -27,9 +27,9 @@
     }
   },
   "head": {
-    "sha": "a1935b0",
-    "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
-    "committed": "2026-10-19T11:01:00.000Z"
+    "sha": "464e8da",
+    "title": "Changelog: attribute commits by ancestry, and wrap long titles",
+    "committed": "2026-10-19T11:17:29.000Z"
   },
   "perDay": [
     {
@@ -150,10 +150,18 @@
     },
     {
       "date": "2026-10-19",
-      "deploys": 18
+      "deploys": 19
     }
   ],
   "recent": [
+    {
+      "sha": "464e8da",
+      "title": "Changelog: attribute commits by ancestry, and wrap long titles",
+      "ended": "2026-10-19T11:24:07.000Z",
+      "minutes": 1.5,
+      "leadMinutes": 6.6,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39244188283"
+    },
     {
       "sha": "a1935b0",
       "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
@@ -193,14 +201,6 @@
       "minutes": 1.8,
       "leadMinutes": 7,
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39234070054"
-    },
-    {
-      "sha": "8d3a21e",
-      "title": "README: the drill, the tour, DORA metrics and the new pipeline",
-      "ended": "2026-10-19T09:40:21.000Z",
-      "minutes": 1,
-      "leadMinutes": 6,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39231686708"
     }
   ]
 }

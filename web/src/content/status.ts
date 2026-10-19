@@ -18,12 +18,17 @@ export type Incident = {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "1 Oct 2026" as midnight Singapore time, the timezone every postmortem uses. */
-function isoOf(date: string) {
+/**
+ * "1 Oct 2026" plus the first clock time on its timeline ("12:13"), in Singapore time, the timezone
+ * every postmortem uses. The time keeps incidents on the same day apart, in the feed and in order.
+ */
+function isoOf(date: string, timeline: { at: string }[]) {
   const [d, m, y] = date.split(" ");
   const month = MONTHS.indexOf(m);
   if (month < 0) throw new Error(`postmortem date "${date}" is not like "1 Oct 2026"`);
-  return new Date(Date.UTC(Number(y), month, Number(d)) - 8 * 36e5).toISOString();
+  const clock = timeline.map((t) => /^(\d{1,2}):(\d{2})$/.exec(t.at)).find(Boolean);
+  const minutes = clock ? Number(clock[1]) * 60 + Number(clock[2]) : 0;
+  return new Date(Date.UTC(Number(y), month, Number(d)) + minutes * 6e4 - 8 * 36e5).toISOString();
 }
 
 type Failed = { kind: string; at: string; sha: string; title?: string; restoreSeconds?: number | null };
@@ -33,7 +38,7 @@ export const incidents: Incident[] = [
   ...postmortems.map((p) => ({
     id: `postmortem-${p.slug}`,
     date: p.date,
-    iso: isoOf(p.date),
+    iso: isoOf(p.date, p.timeline),
     kind: p.kind,
     title: p.title,
     summary: p.summary,

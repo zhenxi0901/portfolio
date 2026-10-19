@@ -110,7 +110,8 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	// Without a webhook the message would only reach this instance's disk. Where that disk is
 	// thrown away, say so rather than "sent" (see the contact-form postmortem on the site).
-	if s.webhook == "" && s.requireWebhook {
+	// A synthetic check exists to prove delivery, so without a webhook it fails wherever it runs.
+	if s.webhook == "" && (s.requireWebhook || msg.Synthetic) {
 		s.undelivered(msg, "no webhook configured", nil)
 		s.reply(w, http.StatusServiceUnavailable, "undelivered", map[string]any{"error": "Messages can't be delivered right now."})
 		return
@@ -135,8 +136,10 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if msg.Synthetic {
-		s.log.Info("contact: synthetic check delivered", "forwarded", s.webhook != "")
-		s.reply(w, http.StatusAccepted, "synthetic", map[string]any{"ok": true})
+		s.log.Info("contact: synthetic check delivered")
+		// The check asserts this field, so a token that was not recognised (and so went out as a
+		// visitor's message) fails it instead of passing.
+		s.reply(w, http.StatusAccepted, "synthetic", map[string]any{"ok": true, "synthetic": true})
 		return
 	}
 	s.log.Info("contact: message received", "chars", utf8.RuneCountInString(msg.Message), "forwarded", s.webhook != "")
@@ -272,8 +275,14 @@ func webhookPayload(webhook string, m Message) any {
 	if m.Synthetic {
 		return map[string]string{"text": "Synthetic check of the contact form: delivered, no action needed"}
 	}
-	return map[string]string{"text": fmt.Sprintf("New message from %s <%s>:\n%s", m.Name, m.Email, m.Message)}
+	// Slack-style text is markup: "<!channel>" pings everyone and "<https://x|label>" disguises a
+	// link. Escaping &, < and > (Slack's own rule) shows a visitor's text exactly as typed.
+	return map[string]string{"text": fmt.Sprintf("New message from %s (%s):\n%s", slackEscape(m.Name), slackEscape(m.Email), slackEscape(m.Message))}
 }
+
+var slackEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
+
+func slackEscape(s string) string { return slackEscaper.Replace(s) }
 
 // Discord's SUPPRESS_NOTIFICATIONS message flag: posted, but nobody is notified.
 const discordSuppressNotifications = 1 << 12

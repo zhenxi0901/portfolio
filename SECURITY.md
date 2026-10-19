@@ -15,7 +15,7 @@ site; it scales to three instances on purpose.
 ## How a release is protected
 
 - The image is built once in CI, smoke-tested, checked by Lighthouse and blocked on any critical
-  CVE (Trivy). Only then is it pushed, with an SBOM and build provenance attested by CI.
+  CVE that has a fix available (Trivy). Only then is it pushed, with an SBOM and build provenance attested by CI.
 - The deploy refuses an image whose attestations do not verify as made by this repository's CI,
   starts it with no traffic, smoke-tests it at its own URL, and only then moves traffic to it. If
   the live checks fail after that, traffic goes back to the previous revision automatically.

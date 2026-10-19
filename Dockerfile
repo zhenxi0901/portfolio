@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
 # One image, one origin: the Next.js static export and the Go API that serves it.
 # Base images are pinned by digest, so they only change in a reviewed commit (Dependabot proposes
 # the updates).

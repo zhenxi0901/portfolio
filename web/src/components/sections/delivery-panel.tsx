@@ -21,10 +21,11 @@ type Delivery = {
     stoppedBeforeTraffic: number;
     heldByBudget: number;
     rollbacks: number;
-    lastDrill: { ended: string; restoreSeconds: number; url: string } | null;
+    lastDrill: { ended: string; restoreSeconds: number | null; url: string | null } | null;
   };
   perDay: { date: string; deploys: number }[];
-  recent: { sha: string; title: string; ended: string; minutes: number; leadMinutes: number | null; url: string }[];
+  // url is null for runs from before the content cleanup: listed, not linked.
+  recent: { sha: string; title: string; ended: string; minutes: number; leadMinutes: number | null; url: string | null }[];
 };
 const delivery = generated as Delivery;
 
@@ -54,7 +55,8 @@ export function DeliveryPanel() {
     d.changeFailureRate === null
       ? { value: "n/a", label: "change failure rate: nothing deployed in the window" }
       : {
-          value: `${(d.changeFailureRate * 100).toFixed(0)}%`,
+          // Math.round, as the profile card (Go) rounds it: toFixed's rounding differs at .5.
+          value: `${Math.round(d.changeFailureRate * 100)}%`,
           label: `change failure rate: ${d.failedDeploys} of ${d.deploys + d.failedDeploys} deploys failed their live checks after taking traffic`,
         },
     {
@@ -92,10 +94,14 @@ export function DeliveryPanel() {
         {s.lastDrill ? (
           <>
             Last{" "}
-            <a href={s.lastDrill.url} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-ink">
-              rollback drill
-            </a>
-            , {asOf(s.lastDrill.ended)} UTC: traffic back on the old revision {s.lastDrill.restoreSeconds} s after the switch.
+            {s.lastDrill.url ? (
+              <a href={s.lastDrill.url} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-ink">
+                rollback drill
+              </a>
+            ) : (
+              "rollback drill"
+            )}
+            , {asOf(s.lastDrill.ended)} UTC: traffic back on the old revision{s.lastDrill.restoreSeconds != null ? ` ${s.lastDrill.restoreSeconds} s after the switch` : ""}.
           </>
         ) : (
           "No rollback drill in this window yet."
@@ -126,10 +132,14 @@ export function DeliveryPanel() {
 
       <ol className="mt-6 divide-y divide-line rounded-2xl border border-line" aria-label="Most recent deploys">
         {d.recent.map((r) => (
-          <li key={r.sha} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-3 text-sm">
-            <a href={r.url} target="_blank" rel="noreferrer" className="font-mono text-xs text-ink-2 underline-offset-4 hover:text-ink hover:underline">
-              {r.sha}
-            </a>
+          <li key={`${r.sha}-${r.ended}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-3 text-sm">
+            {r.url ? (
+              <a href={r.url} target="_blank" rel="noreferrer" className="font-mono text-xs text-ink-2 underline-offset-4 hover:text-ink hover:underline">
+                {r.sha}
+              </a>
+            ) : (
+              <span className="font-mono text-xs text-ink-2">{r.sha}</span>
+            )}
             <span className="min-w-0 flex-1 truncate">{r.title}</span>
             <span className="font-mono text-xs text-ink-3">
               {r.leadMinutes !== null && `lead ${duration(r.leadMinutes)} · `}deploy {duration(r.minutes)}

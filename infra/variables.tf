@@ -10,7 +10,7 @@ variable "region" {
 }
 
 variable "image" {
-  description = "Initial container image. CI replaces it on every deploy."
+  description = "Initial container image. The deploy workflow replaces it on every release."
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }

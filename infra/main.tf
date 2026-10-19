@@ -195,6 +195,7 @@ resource "google_cloud_run_v2_service" "portfolio" {
     google_project_service.apis,
     google_secret_manager_secret_iam_member.runtime_reads_contact_webhook,
     google_secret_manager_secret_iam_member.runtime_reads_synthetic_token,
+    google_secret_manager_secret_iam_member.runtime_reads_llm_key,
   ]
 }
 

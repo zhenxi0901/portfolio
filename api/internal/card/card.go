@@ -8,10 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"math"
 	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/zhenxi0901/portfolio/api/internal/slo"
 )
 
 // Delivery is the part of /delivery.json (web/scripts/delivery-stats.mjs) the card shows.
@@ -31,7 +34,7 @@ type Delivery struct {
 
 type Drill struct {
 	Ended          time.Time `json:"ended"`
-	RestoreSeconds int       `json:"restoreSeconds"`
+	RestoreSeconds *int      `json:"restoreSeconds"` // null if the run's steps could not be timed
 }
 
 type Head struct {
@@ -59,7 +62,10 @@ type Data struct {
 	SLOAvailable    bool
 	Availability    float64
 	BudgetRemaining float64
-	Releases        string // "open", "frozen" or "unknown"
+	SLOUpdated      time.Time // when the SLO numbers were read from Cloud Monitoring
+	SLOStale        bool      // the latest read failed; these are the last good numbers
+	UptimeLabel     string    // "uptime, 30 days", or "uptime since 19 Oct" while the window fills
+	Releases        string    // "open", "frozen" or "unknown"
 	Delivery        *Delivery
 	Now             time.Time
 }
@@ -122,9 +128,14 @@ func SVG(d Data, darkTheme bool) []byte {
 		{"n/a", "change failure rate", p.text},
 	}
 	if up {
-		ms[0] = metric{fmt.Sprintf("%.2f%%", floor2(d.Availability*100)), "uptime, 30 days", tone(p, d.Availability >= 0.999, d.Availability >= 0.99)}
+		label := d.UptimeLabel
+		if label == "" {
+			label = "uptime, 30 days"
+		}
+		ms[0] = metric{fmt.Sprintf("%.2f%%", slo.FloorPct(d.Availability, 2)), label, tone(p, d.Availability >= 0.999, d.Availability >= 0.99)}
 		left := d.BudgetRemaining
-		ms[1] = metric{fmt.Sprintf("%.0f%%", max(left, 0)*100), "error budget left", tone(p, left >= 0.5, left > 0)}
+		// One decimal, rounded down, as on the site: never "100%" with some of it spent.
+		ms[1] = metric{fmt.Sprintf("%.1f%%", slo.FloorPct(max(left, 0), 1)), "error budget left", tone(p, left >= 0.5, left > 0)}
 	}
 	if dl := d.Delivery; dl != nil {
 		ms[2].value = fmt.Sprint(dl.Deploys)
@@ -135,7 +146,8 @@ func SVG(d Data, darkTheme bool) []byte {
 			ms[3].value = minutes(*m)
 		}
 		if r := dl.ChangeFailureRate; r != nil {
-			ms[4].value = fmt.Sprintf("%.0f%%", *r*100)
+			// Half up, as the site's Math.round does (Go's %.0f would round 12.5 to even).
+			ms[4].value = fmt.Sprintf("%.0f%%", math.Round(*r*100))
 		}
 	}
 	for i, m := range ms {
@@ -151,11 +163,23 @@ func SVG(d Data, darkTheme bool) []byte {
 	}
 	if dl := d.Delivery; dl != nil && dl.Safeguards.LastDrill != nil {
 		dr := dl.Safeguards.LastDrill
-		foot += fmt.Sprintf(" · last rollback drill: traffic back in %d s, %s", dr.RestoreSeconds, dr.Ended.UTC().Format("2 Jan"))
+		if dr.RestoreSeconds != nil {
+			foot += fmt.Sprintf(" · last rollback drill: traffic back in %d s, %s", *dr.RestoreSeconds, dr.Ended.UTC().Format("2 Jan"))
+		} else {
+			foot += " · last rollback drill: " + dr.Ended.UTC().Format("2 Jan")
+		}
 	}
 	fmt.Fprintf(&b, `<line x1="24" y1="174" x2="%d" y2="174" stroke="%s"/>`+"\n", W-24, p.border)
 	text(24, 197, 12, "400", p.muted, sans, "start", foot)
-	text(W-24, 197, 12, "400", p.accent, mono, "end", "as of "+d.Now.UTC().Format("15:04 UTC"))
+	// The time the uptime numbers were read, which is older than now when Monitoring is unreachable.
+	asOf := "as of " + d.Now.UTC().Format("15:04 UTC")
+	if up && !d.SLOUpdated.IsZero() {
+		asOf = "as of " + d.SLOUpdated.UTC().Format("15:04 UTC")
+		if d.SLOStale {
+			asOf = "last good reading " + d.SLOUpdated.UTC().Format("2 Jan 15:04 UTC")
+		}
+	}
+	text(W-24, 197, 12, "400", p.accent, mono, "end", asOf)
 	b.WriteString("</svg>\n")
 	return b.Bytes()
 }
@@ -170,7 +194,7 @@ func (d *Delivery) head() *Head {
 func summary(d Data) string {
 	s := fmt.Sprintf("Commit %s live on Cloud Run in %s.", d.Commit, d.Region)
 	if d.SLOAvailable {
-		s += fmt.Sprintf(" Uptime over 30 days %.2f%%, error budget left %.0f%%.", floor2(d.Availability*100), max(d.BudgetRemaining, 0)*100)
+		s += fmt.Sprintf(" Uptime over 30 days %.2f%%, error budget left %.1f%%.", slo.FloorPct(d.Availability, 2), slo.FloorPct(max(d.BudgetRemaining, 0), 1))
 	}
 	if d.Delivery != nil {
 		s += fmt.Sprintf(" %d deploys in %d days.", d.Delivery.Deploys, d.Delivery.WindowDays)
@@ -187,9 +211,6 @@ func tone(p palette, good, ok bool) string {
 	}
 	return p.bad
 }
-
-// floor2 rounds down to two decimals, so 99.996% shows as 99.99%, never as a 100.00% it is not.
-func floor2(x float64) float64 { return float64(int64(x*100)) / 100 }
 
 func minutes(m float64) string {
 	switch {

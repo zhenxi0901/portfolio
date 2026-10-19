@@ -8,4 +8,5 @@ npm run dev     # http://localhost:3000
 npm run build   # static export to out/, served by the Go API in production
 ```
 
-All site copy lives in `src/content/profile.ts`.
+Site copy lives in `src/content/*.ts` (profile, products, the AI platform, SLOs, postmortems, the on-call drill,
+writing and the decision records); `src/content/generated/` holds the pipeline's delivery and changelog snapshots.

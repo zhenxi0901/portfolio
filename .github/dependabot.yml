@@ -1,6 +1,8 @@
 # Monthly, grouped updates for everything pinned in this repository: action SHAs, base image
 # digests, npm packages and Go modules. Each arrives as one pull request per ecosystem and goes
-# through CI like any other change. Major versions are left for a deliberate upgrade.
+# through CI like any other change. npm and Go majors are left for a deliberate upgrade; base images
+# only get new digests of the same tag; actions take majors too, since their SHAs are reviewed in the
+# pull request (the deploy workflow's steps can only be proven on main, so watch the first deploy).
 version: 2
 updates:
   - package-ecosystem: github-actions
