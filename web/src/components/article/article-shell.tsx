@@ -16,7 +16,8 @@ export function ArticleShell({
   return (
     <>
       <TopBar home />
-      <main id="top" className={`mx-auto ${wide ? "max-w-[1180px]" : "max-w-[880px]"} px-4 pb-24 pt-28 sm:px-8 sm:pt-36`}>
+      {/* Not "top": that id is the home page hero, which the palette and other links use to go home. */}
+      <main id="main" className={`mx-auto ${wide ? "max-w-[1180px]" : "max-w-[880px]"} px-4 pb-24 pt-28 sm:px-8 sm:pt-36`}>
         <a href={back.href} className="inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-ink">
           <ArrowLeft size={14} /> {back.label}
         </a>

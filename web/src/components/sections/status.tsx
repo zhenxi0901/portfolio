@@ -8,7 +8,7 @@ import { SloPanel } from "@/components/sections/slo-panel";
 import { DeliveryPanel } from "@/components/sections/delivery-panel";
 import { SectionHeading } from "@/components/site/section-heading";
 
-const FLOW = ["Your browser", "Cloud Run: Go server", "Static site + /api", "/metrics to Prometheus"];
+const FLOW = ["Your browser", "Cloud Run: Go server", "Static site + /api", "/metrics for Prometheus"];
 
 function uptime(s: number) {
   const d = Math.floor(s / 86400);
@@ -106,8 +106,12 @@ export function Status() {
               )}
             </span>
           </div>
-          {data && !offline ? (
-            <Sparkline values={data.recent_ms} />
+          {/* A failed poll after live data keeps the last chart: it is a blip, not a different copy of the site. */}
+          {data ? (
+            <>
+              <Sparkline values={data.recent_ms} />
+              {offline && <p className="mt-2 text-xs text-ink-3">Last update failed; retrying every five seconds.</p>}
+            </>
           ) : (
             <div className="mt-6 grid h-40 place-items-center rounded-2xl bg-surface-2 px-6 text-center text-sm text-ink-2">
               {offline

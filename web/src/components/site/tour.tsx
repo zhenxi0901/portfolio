@@ -60,10 +60,13 @@ export function Tour() {
   const [elapsed, setElapsed] = useState(0);
   const elapsedRef = useRef(0);
   const card = useRef<HTMLDivElement>(null);
+  // Whatever had focus when the tour opened gets it back when the tour closes.
+  const opener = useRef<HTMLElement | null>(null);
 
   // Start on request, or straight away when another page sent the visitor here with ?tour.
   useEffect(() => {
     const start = () => {
+      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setPlaying(!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
       elapsedRef.current = 0;
       setElapsed(0);
@@ -71,8 +74,12 @@ export function Tour() {
     };
     window.addEventListener("tour-start", start);
     if (new URLSearchParams(window.location.search).has("tour")) {
-      window.history.replaceState(null, "", "/");
-      const t = setTimeout(start, 600);
+      // The URL is tidied when the tour actually starts, so a re-run effect (Strict Mode in dev)
+      // still sees ?tour.
+      const t = setTimeout(() => {
+        window.history.replaceState(null, "", "/");
+        start();
+      }, 600);
       return () => {
         clearTimeout(t);
         window.removeEventListener("tour-start", start);
@@ -89,9 +96,24 @@ export function Tour() {
     else scrollToId(stop.id);
     const heading = document.getElementById(stop.id)?.querySelector("h2");
     heading?.setAttribute("data-tour", "");
-    card.current?.focus({ preventScroll: true });
     return () => heading?.removeAttribute("data-tour");
   }, [i]);
+
+  // Focus the card once, when the tour opens; later steps leave focus where the visitor put it.
+  const open = i !== null;
+  useEffect(() => {
+    if (!open) return;
+    card.current?.focus({ preventScroll: true });
+    // Esc closes the tour from anywhere on the page, not only from inside the card.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setI(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (opener.current?.isConnected) opener.current.focus({ preventScroll: true });
+    };
+  }, [open]);
 
   // Autoplay: advance after STEP_MS; stop on the last stop.
   useEffect(() => {
@@ -130,7 +152,6 @@ export function Tour() {
       aria-label="A 60-second tour of this site"
       tabIndex={-1}
       onKeyDown={(e) => {
-        if (e.key === "Escape") close();
         if (e.key === "ArrowRight") go(i + 1);
         if (e.key === "ArrowLeft") go(i - 1);
       }}
@@ -158,7 +179,13 @@ export function Tour() {
           </button>
           <button
             type="button"
-            onClick={() => setPlaying((p) => !p)}
+            onClick={() => {
+              // At the end, Play starts the tour again rather than pausing straight back.
+              if (!playing && last && elapsedRef.current >= STEP_MS) {
+                go(0);
+                setPlaying(true);
+              } else setPlaying((p) => !p);
+            }}
             aria-label={playing ? "Pause the tour" : "Play the tour"}
             className="rounded-full border border-line p-2"
           >

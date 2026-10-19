@@ -16,6 +16,9 @@ import { Writing } from "@/components/sections/writing";
 import { Tour } from "@/components/site/tour";
 import { Contact } from "@/components/sections/contact";
 
+// Set here rather than in the layout, so the 404 page does not claim to be the home page.
+export const metadata = { alternates: { canonical: "/" } };
+
 export default function Home() {
   return (
     <>

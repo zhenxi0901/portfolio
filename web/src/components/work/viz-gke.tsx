@@ -58,17 +58,18 @@ export function GkeViz() {
   const nextId = useRef(1);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.4 });
+  const onScreen = useInView(ref);
   const record = (e: Omit<KubeEvent, "id" | "at">) => {
     setNow(Date.now());
     setEvents((list) => [{ ...e, id: nextId.current++, at: Date.now() }, ...list].slice(0, 5));
   };
 
-  // Tick the AGE column once a second, only once there is something to age.
+  // Tick the AGE column once a second, only while there is something to age and the log is visible.
   useEffect(() => {
-    if (events.length === SEED.length) return;
+    if (events.length === SEED.length || !onScreen || mode !== "after") return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [events.length]);
+  }, [events.length, onScreen, mode]);
   const reduce = useReducedMotion();
 
   // Play the migration once when the card is first seen; after that the toggle is the visitor's.

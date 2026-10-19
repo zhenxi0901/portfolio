@@ -129,7 +129,7 @@ export const posts: Post[] = [
       { kind: "h2", text: "Drop what nobody reads, and check first" },
       {
         kind: "p",
-        text: "Three of GKE's built-in metric packages were on. Before turning anything off I checked every consumer: 0 of 27 alerts and 0 of 40 dashboard tiles used them. Turning them off cut all samples per scrape by 40%, from 43,580 to 26,150. cAdvisor stayed, even though it is the biggest remaining source, because three memory alerts depend on it.",
+        text: "Three of GKE's built-in metric packages were on. Before turning anything off I checked every consumer: 0 of the 27 alerts then in place and 0 of 40 dashboard tiles used them. Turning them off cut all samples per scrape by 40%, from 43,580 to 26,150. cAdvisor stayed, even though it is the biggest remaining source, because three memory alerts depend on it.",
       },
       { kind: "h2", text: "The rest of the review" },
       {

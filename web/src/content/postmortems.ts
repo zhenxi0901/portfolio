@@ -30,11 +30,11 @@ export const postmortems: Postmortem[] = [
     slug: "contact-form",
     title: "“Message sent” for messages nobody would read",
     summary:
-      "For the site's first 3 h 36 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away.",
+      "For the site's first 3 h 32 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away.",
     date: "1 Oct 2026",
     kind: "Near miss",
     stats: [
-      { value: "3 h 36 min", label: "the form could lose a message" },
+      { value: "3 h 32 min", label: "the form could lose a message" },
       { value: "11", label: "requests in that window, all the smoke test's" },
       { value: "0", label: "visitor messages lost" },
     ],
@@ -42,9 +42,9 @@ export const postmortems: Postmortem[] = [
       "None in the end. Cloud Run's request logs show 11 POSTs to the contact API while the bug was live, every one from the smoke test sending deliberately bad input: 8 rejected with 400, 3 with 429. No visitor used the form. Had a recruiter written in that window, they would have been told it was sent and never heard back.",
     timeline: [
       {
-        at: "12:10",
+        at: "12:13",
         tag: "change",
-        what: "The site's first revision goes live. The contact API validates a message, appends it to a file and replies 202. Forwarding to a webhook ran in the background, if one was configured. None was.",
+        what: "The site's first real revision goes live (the 12:10 one ran Google's placeholder image). The contact API validates a message, appends it to a file and replies 202. Forwarding to a webhook ran in the background, if one was configured. None was.",
       },
       {
         at: "12:14 to 15:36",
@@ -140,7 +140,11 @@ export const postmortems: Postmortem[] = [
         tag: "fix",
         what: "Fix committed: /api/health for every check that goes through the front end. /healthz and /readyz stay for the container probe, which connects directly.",
       },
-      { at: "12:10", tag: "resolve", what: "This site's first revision goes live. The first pipeline deploy verifies against /api/health at 12:13 and passes." },
+      {
+        at: "12:13",
+        tag: "resolve",
+        what: "This site's first real revision goes live (Terraform's at 12:10 ran Google's placeholder image). The pipeline's verification against /api/health passes.",
+      },
     ],
     rootCause: [
       "Cloud Run reserves some URL paths ending in “z”. Requests for them through the public front end are answered before they reach the container, so the app returns 200 to its own probe and the world gets 404.",

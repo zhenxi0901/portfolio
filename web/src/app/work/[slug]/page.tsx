@@ -46,7 +46,7 @@ export default async function CasePage(props: PageProps<"/work/[slug]">) {
 
       {Viz && (
         <Reveal className="mt-10">
-          <div className="rounded-3xl border border-line bg-surface p-5 sm:p-7">
+          <div className="overflow-hidden rounded-3xl border border-line bg-surface p-5 sm:p-7">
             <p className="font-mono text-xs text-ink-3">A small working model of the real system. Press the buttons.</p>
             <div className="mt-5">
               <Viz />

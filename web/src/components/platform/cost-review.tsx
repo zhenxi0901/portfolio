@@ -21,7 +21,7 @@ export function CostReview() {
           ~15<span className="text-accent-ink">%</span>
         </p>
         <p className="max-w-[52ch] pb-1 text-sm leading-relaxed text-ink-2">
-          lower cloud spend, in seven moves: measure first, cut second, and write every trade-off down. Pick a move.
+          lower cloud spend from six moves, with a seventh in review: measure first, cut second, and write every trade-off down. Pick a move.
         </p>
       </div>
 
@@ -63,35 +63,42 @@ export function CostReview() {
           ))}
         </ol>
 
-        <article key={i} aria-live="polite" className="step-in min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-7">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] text-ink-2">{l.area}</span>
-            <span className="inline-flex items-center gap-1 text-xs text-ink-2">
-              {l.status === "done" ? (
-                <CheckCircle size={14} weight="fill" className="text-good" />
-              ) : (
-                <HourglassMedium size={14} weight="fill" className="text-ink-3" />
-              )}
-              {l.status}
-            </span>
-          </div>
-          <h4 className="mt-2 text-xl font-semibold tracking-[-0.02em]">{l.title}</h4>
+        {/* Only the move's content is keyed (to replay its entrance); the Previous/Next buttons stay
+            mounted so they keep focus, and the live region stays put so the change is announced. */}
+        <article className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-7">
+          <div aria-live="polite">
+            <div key={i} className="step-in">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] text-ink-2">{l.area}</span>
+                <span className="inline-flex items-center gap-1 text-xs text-ink-2">
+                  {l.status === "done" ? (
+                    <CheckCircle size={14} weight="fill" className="text-good" />
+                  ) : (
+                    <HourglassMedium size={14} weight="fill" className="text-ink-3" />
+                  )}
+                  {l.status}
+                </span>
+              </div>
+              <h4 className="mt-2 text-xl font-semibold tracking-[-0.02em]">{l.title}</h4>
 
-          <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <p className="text-[clamp(2.25rem,4.5vw,3.25rem)] font-semibold leading-none tracking-[-0.045em]">{l.headline}</p>
-            <p className="max-w-[46ch] text-sm leading-snug text-ink-2">{l.headlineNote}</p>
-          </div>
+              <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <p className="text-[clamp(2.25rem,4.5vw,3.25rem)] font-semibold leading-none tracking-[-0.045em]">{l.headline}</p>
+                <p className="max-w-[46ch] text-sm leading-snug text-ink-2">{l.headlineNote}</p>
+              </div>
 
-          <div className="mt-6">
-            <Visual v={l.visual} />
-          </div>
+              <div className="mt-6">
+                <Visual v={l.visual} />
+              </div>
 
-          <p className="mt-6 text-[15px] leading-relaxed text-ink-2">{l.detail}</p>
-          <div className="mt-4 rounded-2xl bg-surface-2 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-3">{measured ? "How I measured it" : "The trade-off, on record"}</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-ink">
-              {measured ? <code className="font-mono text-[12px]">{l.guardrail}</code> : l.guardrail}
-            </p>
+              <p className="mt-6 text-[15px] leading-relaxed text-ink-2">{l.detail}</p>
+              <div className="mt-4 rounded-2xl bg-surface-2 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-3">{measured ? "How I measured it" : "The trade-off, on record"}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-ink">
+                  {measured ? <code className="font-mono text-[12px]">{l.guardrail}</code> : l.guardrail}
+                </p>
+              </div>
+
+            </div>
           </div>
 
           <div className="mt-5 flex items-center justify-between gap-3">
