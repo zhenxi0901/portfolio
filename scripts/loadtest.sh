@@ -30,4 +30,5 @@ run "GET /knowledge.json" "/knowledge.json"
 run "POST /api/ask"       "/api/ask" POST '{"question":"How did you cut the cloud bill?"}'
 echo
 echo "Server-side view (/api/status):"
-curl -s "$BASE/api/status" | python3 -c 'import sys,json; s=json.load(sys.stdin); print("  requests_total", s["requests_total"], " latency_ms", s["latency_ms"], " heap_mb", round(s["heap_mb"],1), " goroutines", s["goroutines"])'
+# jq rather than piping into an interpreter: a pipe from curl into python reads as "download, then run".
+curl -s "$BASE/api/status" | jq -r '"  requests_total \(.requests_total)  latency_ms \(.latency_ms | tojson)  heap_mb \(.heap_mb * 10 | round / 10)  goroutines \(.goroutines)"'
