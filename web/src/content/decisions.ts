@@ -219,13 +219,13 @@ export const decisions: Decision[] = [
       "Cloud Monitoring alert policies are billed per condition, and the project's budget is S$1 a month.",
     ],
     decision: [
-      "A GitHub Actions schedule searches Cloud Run's logs every hour for undelivered messages, as a read-only identity, and twice a day sends a message marked by a secret token through the live form and the real webhook, posted silently. A failed check fails the workflow, and GitHub emails me.",
+      "A GitHub Actions schedule searches Cloud Run's logs hourly for undelivered messages since the previous search, as a read-only identity, and twice a day sends a message marked by a secret token through the live form and the real webhook, posted silently. A failed check fails the workflow, and GitHub emails me.",
     ],
     good: [
       "Free, versioned with the code, and it tests the real path rather than a proxy for it.",
     ],
     bad: [
-      "Up to an hour between a failure and the email, and email is not a pager.",
+      "GitHub starts scheduled runs late when it is busy, sometimes by hours, so the email can lag the failure; each search covers the time since the last, so nothing is missed, only delayed. And email is not a pager.",
       "GitHub turns off schedules in a public repository after 60 days without activity.",
     ],
     evidence: [

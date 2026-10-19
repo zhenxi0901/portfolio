@@ -20,7 +20,7 @@ const REPO = "https://github.com/zhenxi0901/portfolio";
 const watches = [
   { what: "Availability", how: "Google Cloud uptime checks on /api/health every minute from Singapore, Belgium and Oregon. They are the SLO above.", href: null },
   { what: "Every release", how: "Smoke-tested at its own URL before it takes traffic, again after, and rolled back on its own if that fails.", href: `${REPO}/actions/workflows/deploy.yml` },
-  { what: "Contact messages", how: "Cloud Run's logs are searched every hour for any message that could not be delivered.", href: `${REPO}/actions/workflows/synthetic.yml` },
+  { what: "Contact messages", how: "Cloud Run's logs are searched hourly for any message that could not be delivered, each search picking up where the last one stopped (GitHub sometimes starts scheduled runs late).", href: `${REPO}/actions/workflows/synthetic.yml` },
   { what: "Contact form, end to end", how: "Twice a day a marked message goes through the live form and the real webhook.", href: `${REPO}/actions/workflows/synthetic.yml` },
   { what: "Supply chain", how: "OpenSSF Scorecard and CodeQL on every push to main; Dependabot each month.", href: `${REPO}/security` },
 ];

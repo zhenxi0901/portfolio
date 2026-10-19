@@ -100,7 +100,7 @@ export const postmortems: Postmortem[] = [
       { what: "Tests for the contact package: from none to 77% coverage.", done: true, commit: "ccd58d5" },
       { what: "Fail closed on Cloud Run: no webhook means a 503 and the email fallback, never “sent”.", done: true, when: "16 Oct" },
       {
-        what: "Alert when a message goes undelivered: every hour a scheduled check searches Cloud Run's logs for one, and a hit fails the check, which emails me. A free GitHub Action rather than a Cloud Monitoring alert policy, which is billed per condition.",
+        what: "Alert when a message goes undelivered: an hourly scheduled check searches Cloud Run's logs for one since its last search, and a hit fails the check, which emails me. A free GitHub Action rather than a Cloud Monitoring alert policy, which is billed per condition.",
         done: true,
         when: "19 Oct",
       },

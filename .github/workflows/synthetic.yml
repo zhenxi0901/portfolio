@@ -2,7 +2,8 @@ name: synthetic
 
 # Follow-up to the contact-form postmortem: nothing used to tell me when a visitor's message could not
 # be delivered. Now:
-#   - every hour, Cloud Run's logs are searched for "contact: undelivered";
+#   - hourly, Cloud Run's logs are searched for "contact: undelivered" since the previous search
+#     (GitHub can start scheduled runs hours late; each run covers the gap, so nothing is skipped);
 #   - twice a day, a marked message goes through the live form and the real webhook (posted silently).
 # Either one failing fails this workflow, and GitHub emails the owner. Read-only identity
 # (infra/watch.tf); the token that marks the synthetic message is a repository secret.
@@ -39,11 +40,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Scheduled runs start late or are skipped at busy times, so look back to just before the
-          # previous run started (5 minutes of overlap) rather than a fixed hour; never more than 6 h.
+          # previous run started (5 minutes of overlap) rather than a fixed hour; never more than a day.
           prev=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow synthetic.yml --limit 2 --json createdAt --jq '.[1].createdAt // empty')
           start=$(( $(date -u +%s) - 3900 ))
           if [ -n "$prev" ]; then start=$(( $(date -u -d "$prev" +%s) - 300 )); fi
-          floor=$(( $(date -u +%s) - 6 * 3600 ))
+          floor=$(( $(date -u +%s) - 24 * 3600 ))
           if [ "$start" -lt "$floor" ]; then start=$floor; fi
           since=$(date -u -d "@$start" +%Y-%m-%dT%H:%M:%SZ)
           # Visitors' messages only: a synthetic check that failed and then succeeded on a retry is not
