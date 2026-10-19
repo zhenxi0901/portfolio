@@ -116,7 +116,8 @@ export default function ChangelogPage() {
                               >
                                 {c.sha}
                               </a>
-                              <span className="min-w-0">{c.title}</span>
+                              {/* Titles can hold long unbroken tokens (a branch name in a merge commit). */}
+                              <span className="min-w-0 [overflow-wrap:anywhere]">{c.title}</span>
                             </li>
                           ))}
                         </ul>
@@ -148,7 +149,7 @@ function Notice({ e }: { e: NoticeEntry }) {
         <Icon size={16} aria-hidden />
         {n.text(e)}
       </p>
-      <p className="mt-1 text-[15px] leading-snug text-ink-2">
+      <p className="mt-1 text-[15px] leading-snug text-ink-2 [overflow-wrap:anywhere]">
         <span className="font-mono text-xs text-ink-3">{e.sha}</span> {e.title}
       </p>
     </div>

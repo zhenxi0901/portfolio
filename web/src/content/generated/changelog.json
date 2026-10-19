@@ -1,6 +1,82 @@
 {
-  "generated": "2026-10-19T10:11:33.165Z",
+  "generated": "2026-10-19T11:16:07.229Z",
   "entries": [
+    {
+      "kind": "deploy",
+      "at": "2026-10-19T11:08:16.000Z",
+      "sha": "a1935b0",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39242243666",
+      "release": "v2026.10.19.45",
+      "minutes": 1.6,
+      "commits": [
+        {
+          "sha": "a1935b0",
+          "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7"
+        },
+        {
+          "sha": "1669b2e",
+          "title": "Merge pull request #1 from zhenxi0901/dependabot/go_modules/api/api-4e31519e38"
+        },
+        {
+          "sha": "7c4bf02",
+          "title": "Merge pull request #2 from zhenxi0901/dependabot/npm_and_yarn/web/web-25ec6b7114"
+        },
+        {
+          "sha": "0df9735",
+          "title": "Bump the actions group across 1 directory with 12 updates"
+        },
+        {
+          "sha": "9a1c5c6",
+          "title": "Bump the web group in /web with 9 updates"
+        },
+        {
+          "sha": "5d84147",
+          "title": "Bump github.com/prometheus/client_golang in /api in the api group"
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-10-19T10:52:20.000Z",
+      "sha": "17da88d",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39240340244",
+      "release": "v2026.10.19.42",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "17da88d",
+          "title": "Load test: read the status JSON with jq, not by piping curl into python"
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-10-19T10:35:10.000Z",
+      "sha": "747ef92",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39238277221",
+      "release": "v2026.10.19.41",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "747ef92",
+          "title": "Status page, changelog, decision records and a live profile card"
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-10-19T10:15:15.000Z",
+      "sha": "9dfbfb6",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39235917460",
+      "release": "v2026.10.19.40",
+      "minutes": 1.6,
+      "commits": [
+        {
+          "sha": "9dfbfb6",
+          "title": "Close the contact-form postmortem's last two action items"
+        }
+      ]
+    },
     {
       "kind": "drill",
       "at": "2026-10-19T10:03:20.000Z",
