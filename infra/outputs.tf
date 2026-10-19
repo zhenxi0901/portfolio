@@ -16,3 +16,8 @@ output "deployer_sa" {
 output "image_repository" {
   value = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.portfolio.repository_id}/site"
 }
+
+output "uptime_check_id" {
+  description = "The uptime check behind /api/slo."
+  value       = google_monitoring_uptime_check_config.site.uptime_check_id
+}

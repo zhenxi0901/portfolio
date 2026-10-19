@@ -36,22 +36,26 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		route := routeLabel(r)
 		s.metrics.Requests.WithLabelValues(route, r.Method, strconv.Itoa(rec.code)).Inc()
 		s.metrics.Duration.WithLabelValues(route).Observe(elapsed.Seconds())
-		// Probes and scrapes would drown out real traffic on the status page.
-		if route != "/metrics" && route != "/healthz" && route != "/readyz" {
+		// Probes, uptime checks and scrapes would drown out real traffic on the status page and in
+		// the logs (the uptime checks alone are about 4,300 requests a day).
+		probe := probeRoutes[route]
+		if !probe {
 			s.metrics.Window.Add(float64(elapsed.Microseconds()) / 1000)
 		}
 		level := slog.LevelInfo
+		if probe {
+			level = slog.LevelDebug
+		}
 		if rec.code >= 500 {
 			level = slog.LevelError
-		}
-		if route == "/healthz" || route == "/metrics" {
-			level = slog.LevelDebug
 		}
 		s.log.Log(r.Context(), level, "request",
 			"method", r.Method, "path", r.URL.Path, "route", route, "status", rec.code,
 			"duration_ms", float64(elapsed.Microseconds())/1000, "request_id", w.Header().Get("X-Request-Id"))
 	})
 }
+
+var probeRoutes = map[string]bool{"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true}
 
 // routeLabel keeps metric cardinality bounded: the mux pattern, never the raw path.
 func routeLabel(r *http.Request) string {

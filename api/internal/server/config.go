@@ -22,6 +22,10 @@ type Config struct {
 	// on Cloud Run (which sets K_SERVICE), where the local file is per-instance scratch space.
 	ContactRequireWebhook bool
 
+	// Read this site's uptime-check results from Cloud Monitoring for /api/slo. On by default on
+	// Cloud Run, where the metadata server provides the project and a token.
+	SLOFromMonitoring bool
+
 	LLMBaseURL string
 	LLMAPIKey  string
 	LLMModel   string
@@ -44,6 +48,8 @@ func ConfigFromEnv() Config {
 		ContactWebhook: os.Getenv("CONTACT_WEBHOOK_URL"),
 		ContactRequireWebhook: os.Getenv("CONTACT_REQUIRE_WEBHOOK") == "true" ||
 			(os.Getenv("K_SERVICE") != "" && os.Getenv("CONTACT_REQUIRE_WEBHOOK") != "false"),
+		SLOFromMonitoring: os.Getenv("SLO_SOURCE") == "monitoring" ||
+			(os.Getenv("K_SERVICE") != "" && os.Getenv("SLO_SOURCE") != "none"),
 		LLMBaseURL: strings.TrimRight(os.Getenv("LLM_BASE_URL"), "/"),
 		LLMAPIKey:  os.Getenv("LLM_API_KEY"),
 		LLMModel:   os.Getenv("LLM_MODEL"),

@@ -201,3 +201,37 @@ func must(t *testing.T, err error) {
 		t.Fatal(err)
 	}
 }
+
+// Off Cloud Run there is nothing to measure: /api/slo says so instead of failing.
+func TestSLOOffCloudRun(t *testing.T) {
+	ts, _ := newTestServer(t)
+	resp, err := http.Get(ts.URL + "/api/slo")
+	must(t, err)
+	defer resp.Body.Close()
+	var body struct {
+		Available bool    `json:"available"`
+		Reason    string  `json:"reason"`
+		Target    float64 `json:"target"`
+	}
+	must(t, json.NewDecoder(resp.Body).Decode(&body))
+	if resp.StatusCode != 200 || body.Available || body.Reason == "" || body.Target != 0.999 {
+		t.Errorf("status %d, body %+v", resp.StatusCode, body)
+	}
+}
+
+// Uptime checks hit /api/health every minute from three places; they are not visitors.
+func TestProbesDoNotCountAsTraffic(t *testing.T) {
+	ts, _ := newTestServer(t)
+	for range 5 {
+		r, _ := http.Get(ts.URL + "/api/health")
+		r.Body.Close()
+	}
+	resp, err := http.Get(ts.URL + "/api/status")
+	must(t, err)
+	defer resp.Body.Close()
+	var st statusResponse
+	must(t, json.NewDecoder(resp.Body).Decode(&st))
+	if st.RequestsTotal != 0 {
+		t.Errorf("requests_total %d after only probes, want 0", st.RequestsTotal)
+	}
+}

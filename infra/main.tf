@@ -20,6 +20,7 @@ locals {
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "secretmanager.googleapis.com",
+    "monitoring.googleapis.com",
   ]
 }
 
@@ -49,7 +50,7 @@ resource "google_artifact_registry_repository" "portfolio" {
   depends_on = [google_project_service.apis]
 }
 
-# The service runs as its own identity with no project roles.
+# The service runs as its own identity. Its only project role is monitoring.viewer (slo.tf).
 resource "google_service_account" "runtime" {
   account_id   = "portfolio-runtime"
   display_name = "Portfolio Cloud Run runtime"
