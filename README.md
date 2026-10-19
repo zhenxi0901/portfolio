@@ -21,29 +21,35 @@ final-year project at NTU.
 | **Inside one request**: where an agent answer's time and tokens go. | **Cost review**: a ~15% cut in seven moves, each with its before and after and the trade-off on record. |
 | [![A case study page: the numbers, then the working model](docs/screenshots/case-page.webp)](https://portfolio-emsghin2iq-as.a.run.app/work/reaper) | [![A postmortem page: impact in numbers, then the write-up](docs/screenshots/postmortem.webp)](https://portfolio-emsghin2iq-as.a.run.app/postmortems/contact-form) |
 | **A page per case study** (`/work/<case>`): the numbers, the same working model, the full write-up, and links into the deeper sections. | **Postmortems** (`/postmortems/<slug>`): blameless write-ups of what went wrong running this site, with times and counts from the commits, the CI history and Cloud Run's request logs. |
+| [![The on-call drill, paged and investigating](docs/screenshots/oncall-drill.webp)](https://portfolio-emsghin2iq-as.a.run.app/oncall) | [![DORA metrics for this site, from its own deploy history](docs/screenshots/delivery.webp)](https://portfolio-emsghin2iq-as.a.run.app/#status) |
+| **Go on call** (`/oncall`): a simulated page on the IoT platform. Every look and action costs minutes while the error budget burns, and you get a postmortem of your own response. | **How this site ships**: DORA's four keys for this repository, computed by the pipeline from its own commits and deploy runs and baked into the image it deploys. |
 
 ```
-Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_next/*, /img/*)
-                                    └──> JSON API               (/api/status, /api/ask, /api/contact)
-                                    └──> Prometheus metrics     (/metrics) ──> Prometheus ──> Grafana
-GitHub Actions ──> tests, image build, CVE gate ──> Artifact Registry ──> Cloud Run (by digest)
-Terraform ──> Cloud Run, Artifact Registry, Secret Manager, keyless GitHub OIDC deploys
+Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_next/*, /work/*, /oncall, ...)
+                                    ├──> JSON API               (/api/status, /api/slo, /api/ask, /api/contact, /api/badge/uptime)
+                                    ├──> OpenTelemetry spans    (/api/ask) ──> Cloud Trace
+                                    └──> Prometheus metrics     (/metrics) ──> Prometheus ──> Grafana (local stack)
+Cloud Monitoring uptime checks, 3 regions ──> /api/health; /api/slo reads them back as the site's SLO
+
+CI:     lint, typecheck, tests, parity ──> build image once ──> smoke, Lighthouse, CVE gate ──> push $IMAGE:$SHA
+Deploy: find that digest ──> Cloud Run (by digest, keyless OIDC) ──> smoke test the live URL
+Terraform ──> Cloud Run, Artifact Registry, Secret Manager, uptime check, keyless GitHub OIDC deploys
 ```
 
 ## What is in it
 
 | Area | Highlights |
 |---|---|
-| **Front end** (`web/`) | Next.js 16, React 19, Tailwind CSS v4, Motion, three.js via react-three-fiber. An interactive 3D "service mesh" hero, loaded only on screens 768 px and wider once the browser is idle, with a static version for phones (Lighthouse on a phone profile: performance 90+, accessibility 100); five playable case studies (pipeline gates with an approval step, a Kafka topic reaper, a ZooKeeper quorum alert, GKE pod and node autoscaling across zones); **Inside the IoT platform** (hop-by-hop traffic paths and tunnels; SLIs, SLOs and error budgets on a Grafana-style board with a replayable incident; a cause-alert playground for eight failure modes; the investigation route and runbook; a seven-move cost review); **the AI agent platform** (an animated system map with five request journeys and a "what I own" lens, the AI infrastructure stack layer by layer, a Langfuse-style request trace, what I measure on an LLM service); **research** (FYP charts, a prefix-cache explainer, the GPU-over-SSH setup); a page per case study, three postmortems from running this site and two longer write-ups (`/writing/<slug>`), each with its own generated share card, and a sitemap; a trace of the visitor's own page load; a ⌘K command palette that searches by topic and reaches every page; dock navigation; light and dark themes. Content renders without JavaScript; motion respects `prefers-reduced-motion`. |
-| **Back end** (`api/`) | Go 1.27, standard library `net/http`. Serves the static export with immutable caching and build-time brotli/gzip (no per-request compression CPU), plus `/api/status` (live uptime and latency percentiles), `/api/slo` (this site's own availability and error budget, read from Cloud Monitoring with the metadata server's token, standard library only), `/api/ask` (BM25 retrieval over the site's own facts, optional LLM on top, cached, rate limited, prompt-injection fenced; traced with OpenTelemetry, exported to Cloud Trace by a small REST exporter, and each answer carries its own trace), `/api/contact` (validation, honeypot, rate limit, delivery to a Discord or Slack webhook before the visitor is told it was sent). `Server-Timing` on every response (server time, Cloud Run revision, and process age on an instance's first visitor request, which the page uses to say "you woke this server up"). CSP and security headers, request IDs, structured logs, graceful shutdown. |
+| **Front end** (`web/`) | Next.js 16, React 19, Tailwind CSS v4, Motion, three.js via react-three-fiber. An interactive 3D "service mesh" hero, loaded only on screens 768 px and wider once the browser is idle, with a static version for phones (Lighthouse on a phone profile: performance 90+, accessibility 100); five playable case studies (pipeline gates with an approval step, a Kafka topic reaper, a ZooKeeper quorum alert, GKE pod and node autoscaling across zones); **Inside the IoT platform** (hop-by-hop traffic paths and tunnels; SLIs, SLOs and error budgets on a Grafana-style board with a replayable incident; a cause-alert playground for eight failure modes; the investigation route and runbook; a seven-move cost review); **the AI agent platform** (an animated system map with five request journeys and a "what I own" lens, the AI infrastructure stack layer by layer, a Langfuse-style request trace, what I measure on an LLM service); **research** (FYP charts, a prefix-cache explainer, the GPU-over-SSH setup); a page per case study, three postmortems from running this site and two longer write-ups (`/writing/<slug>`), each with its own generated share card, and a sitemap; an **on-call drill** (`/oncall`) that scores a simulated incident response and writes its postmortem; a 60-second guided tour (`/?tour`); the site's own SLO and DORA metrics in the status section; a trace of the visitor's own page load, and of each Ask answer; a ⌘K command palette that searches by topic and reaches every page; dock navigation; light and dark themes. Content renders without JavaScript; motion respects `prefers-reduced-motion`. |
+| **Back end** (`api/`) | Go 1.27, standard library `net/http`. Serves the static export with immutable caching and build-time brotli/gzip (no per-request compression CPU), plus `/api/status` (live uptime and latency percentiles), `/api/slo` (this site's own availability and error budget, read from Cloud Monitoring with the metadata server's token, standard library only), `/api/ask` (BM25 retrieval over the site's own facts, optional LLM on top, cached, rate limited, prompt-injection fenced; traced with OpenTelemetry, exported to Cloud Trace by a small REST exporter, and each answer carries its own trace), `/api/contact` (validation, honeypot, rate limit, delivery to a Discord or Slack webhook before the visitor is told it was sent), `/api/badge/uptime` (a shields.io endpoint for the 30-day uptime badge). `Server-Timing` on every response (server time, Cloud Run revision, and process age on an instance's first visitor request, which the page uses to say "you woke this server up"). CSP and security headers, request IDs, structured logs, graceful shutdown. |
 | **Reliability** | A real SLO for the site itself: 99.9% over 30 days, measured by Google Cloud uptime checks every minute from three continents and shown on the page with the error budget left. For the local stack: Prometheus metrics with bounded route labels, recording rules for a 99.5% request SLO, a fast-burn alert that needs both the last hour and the last 5 minutes above 14.4x, latency and abuse alerts (`deploy/prometheus/rules.yml`), and a provisioned Grafana dashboard (`deploy/grafana`). |
 | **Delivery** | Multi-stage Dockerfile to a 30 MB distroless, non-root image. GitHub Actions: lint, typecheck, build, `go vet`, race-detector tests, a TypeScript/Go parity check, container smoke test, Lighthouse budgets and a CRITICAL-CVE gate, with every action pinned to a commit SHA. The image is built once: CI pushes it only after every check passes, and the deploy promotes that exact digest without rebuilding, keyless via Workload Identity Federation, then smoke-tests the live URL. Only pushes to `main` in this repository deploy, never a fork's pull request. |
-| **Infrastructure** (`infra/`) | Terraform for Cloud Run (scale to zero, probes, least-privilege runtime identity), Artifact Registry with cleanup policies, Secret Manager for the contact webhook and the optional LLM key, the uptime check behind the SLO (`infra/slo.tf`), and a GitHub OIDC pool limited to this repository's `main` branch. |
+| **Infrastructure** (`infra/`) | Terraform for Cloud Run (scale to zero, probes, least-privilege runtime identity), Artifact Registry with cleanup policies, Secret Manager for the contact webhook and the optional LLM key, the uptime check behind the SLO (`infra/slo.tf`), Cloud Trace write access for the runtime identity (`infra/tracing.tf`), and a GitHub OIDC pool limited to this repository's `main` branch. |
 
 Every number on the site traces to the CV, Primustech's PR history, the platforms' own docs or the FYP report.
 Where the site shows sample data (the SLO board, whose objectives are still proposals, and the request trace),
-the page says so. Content lives in `web/src/content/` (`profile.ts`, `products.ts`, `ai-platform.ts`, `slo.ts`, `postmortems.ts`), and
-`/knowledge.json`, which the Ask console reads, is generated from it at build time.
+the page says so. Content lives in `web/src/content/` (`profile.ts`, `products.ts`, `ai-platform.ts`, `slo.ts`, `postmortems.ts`,
+`oncall.ts`, `writing.ts`), and `/knowledge.json`, which the Ask console reads, is generated from it at build time.
 
 ## Run it
 
@@ -71,11 +77,14 @@ The load generator (one `curl` per request) is the bottleneck in both runs; the 
 microseconds. The Ask rate limiter let exactly the per-minute budget through and returned 429 for
 the rest.
 
-Browser end-to-end tests against the live site (15 Oct 2026): 67 checks in three passes (desktop dark,
+Browser end-to-end tests against the live site (19 Oct 2026): 82 checks in three passes (desktop dark,
 desktop light, phone), covering every section, tab and journey, the SLO incident, all eight failure
-modes, all seven cost moves, the case dialogs, the Ask console, the visit trace, the command palette,
-the dock and the 404 page. No crashes, console errors, failed requests or horizontal
-overflow. The deploy pipeline also runs `scripts/smoke.sh` against the live URL after every release.
+modes, all seven cost moves, every case page, the Ask console and its trace, the guided tour, the
+on-call drill through to its debrief, the site's SLO and DORA panels, the posts and their share
+cards, the postmortems, the command palette, the dock and the 404 page. No crashes, console errors,
+failed requests or horizontal overflow. The deploy pipeline also runs `scripts/smoke.sh` against the
+live URL after every release, and CI holds every release to Lighthouse accessibility and SEO of 100
+in both themes.
 
 To use the API while running `next dev`, start the container and run the dev server with
 `NEXT_PUBLIC_API_BASE=http://localhost:8080` and the container with `ALLOWED_ORIGINS=http://localhost:3000`.
@@ -100,8 +109,10 @@ terraform apply
 # then set repository variables GCP_PROJECT, GCP_REGION, WIF_PROVIDER, DEPLOYER_SA from `terraform output`
 ```
 
-Pushes to `main` that pass CI build, push and deploy automatically (`.github/workflows/deploy.yml`), and the
-deploy finishes by running `scripts/smoke.sh` against the live URL.
+On a push to `main`, CI builds the image once, tests it and pushes it only if every check passes
+(`.github/workflows/ci.yml`). The deploy (`.github/workflows/deploy.yml`) then promotes that exact digest to
+Cloud Run without rebuilding and finishes by running `scripts/smoke.sh` against the live URL. A manual run
+deploys `main`'s head only if CI has already pushed a tested image for it.
 
 ### Contact form messages
 
