@@ -24,8 +24,9 @@
   --critical: #c53030;
   /* One colour per product, so a visitor can tell which system a card or box belongs to. */
   --p-iot: #0369a1;
-  --p-ai: #b45309;
-  --p-aries: #7c3aed;
+  /* Product colours. Light values are dark enough for 12px text on their own 10% tint (4.5:1). */
+  --p-ai: #92400e;
+  --p-aries: #6d28d9;
   --shadow: 0 1px 0 rgba(13, 13, 16, 0.04), 0 12px 32px -16px rgba(13, 13, 16, 0.18);
 }
 
