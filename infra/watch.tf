@@ -1,5 +1,5 @@
 # Scheduled checks from GitHub Actions (.github/workflows/synthetic.yml), the follow-up to the
-# contact-form postmortem: every hour, read Cloud Run's logs for contact messages that could not be
+# contact-form postmortem: hourly, read Cloud Run's logs for contact messages that could not be
 # delivered; twice a day, send a marked message through the real form and webhook. A failed check
 # fails the workflow, and GitHub emails the owner. Alert policies in Cloud Monitoring would do the
 # same, but they are billed per condition and this project's budget is S$1 a month.

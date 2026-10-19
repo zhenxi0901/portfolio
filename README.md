@@ -144,9 +144,11 @@ read -rsp "Webhook URL: " URL && printf %s "$URL" | gcloud secrets versions add 
 terraform apply
 ```
 
-Two scheduled checks keep watching it (`.github/workflows/synthetic.yml`, identity in `infra/watch.tf`): every
-hour, Cloud Run's logs are searched for `contact: undelivered`, and twice a day a message marked by a secret
-token goes through the live form and the real webhook. A marked message is posted silently and never stored.
+Two scheduled checks keep watching it (`.github/workflows/synthetic.yml`, identity in `infra/watch.tf`): hourly,
+Cloud Run's logs are searched for `contact: undelivered` since the previous search, and twice a day a message
+marked by a secret token goes through the live form and the real webhook. A marked message is posted silently
+and never stored. GitHub can start scheduled runs late, sometimes by hours; because each search starts where the
+last one stopped, a late run delays an alert but misses nothing.
 A failure fails the workflow, which GitHub emails about. To set up the token, one value in two places:
 
 ```bash
