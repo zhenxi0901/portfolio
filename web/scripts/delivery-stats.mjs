@@ -53,13 +53,11 @@ const round1 = (x) => Math.round(x * 10) / 10;
 const now = new Date();
 const since = new Date(now.getTime() - WINDOW_DAYS * 864e5);
 
-// Every commit on main, newest first; main is linear, so index order is ancestry order.
-const commits = (await all(`/commits?sha=main`)).map((c) => ({
-  sha: c.sha,
-  at: new Date(c.commit.committer.date),
-  title: c.commit.message.split("\n")[0],
-}));
-const index = new Map(commits.map((c, i) => [c.sha, i]));
+const toCommit = (c) => ({ sha: c.sha, at: new Date(c.commit.committer.date), title: c.commit.message.split("\n")[0] });
+// Every commit reachable from main, newest first by date. Date order is not ancestry order once
+// pull requests merge (a branch's commits can be older than main's latest), so what each deploy
+// shipped comes from the compare API below, never from positions in this list.
+const commits = (await all(`/commits?sha=main`)).map(toCommit);
 
 const candidates = (await all(`/actions/workflows/deploy.yml/runs`, "workflow_runs"))
   .filter((r) => r.status === "completed" && ["success", "failure"].includes(r.conclusion))
@@ -124,12 +122,28 @@ const deploys = recent.filter((e) => e.kind === "deploy");
 const failed = recent.filter((e) => e.kind === "failed");
 const tookTraffic = deploys.length + failed.length;
 
-// Lead time: each commit in the window to the first successful deploy of it or a newer commit.
+// What each successful deploy shipped: the commits it added since the newest commit already
+// deployed, newest first. The compare API follows merges; a redeploy of an older commit adds nothing.
+const shippedBy = new Map(); // commit sha -> the deploy that first shipped it
+let deployedHead = null;
+for (const d of allDeploys) {
+  let added;
+  if (!deployedHead) added = (await all(`/commits?sha=${d.sha}`)).map(toCommit);
+  else if (deployedHead === d.sha) added = [];
+  else {
+    const cmp = await gh(`/compare/${deployedHead}...${d.sha}`);
+    added = cmp.status === "behind" || cmp.status === "identical" ? [] : cmp.commits.map(toCommit).reverse();
+  }
+  d.shipped = added.filter((c) => !shippedBy.has(c.sha));
+  for (const c of d.shipped) shippedBy.set(c.sha, d);
+  if (!deployedHead || added.length) deployedHead = d.sha;
+}
+
+// Lead time: each commit in the window to the end of the deploy that first shipped it.
 const leadMinutes = [];
 const leadBySha = new Map();
 for (const c of commits.filter((c) => c.at >= since)) {
-  const i = index.get(c.sha);
-  const d = allDeploys.find((r) => index.has(r.sha) && index.get(r.sha) <= i && r.ended >= c.at);
+  const d = shippedBy.get(c.sha);
   if (!d) continue;
   const m = (d.ended - c.at) / 6e4;
   leadMinutes.push(m);
@@ -207,21 +221,17 @@ for (const r of await all(`/releases`)) {
   if (/^[0-9a-f]{40}$/.test(r.target_commitish)) tagBySha.set(r.target_commitish, r.tag_name);
 }
 const entries = [];
-let shippedTo = commits.length; // index of the oldest commit not yet shipped, plus one
 for (const e of events) {
   const base = { kind: e.kind, at: e.ended.toISOString(), sha: e.sha.slice(0, 7), url: e.url };
   if (e.kind !== "deploy") {
     entries.push({ ...base, title: await titleOf(e.sha), restoreSeconds: e.restoreMs != null ? Math.round(e.restoreMs / 1000) : null });
     continue;
   }
-  const i = index.get(e.sha);
-  const shipped = i !== undefined && i < shippedTo ? commits.slice(i, shippedTo) : [];
-  if (shipped.length) shippedTo = i;
   entries.push({
     ...base,
     release: tagBySha.get(e.sha) ?? null,
     minutes: round1((e.ended - e.started) / 6e4),
-    commits: shipped.map((c) => ({ sha: c.sha.slice(0, 7), title: c.title })),
+    commits: e.shipped.map((c) => ({ sha: c.sha.slice(0, 7), title: c.title })),
   });
 }
 const changelog = { generated: now.toISOString(), entries: entries.reverse().slice(0, CHANGELOG_LIMIT) };

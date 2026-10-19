@@ -1,11 +1,11 @@
 {
-  "generated": "2026-10-19T10:11:33.165Z",
+  "generated": "2026-10-19T11:16:07.229Z",
   "windowDays": 30,
-  "deploys": 32,
+  "deploys": 36,
   "daysWithDeploys": 4,
   "leadTimeMinutes": {
-    "median": 4.433333333333334,
-    "commits": 39
+    "median": 5.4,
+    "commits": 48
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -14,7 +14,7 @@
     "count": 0
   },
   "deployMinutes": {
-    "median": 1.4
+    "median": 1.4166666666666667
   },
   "safeguards": {
     "stoppedBeforeTraffic": 0,
@@ -27,9 +27,9 @@
     }
   },
   "head": {
-    "sha": "9dfbfb6",
-    "title": "Close the contact-form postmortem's last two action items",
-    "committed": "2026-10-19T10:08:45.000Z"
+    "sha": "a1935b0",
+    "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
+    "committed": "2026-10-19T11:01:00.000Z"
   },
   "perDay": [
     {
@@ -150,10 +150,42 @@
     },
     {
       "date": "2026-10-19",
-      "deploys": 14
+      "deploys": 18
     }
   ],
   "recent": [
+    {
+      "sha": "a1935b0",
+      "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
+      "ended": "2026-10-19T11:08:16.000Z",
+      "minutes": 1.6,
+      "leadMinutes": 7.3,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39242243666"
+    },
+    {
+      "sha": "17da88d",
+      "title": "Load test: read the status JSON with jq, not by piping curl into python",
+      "ended": "2026-10-19T10:52:20.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 7.1,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39240340244"
+    },
+    {
+      "sha": "747ef92",
+      "title": "Status page, changelog, decision records and a live profile card",
+      "ended": "2026-10-19T10:35:10.000Z",
+      "minutes": 1.9,
+      "leadMinutes": 7.3,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39238277221"
+    },
+    {
+      "sha": "9dfbfb6",
+      "title": "Close the contact-form postmortem's last two action items",
+      "ended": "2026-10-19T10:15:15.000Z",
+      "minutes": 1.6,
+      "leadMinutes": 6.5,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39235917460"
+    },
     {
       "sha": "71a47b9",
       "title": "Safer releases: check before traffic, roll back, gate on the error budget",
@@ -169,38 +201,6 @@
       "minutes": 1,
       "leadMinutes": 6,
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39231686708"
-    },
-    {
-      "sha": "a8cd886",
-      "title": "README: retake the hero screenshot",
-      "ended": "2026-10-19T09:25:04.000Z",
-      "minutes": 1,
-      "leadMinutes": 5.6,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39229778052"
-    },
-    {
-      "sha": "3a3d9c5",
-      "title": "Site fixes from a review: focus, live regions, timers and facts",
-      "ended": "2026-10-19T09:09:10.000Z",
-      "minutes": 1.1,
-      "leadMinutes": 6,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39227765203"
-    },
-    {
-      "sha": "c3bf624",
-      "title": "Answer trace: full-width bars on phones",
-      "ended": "2026-10-19T08:12:38.000Z",
-      "minutes": 2.4,
-      "leadMinutes": 6.9,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39220865794"
-    },
-    {
-      "sha": "0859de6",
-      "title": "Real traces for the Ask console: OpenTelemetry to Cloud Trace",
-      "ended": "2026-10-19T08:01:58.000Z",
-      "minutes": 2.3,
-      "leadMinutes": 6.9,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39219622048"
     }
   ]
 }
