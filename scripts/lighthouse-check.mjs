@@ -41,8 +41,8 @@ for (const [i, url] of urls.entries()) {
     // And the elements involved, so a failure can be fixed without reproducing it.
     for (const id of audits) {
       for (const item of (report.audits[id].details?.items ?? []).slice(0, 5)) {
-        if (item.node) console.error(`    ${id}: ${item.node.snippet.slice(0, 160)}  ${(item.node.explanation ?? "").split("
-")[1]?.trim() ?? ""}`);
+        const why = (item.node?.explanation ?? "").split("\n")[1]?.trim() ?? "";
+        if (item.node) console.error(`    ${id}: ${item.node.snippet.slice(0, 160)}  ${why}`);
       }
     }
   }
