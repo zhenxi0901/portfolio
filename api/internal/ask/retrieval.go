@@ -3,6 +3,7 @@ package ask
 
 import (
 	"cmp"
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -10,6 +11,9 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Keep in sync with web/src/lib/retrieval.ts: same tokenizer, aliases, BM25 and sentence pick.
@@ -143,15 +147,40 @@ const noMatch = "I couldn't find that in what this site knows. Try asking about 
 
 // Retrieve ranks facts with BM25 and stitches the best-matching sentences from the top two.
 func Retrieve(question string, facts []Fact) Result {
-	q := tokenize(question)
+	return NewIndex(facts).Retrieve(context.Background(), question)
+}
+
+var tracer = otel.Tracer("portfolio/ask")
+
+// Index holds the facts already tokenized. The first traces showed tokenizing every fact on every
+// question was about 63% of an answer's time; the facts never change while the server runs.
+type Index struct {
+	facts []Fact
+	docs  [][]string
 	// Title is scored as its own field (BM25F-style): a match there says more than one buried
 	// in a long text, which BM25's length normalisation would otherwise discount.
-	docs := make([][]string, len(facts))
-	titleDocs := make([][]string, len(facts))
+	titleDocs [][]string
+}
+
+func NewIndex(facts []Fact) *Index {
+	ix := &Index{facts: facts, docs: make([][]string, len(facts)), titleDocs: make([][]string, len(facts))}
 	for i, f := range facts {
-		docs[i] = tokenize(f.Title + " " + f.Text)
-		titleDocs[i] = tokenize(f.Title + " " + f.Lead)
+		ix.docs[i] = tokenize(f.Title + " " + f.Text)
+		ix.titleDocs[i] = tokenize(f.Title + " " + f.Lead)
 	}
+	return ix
+}
+
+// Retrieve answers one question, with a span for each phase: tokenize, rank and compose.
+func (ix *Index) Retrieve(ctx context.Context, question string) Result {
+	facts, docs, titleDocs := ix.facts, ix.docs, ix.titleDocs
+	_, tok := tracer.Start(ctx, "retrieve.tokenize")
+	q := tokenize(question)
+	tok.SetAttributes(attribute.Int("query.tokens", len(q)))
+	tok.End()
+
+	_, rank := tracer.Start(ctx, "retrieve.rank")
+	rank.SetAttributes(attribute.Int("facts", len(facts)))
 	scores := bm25(q, docs)
 	for i, s := range bm25(q, titleDocs) {
 		scores[i] += titleWeight * s
@@ -175,9 +204,17 @@ func Retrieve(question string, facts []Fact) Result {
 	if len(rs) == 2 && rs[1].s < 0.6*rs[0].s {
 		rs = rs[:1]
 	}
+	rank.SetAttributes(attribute.Int("kept", len(rs)))
+	if len(rs) > 0 {
+		rank.SetAttributes(attribute.String("top", rs[0].f.ID), attribute.Float64("top.score", math.Round(rs[0].s*100)/100))
+	}
+	rank.End()
 	if len(rs) == 0 {
 		return Result{Answer: noMatch}
 	}
+
+	_, compose := tracer.Start(ctx, "retrieve.compose")
+	defer compose.End()
 
 	qs := toSet(q)
 	type sent struct {
@@ -229,6 +266,7 @@ func Retrieve(question string, facts []Fact) Result {
 	if lead := rs[0].f.Lead; lead != "" && !slices.Contains(parts, lead) {
 		parts = append([]string{lead}, parts...)
 	}
+	compose.SetAttributes(attribute.Int("sentences", len(parts)))
 	out := Result{Answer: strings.Join(parts, " ")}
 	for _, r := range rs {
 		out.Sources = append(out.Sources, r.f)

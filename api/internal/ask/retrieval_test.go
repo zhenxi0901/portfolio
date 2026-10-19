@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func facts(t *testing.T) []Fact {
+func facts(t testing.TB) []Fact {
 	t.Helper()
 	fs, err := LoadFacts("testdata/knowledge.json")
 	if err != nil {

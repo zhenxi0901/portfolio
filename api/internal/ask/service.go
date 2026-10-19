@@ -10,19 +10,34 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
+	"github.com/zhenxi0901/portfolio/api/internal/tracing"
 )
 
 type Service struct {
 	facts []Fact
+	index *Index
 	llm   Completer
 	m     *metrics.Metrics
 	log   *slog.Logger
 	cache *answerCache
+
+	// With a recorder, each answer carries its own trace; exported says it also went to Cloud Trace.
+	rec      *tracing.Recorder
+	exported bool
+}
+
+// WithTraces makes every answer include the spans of its own request.
+func (s *Service) WithTraces(rec *tracing.Recorder, exported bool) *Service {
+	s.rec, s.exported = rec, exported
+	return s
 }
 
 func NewService(facts []Fact, llm Completer, m *metrics.Metrics, log *slog.Logger) *Service {
-	return &Service{facts: facts, llm: llm, m: m, log: log, cache: newCache(256, 10*time.Minute)}
+	return &Service{facts: facts, index: NewIndex(facts), llm: llm, m: m, log: log, cache: newCache(256, 10*time.Minute)}
 }
 
 func (s *Service) FactCount() int { return len(s.facts) }
@@ -33,39 +48,75 @@ type source struct {
 }
 
 type response struct {
-	Answer    string   `json:"answer"`
-	Sources   []source `json:"sources"`
-	Mode      string   `json:"mode"`
-	LatencyMs int64    `json:"latency_ms"`
-	Cached    bool     `json:"cached"`
+	Answer    string     `json:"answer"`
+	Sources   []source   `json:"sources"`
+	Mode      string     `json:"mode"`
+	LatencyMs int64      `json:"latency_ms"`
+	Cached    bool       `json:"cached"`
+	Trace     *traceInfo `json:"trace,omitempty"`
+}
+
+// traceInfo is this request's own trace: the finished spans under the request span.
+type traceInfo struct {
+	TraceID  string         `json:"trace_id"`
+	TotalMs  float64        `json:"total_ms"`
+	Spans    []tracing.Span `json:"spans"`
+	Exported bool           `json:"exported"`
+}
+
+func (s *Service) trace(ctx context.Context, start time.Time) *traceInfo {
+	sc := trace.SpanContextFromContext(ctx)
+	if s.rec == nil || !sc.IsValid() {
+		return nil
+	}
+	return &traceInfo{
+		TraceID:  sc.TraceID().String(),
+		TotalMs:  float64(time.Since(start).Microseconds()) / 1000,
+		Spans:    s.rec.Take(sc.TraceID(), start),
+		Exported: s.exported,
+	}
 }
 
 func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
+	ctx := r.Context()
 	var req struct {
 		Question string `json:"question"`
 	}
+	_, parse := tracer.Start(ctx, "ask.parse")
 	r.Body = http.MaxBytesReader(w, r.Body, 2048)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		parse.End()
 		writeErr(w, http.StatusBadRequest, "Send JSON like {\"question\": \"...\"}.")
 		return
 	}
 	q := strings.TrimSpace(req.Question)
-	if n := utf8.RuneCountInString(q); n < 3 || n > 300 {
+	n := utf8.RuneCountInString(q)
+	parse.SetAttributes(attribute.Int("question.chars", n))
+	parse.End()
+	if n < 3 || n > 300 {
 		writeErr(w, http.StatusBadRequest, "Questions need to be between 3 and 300 characters.")
 		return
 	}
 
 	key := strings.ToLower(strings.Join(strings.Fields(q), " "))
-	if hit, ok := s.cache.get(key); ok {
+	_, lookup := tracer.Start(ctx, "ask.cache.lookup")
+	hit, ok := s.cache.get(key)
+	lookup.SetAttributes(attribute.Bool("hit", ok))
+	lookup.End()
+	if ok {
 		hit.Cached = true
 		hit.LatencyMs = time.Since(start).Milliseconds()
+		hit.Trace = s.trace(ctx, start)
 		s.m.Ask.WithLabelValues(hit.Mode, "true").Inc()
 		writeJSON(w, hit)
 		return
 	}
 
-	res := Retrieve(q, s.facts)
+	rctx, retrieve := tracer.Start(ctx, "ask.retrieve")
+	res := s.index.Retrieve(rctx, q)
+	retrieve.SetAttributes(attribute.Int("sources", len(res.Sources)))
+	retrieve.End()
 	out := response{Answer: res.Answer, Mode: "retrieval", Sources: []source{}}
 	for _, f := range res.Sources {
 		out.Sources = append(out.Sources, source{f.ID, f.Title})
@@ -73,22 +124,29 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// With an LLM configured, it rewrites the answer from the top facts; retrieval is the fallback.
 	if s.llm != nil && len(res.Sources) > 0 {
-		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		lctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
+		lctx, llmSpan := tracer.Start(lctx, "llm.complete", trace.WithSpanKind(trace.SpanKindClient))
 		t0 := time.Now()
-		answer, pt, ct, err := s.llm.Complete(ctx, systemPrompt, buildUserPrompt(q, res.Sources))
+		answer, pt, ct, err := s.llm.Complete(lctx, systemPrompt, buildUserPrompt(q, res.Sources))
 		s.m.LLMDuration.Observe(time.Since(t0).Seconds())
 		if err != nil {
+			llmSpan.SetAttributes(attribute.String("outcome", "failed, fell back to retrieval"))
 			s.log.Warn("ask: llm failed, falling back to retrieval", "err", err)
 		} else {
 			out.Answer, out.Mode = tidy(answer), "llm"
+			llmSpan.SetAttributes(attribute.Int("tokens.prompt", pt), attribute.Int("tokens.completion", ct))
 			s.m.LLMTokens.WithLabelValues("prompt").Add(float64(pt))
 			s.m.LLMTokens.WithLabelValues("completion").Add(float64(ct))
 		}
+		llmSpan.End()
 	}
 
+	_, store := tracer.Start(ctx, "ask.cache.store")
 	s.cache.put(key, out)
+	store.End()
 	out.LatencyMs = time.Since(start).Milliseconds()
+	out.Trace = s.trace(ctx, start)
 	s.m.Ask.WithLabelValues(out.Mode, "false").Inc()
 	writeJSON(w, out)
 }

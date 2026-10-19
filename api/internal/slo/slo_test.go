@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/zhenxi0901/portfolio/api/internal/gcp"
 )
 
 var quiet = slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -142,8 +144,8 @@ func TestMonitoringReadsCounts(t *testing.T) {
 	}))
 	defer api.Close()
 
-	m := NewMonitoring()
-	m.metadata, m.api = meta.URL, api.URL
+	m := NewMonitoring(gcp.NewMetadata())
+	m.meta.Base, m.api = meta.URL, api.URL
 	days, first, err := m.Days(context.Background(), end)
 	if err != nil {
 		t.Fatal(err)
@@ -177,8 +179,8 @@ func TestMonitoringReportsAPIErrors(t *testing.T) {
 	}))
 	defer api.Close()
 
-	m := NewMonitoring()
-	m.metadata, m.api = meta.URL, api.URL
+	m := NewMonitoring(gcp.NewMetadata())
+	m.meta.Base, m.api = meta.URL, api.URL
 	if _, _, err := m.Days(context.Background(), time.Now()); err == nil || !strings.Contains(err.Error(), "403") {
 		t.Fatalf("want a 403 error, got %v", err)
 	}
