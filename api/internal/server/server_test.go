@@ -235,3 +235,19 @@ func TestProbesDoNotCountAsTraffic(t *testing.T) {
 		t.Errorf("requests_total %d after only probes, want 0", st.RequestsTotal)
 	}
 }
+
+func TestWrongMethodOnAKnownAPIPathIs405(t *testing.T) {
+	ts, _ := newTestServer(t)
+	resp, err := http.Get(ts.URL + "/api/ask")
+	must(t, err)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusMethodNotAllowed || resp.Header.Get("Allow") != "POST" {
+		t.Errorf("GET /api/ask = %d, Allow %q; want 405 POST", resp.StatusCode, resp.Header.Get("Allow"))
+	}
+	resp, err = http.Get(ts.URL + "/api/nope")
+	must(t, err)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("unknown API path = %d, want 404", resp.StatusCode)
+	}
+}

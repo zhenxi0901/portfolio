@@ -159,3 +159,17 @@ func TestServerSendsCompressedAssets(t *testing.T) {
 		t.Errorf("got %q encoding %q", body, resp.Header.Get("Content-Encoding"))
 	}
 }
+
+// A variant answered without its body must not keep the variant's encoding and length.
+func TestStaticVariantHeadersOnBodilessAnswers(t *testing.T) {
+	h := newStaticSite(t)
+	// net/http redirects an explicit /index.html to ./
+	rec := get(t, h, "/index.html", map[string]string{"Accept-Encoding": "br"})
+	if rec.Code != http.StatusMovedPermanently || rec.Header().Get("Content-Encoding") != "" || rec.Header().Get("Content-Length") != "" {
+		t.Errorf("redirect: %d, encoding %q, length %q", rec.Code, rec.Header().Get("Content-Encoding"), rec.Header().Get("Content-Length"))
+	}
+	rec = get(t, h, "/_next/static/app.js", map[string]string{"Accept-Encoding": "br", "If-Match": `"nope"`})
+	if rec.Code != http.StatusPreconditionFailed || rec.Header().Get("Content-Encoding") != "" || rec.Header().Get("Content-Length") != "" {
+		t.Errorf("412: %d, encoding %q, length %q", rec.Code, rec.Header().Get("Content-Encoding"), rec.Header().Get("Content-Length"))
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -173,12 +174,12 @@ func (s *Service) forward(ctx context.Context, m Message) error {
 func (s *Service) post(ctx context.Context, body []byte) (retry bool, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.webhook, bytes.NewReader(body))
 	if err != nil {
-		return false, err
+		return false, errors.New("webhook URL is not valid")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return true, err
+		return true, redact(err)
 	}
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4<<10))
 	resp.Body.Close()
@@ -190,6 +191,16 @@ func (s *Service) post(ctx context.Context, body []byte) (retry bool, err error)
 	default:
 		return false, fmt.Errorf("webhook answered %d", resp.StatusCode)
 	}
+}
+
+// redact drops the URL from a transport error. A webhook URL is a credential (Discord's carries its
+// token in the path), and *url.Error prints it in full; only the operation and cause are kept.
+func redact(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return fmt.Errorf("%s webhook: %w", ue.Op, ue.Err)
+	}
+	return err
 }
 
 // webhookPayload formats the message for Discord or, for any other URL, as Slack-style

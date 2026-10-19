@@ -25,10 +25,13 @@ type Span struct {
 	Attrs      map[string]string `json:"attrs,omitempty"`
 }
 
-// Recorder is a span processor that keeps each trace's finished spans for a minute.
+// Recorder is a span processor that keeps each trace's finished spans for a minute, so a handler can
+// return them. Root spans are not kept (they end after the response, so nobody would take them),
+// expired traces are swept at most once a second, and at most maxTraces are held at once.
 type Recorder struct {
-	mu     sync.Mutex
-	traces map[trace.TraceID]*held
+	mu      sync.Mutex
+	traces  map[trace.TraceID]*held
+	sweptAt time.Time
 }
 
 type held struct {
@@ -36,25 +39,37 @@ type held struct {
 	added time.Time
 }
 
-const keepFor = time.Minute
+const (
+	keepFor   = time.Minute
+	maxTraces = 2048
+)
 
 func NewRecorder() *Recorder { return &Recorder{traces: map[trace.TraceID]*held{}} }
 
 func (r *Recorder) OnStart(context.Context, sdktrace.ReadWriteSpan) {}
 
 func (r *Recorder) OnEnd(s sdktrace.ReadOnlySpan) {
+	if !s.Parent().IsValid() {
+		return
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := time.Now()
-	// Traces nobody asked for (root spans that end after the response) age out here.
-	for id, h := range r.traces {
-		if now.Sub(h.added) > keepFor {
-			delete(r.traces, id)
+	// Traces nobody took (a request that failed before answering) age out here.
+	if now.Sub(r.sweptAt) > time.Second {
+		r.sweptAt = now
+		for id, h := range r.traces {
+			if now.Sub(h.added) > keepFor {
+				delete(r.traces, id)
+			}
 		}
 	}
 	id := s.SpanContext().TraceID()
 	h := r.traces[id]
 	if h == nil {
+		if len(r.traces) >= maxTraces {
+			return
+		}
 		h = &held{added: now}
 		r.traces[id] = h
 	}

@@ -96,3 +96,19 @@ func TestCloudTraceExport(t *testing.T) {
 		t.Errorf("span name %v", c["name"])
 	}
 }
+
+// Root spans end after the response, so nobody would take them: they must not pile up.
+func TestRecorderSkipsRootSpans(t *testing.T) {
+	rec, shutdown := Setup("test", "v1", nil)
+	defer func() { _ = shutdown(t.Context()) }()
+	for range 50 {
+		_, root := otel.Tracer("test").Start(t.Context(), "root")
+		root.End()
+	}
+	rec.mu.Lock()
+	n := len(rec.traces)
+	rec.mu.Unlock()
+	if n != 0 {
+		t.Errorf("%d traces held for root-only spans, want 0", n)
+	}
+}

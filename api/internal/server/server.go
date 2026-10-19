@@ -126,9 +126,21 @@ func (s *Server) Handler() http.Handler {
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)
-	mux.Handle("POST /api/ask", s.traced("POST /api/ask", s.limit("ask", askLimit, http.HandlerFunc(s.ask.Handle))))
+	// Rate limiting sits outside the trace, so a flood of 429s creates no spans.
+	mux.Handle("POST /api/ask", s.limit("ask", askLimit, s.traced("POST /api/ask", http.HandlerFunc(s.ask.Handle))))
 	mux.Handle("POST /api/contact", s.limit("contact", contactLimit, http.HandlerFunc(s.contact.Handle)))
-	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
+	// The catch-all wins over a method-specific pattern, so a known path with the wrong method would
+	// read as 404; answer 405 with the allowed method instead.
+	apiMethods := map[string]string{
+		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/badge/uptime": "GET, HEAD",
+		"/api/ask": "POST", "/api/contact": "POST",
+	}
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		if allow, ok := apiMethods[r.URL.Path]; ok {
+			w.Header().Set("Allow", allow)
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such endpoint"})
 	})
 
@@ -187,7 +199,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 // limit applies a per-client token bucket and returns 429 with Retry-After when it is empty.
 func (s *Server) limit(route string, l *ratelimit.Limiter, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ok, retry := l.Allow(clientIP(r, s.cfg.TrustProxy))
+		ok, retry := l.Allow(rateKey(clientIP(r, s.cfg.TrustProxy)))
 		if !ok {
 			s.metrics.RateLimited.WithLabelValues(route).Inc()
 			w.Header().Set("Retry-After", fmt.Sprintf("%.0f", retry.Seconds()+0.5))
