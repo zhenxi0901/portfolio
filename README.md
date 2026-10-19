@@ -129,3 +129,9 @@ cd web && npm run build && node scripts/gen-parity.mts && cp out/knowledge.json 
 ## Credits
 
 Design direction informed by [Taste Skill](https://github.com/Leonxlnx/taste-skill), [Magic UI](https://github.com/magicuidesign/magicui) and its [portfolio](https://github.com/magicuidesign/portfolio), and editorial layouts from [Jiro](https://jiro.build). Built with [Next.js](https://github.com/vercel/next.js), [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss), [shadcn/ui](https://github.com/shadcn-ui/ui) patterns, [Motion](https://github.com/motiondivision/motion), [three.js](https://github.com/mrdoob/three.js), [react-three-fiber](https://github.com/pmndrs/react-three-fiber), [Phosphor Icons](https://github.com/phosphor-icons/react), [Simple Icons](https://github.com/simple-icons/simple-icons) and [cmdk](https://github.com/pacocoursey/cmdk). All code here is original.
+
+## Licence
+
+The code is under the [MIT licence](LICENSE). The written content (`web/src/content/`, the case studies,
+postmortems and posts) and the images are © Li ZhenXi and not covered by it. The Geist fonts used for the
+share cards are under the SIL Open Font License.
