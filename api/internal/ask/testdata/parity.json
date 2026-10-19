@@ -23,10 +23,10 @@
   },
   {
     "question": "What happens when a build has a critical CVE?",
-    "answer": "A pipeline where failed merges never deploy (Primustech, 2026). I own the Cloud Build delivery pipeline: build once, promote by digest, approve before release. Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds.",
+    "answer": "Every push to main goes out the same way, and each step can stop it. CI builds the image once, smoke-tests it, holds it to Lighthouse budgets and a critical-CVE gate, then pushes it with an SBOM and signed build provenance. The deploy releases that exact digest without rebuilding: it verifies the attestations, holds the release if the site's error budget is spent, starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back on its own if that fails. A rollback drill rehearses this in production; the first one had traffic back on the old revision 20 seconds after the switch.",
     "sources": [
-      "case-pipeline",
-      "products"
+      "releases",
+      "case-pipeline"
     ]
   },
   {
@@ -145,7 +145,7 @@
     "answer": "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
     "sources": [
       "site",
-      "postmortems"
+      "decisions"
     ]
   },
   {
@@ -161,7 +161,7 @@
     "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 32 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. A failing check on a healthy site: The smoke test reported /metrics as broken while Cloud Run's logs showed every /metrics request returning 200.",
     "sources": [
       "postmortems",
-      "site"
+      "investigation"
     ]
   },
   {

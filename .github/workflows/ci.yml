@@ -31,6 +31,13 @@ jobs:
           cp out/knowledge.json ../api/internal/ask/testdata/knowledge.json
           git diff --exit-code -- ../api/internal/ask/testdata || {
             echo "::error::Run the parity script and commit api/internal/ask/testdata"; exit 1; }
+      - name: Decision records in docs/adr are current
+        run: |
+          node scripts/gen-adr.mts
+          if [ -n "$(git status --porcelain -- ../docs/adr)" ]; then
+            git status --short -- ../docs/adr
+            echo "::error::Run node scripts/gen-adr.mts and commit docs/adr"; exit 1
+          fi
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with: { name: site, path: web/out, retention-days: 3 }
 
@@ -97,6 +104,7 @@ jobs:
         run: >-
           node scripts/lighthouse-check.mjs http://localhost:8080/ dark:http://localhost:8080/
           http://localhost:8080/work/ai-platform http://localhost:8080/writing/serving-llm-agents http://localhost:8080/oncall
+          http://localhost:8080/status
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with: { name: lighthouse, path: lighthouse, retention-days: 7 }

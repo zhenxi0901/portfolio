@@ -251,3 +251,30 @@ func TestWrongMethodOnAKnownAPIPathIs405(t *testing.T) {
 		t.Errorf("unknown API path = %d, want 404", resp.StatusCode)
 	}
 }
+
+// The profile card renders from the live server, with the delivery numbers from the static export.
+func TestProfileCard(t *testing.T) {
+	cfg := testConfig(t)
+	must(t, os.WriteFile(filepath.Join(cfg.StaticDir, "delivery.json"), []byte(`{"windowDays":30,"deploys":7,"leadTimeMinutes":{"median":4.4}}`), 0o644))
+	ts := startServer(t, cfg)
+	for _, theme := range []string{"", "?theme=light"} {
+		resp, err := http.Get(ts.URL + "/api/card.svg" + theme)
+		must(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != 200 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "image/svg+xml") {
+			t.Fatalf("GET /api/card.svg%s = %d %s", theme, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+		if s := string(body); !strings.Contains(s, "commit abcdef1") || !strings.Contains(s, ">7<") || !strings.Contains(s, "4.4 min") {
+			t.Errorf("card missing the commit or the delivery numbers:\n%s", s)
+		}
+	}
+	// Without the file the card still renders, from the live numbers alone.
+	ts = startServer(t, testConfig(t))
+	resp, err := http.Get(ts.URL + "/api/card.svg")
+	must(t, err)
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Errorf("card without delivery.json = %d", resp.StatusCode)
+	}
+}

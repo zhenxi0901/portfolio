@@ -14,7 +14,22 @@ export function Footer() {
             and blocks the deploy if they drop.
           </p>
         </div>
-        <ul className="flex gap-5">
+        <ul className="flex flex-wrap gap-x-5 gap-y-2">
+          <li>
+            <a className="hover:text-ink" href="/status">
+              Status
+            </a>
+          </li>
+          <li>
+            <a className="hover:text-ink" href="/changelog">
+              Changelog
+            </a>
+          </li>
+          <li>
+            <a className="hover:text-ink" href="/decisions">
+              Decisions
+            </a>
+          </li>
           <li>
             <a className="hover:text-ink" href={profile.github} target="_blank" rel="noreferrer">
               GitHub
