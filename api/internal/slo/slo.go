@@ -4,7 +4,9 @@ package slo
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 	"time"
 )
@@ -92,6 +94,33 @@ func (s *Service) Report(ctx context.Context) Report {
 	s.last = Summarise(days, first, now)
 	s.next = now.Add(cacheFor)
 	return s.last
+}
+
+// ShieldsBadge is the JSON a shields.io endpoint badge reads (https://shields.io/badges/endpoint-badge).
+type ShieldsBadge struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	Label         string `json:"label"`
+	Message       string `json:"message"`
+	Color         string `json:"color"`
+	CacheSeconds  int    `json:"cacheSeconds"`
+}
+
+// Badge shows the availability over the window so far, coloured against the objective.
+func Badge(r Report) ShieldsBadge {
+	b := ShieldsBadge{SchemaVersion: 1, Label: "uptime, 30 days", Message: "measuring", Color: "lightgrey", CacheSeconds: 300}
+	if !r.Available {
+		return b
+	}
+	b.Message = fmt.Sprintf("%.2f%%", math.Floor(r.Availability*10000)/100)
+	switch {
+	case r.Availability >= Target:
+		b.Color = "brightgreen"
+	case r.Availability >= 0.99:
+		b.Color = "yellow"
+	default:
+		b.Color = "red"
+	}
+	return b
 }
 
 func unavailable(reason string) Report {

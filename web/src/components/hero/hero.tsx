@@ -3,6 +3,7 @@ import { profile } from "@/content/profile";
 import { Button } from "@/components/ui/button";
 import { Cluster } from "@/components/hero/cluster";
 import { KineticName } from "@/components/hero/kinetic-name";
+import { TourButton } from "@/components/site/tour";
 
 export function Hero() {
   return (
@@ -40,6 +41,9 @@ export function Hero() {
                 <EnvelopeSimple /> Get in touch
               </a>
             </Button>
+          </div>
+          <div className="hero-in mt-5" style={{ "--d": "0.45s" } as React.CSSProperties}>
+            <TourButton className="inline-flex items-center gap-2 text-sm font-medium text-ink-2 underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink hover:decoration-accent-ink" />
           </div>
         </div>
         <div className="relative lg:col-span-6 lg:-mr-10 xl:-mr-16">

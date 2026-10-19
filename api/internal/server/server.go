@@ -96,6 +96,11 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		writeJSON(w, http.StatusOK, s.slo.Report(r.Context()))
 	})
+	// The same availability as a shields.io endpoint badge, for the GitHub profile.
+	mux.HandleFunc("GET /api/badge/uptime", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		writeJSON(w, http.StatusOK, slo.Badge(s.slo.Report(r.Context())))
+	})
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)

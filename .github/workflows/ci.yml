@@ -67,6 +67,11 @@ jobs:
           docker run -d --name site -p 8080:8080 portfolio:${{ github.sha }}
           for i in $(seq 1 20); do curl -fsS localhost:8080/api/health && break; sleep 1; done
           bash scripts/smoke.sh http://localhost:8080
+      - uses: actions/setup-node@v5
+        with: { node-version: 24 }
+      # The footer promises accessibility and SEO at 100 on every release; this is what keeps it true.
+      - name: Lighthouse budgets
+        run: node scripts/lighthouse-check.mjs http://localhost:8080/ http://localhost:8080/work/gke http://localhost:8080/writing/serving-llm-agents
       - name: Block on critical vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
