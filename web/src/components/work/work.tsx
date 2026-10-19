@@ -16,7 +16,7 @@ export function Work() {
             Production work you can <span className="text-accent-ink">play with</span>.
           </>
         }
-        lead="Five things I shipped at Primustech, across three products. Each card is a small working model of the real system. Press the buttons."
+        lead="Five things I shipped at Primustech, on its two products. Each card is a small working model of the real system. Press the buttons."
       />
       <ProductKey />
       <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto]">

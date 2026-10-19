@@ -48,14 +48,27 @@ export function Status() {
     };
   }, []);
 
-  const tiles = data
+  const tiles: { label: string; value: React.ReactNode }[] = data
     ? [
         { label: "Uptime", value: uptime(data.uptime_seconds) },
         { label: "Requests served", value: data.requests_total.toLocaleString("en-US") },
         { label: "p50 latency", value: `${data.latency_ms.p50.toFixed(1)} ms` },
         { label: "p95 latency", value: `${data.latency_ms.p95.toFixed(1)} ms` },
         { label: "Heap in use", value: `${data.heap_mb.toFixed(1)} MB` },
-        { label: "Running", value: `${data.version}, ${data.region}` },
+        {
+          // The exact source running right now, one click from the code.
+          label: `Live commit, ${data.region}`,
+          value: (
+            <a
+              href={`https://github.com/zhenxi0901/portfolio/commit/${data.commit}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono underline decoration-line-strong underline-offset-4 hover:decoration-accent-ink"
+            >
+              {data.commit}
+            </a>
+          ),
+        },
       ]
     : [];
 
