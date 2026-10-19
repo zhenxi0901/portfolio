@@ -5,6 +5,11 @@ back end, the pipeline and the monitoring are the work.
 
 **Live:** https://portfolio-emsghin2iq-as.a.run.app (Cloud Run, asia-southeast1)
 
+[![ci](https://github.com/zhenxi0901/portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/zhenxi0901/portfolio/actions/workflows/ci.yml)
+[![deploy](https://github.com/zhenxi0901/portfolio/actions/workflows/deploy.yml/badge.svg)](https://github.com/zhenxi0901/portfolio/actions/workflows/deploy.yml)
+[![Uptime over 30 days, from Google Cloud uptime checks](https://img.shields.io/endpoint?url=https%3A%2F%2Fportfolio-emsghin2iq-as.a.run.app%2Fapi%2Fbadge%2Fuptime)](https://portfolio-emsghin2iq-as.a.run.app/#status)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/zhenxi0901/portfolio/badge)](https://scorecard.dev/viewer/?uri=github.com/zhenxi0901/portfolio)
+
 ![The hero: a 3D service mesh of the tools I work with](docs/screenshots/hero.webp)
 
 ## What you will find on it
@@ -31,8 +36,9 @@ Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_ne
                                     └──> Prometheus metrics     (/metrics) ──> Prometheus ──> Grafana (local stack)
 Cloud Monitoring uptime checks, 3 regions ──> /api/health; /api/slo reads them back as the site's SLO
 
-CI:     lint, typecheck, tests, parity ──> build image once ──> smoke, Lighthouse, CVE gate ──> push $IMAGE:$SHA
-Deploy: find that digest ──> Cloud Run (by digest, keyless OIDC) ──> smoke test the live URL
+CI:     lint, typecheck, tests, parity ──> build image once ──> smoke, Lighthouse, CVE gate ──> push, attest SBOM + provenance
+Deploy: find that digest ──> verify attestations ──> error-budget gate ──> new revision, no traffic ──> smoke test it
+        ──> traffic to it ──> smoke test live ──> (fails?) traffic back to the previous revision ──> GitHub release
 Terraform ──> Cloud Run, Artifact Registry, Secret Manager, uptime check, keyless GitHub OIDC deploys
 ```
 
@@ -43,7 +49,7 @@ Terraform ──> Cloud Run, Artifact Registry, Secret Manager, uptime check, ke
 | **Front end** (`web/`) | Next.js 16, React 19, Tailwind CSS v4, Motion, three.js via react-three-fiber. An interactive 3D "service mesh" hero, loaded only on screens 768 px and wider once the browser is idle, with a static version for phones (Lighthouse on a phone profile: performance 90+, accessibility 100); five playable case studies (pipeline gates with an approval step, a Kafka topic reaper, a ZooKeeper quorum alert, GKE pod and node autoscaling across zones); **Inside the IoT platform** (hop-by-hop traffic paths and tunnels; SLIs, SLOs and error budgets on a Grafana-style board with a replayable incident; a cause-alert playground for eight failure modes; the investigation route and runbook; a seven-move cost review); **the AI agent platform** (an animated system map with five request journeys and a "what I own" lens, the AI infrastructure stack layer by layer, a Langfuse-style request trace, what I measure on an LLM service); **research** (FYP charts, a prefix-cache explainer, the GPU-over-SSH setup); a page per case study, three postmortems from running this site and two longer write-ups (`/writing/<slug>`), each with its own generated share card, and a sitemap; an **on-call drill** (`/oncall`) that scores a simulated incident response and writes its postmortem; a 60-second guided tour (`/?tour`); the site's own SLO and DORA metrics in the status section; a trace of the visitor's own page load, and of each Ask answer; a ⌘K command palette that searches by topic and reaches every page; dock navigation; light and dark themes. Content renders without JavaScript; motion respects `prefers-reduced-motion`. |
 | **Back end** (`api/`) | Go 1.27, standard library `net/http`. Serves the static export with immutable caching and build-time brotli/gzip (no per-request compression CPU), plus `/api/status` (live uptime and latency percentiles), `/api/slo` (this site's own availability and error budget, read from Cloud Monitoring with the metadata server's token, standard library only), `/api/ask` (BM25 retrieval over the site's own facts, optional LLM on top, cached, rate limited, prompt-injection fenced; traced with OpenTelemetry, exported to Cloud Trace by a small REST exporter, and each answer carries its own trace), `/api/contact` (validation, honeypot, rate limit, delivery to a Discord or Slack webhook before the visitor is told it was sent), `/api/badge/uptime` (a shields.io endpoint for the 30-day uptime badge). `Server-Timing` on every response (server time, Cloud Run revision, and process age on an instance's first visitor request, which the page uses to say "you woke this server up"). CSP and security headers, request IDs, structured logs, graceful shutdown. |
 | **Reliability** | A real SLO for the site itself: 99.9% over 30 days, measured by Google Cloud uptime checks every minute from three continents and shown on the page with the error budget left. For the local stack: Prometheus metrics with bounded route labels, recording rules for a 99.5% request SLO, a fast-burn alert that needs both the last hour and the last 5 minutes above 14.4x, latency and abuse alerts (`deploy/prometheus/rules.yml`), and a provisioned Grafana dashboard (`deploy/grafana`). |
-| **Delivery** | Multi-stage Dockerfile to a 30 MB distroless, non-root image. GitHub Actions: lint, typecheck, build, `go vet`, race-detector tests, a TypeScript/Go parity check, container smoke test, Lighthouse budgets and a CRITICAL-CVE gate, with every action pinned to a commit SHA. The image is built once: CI pushes it only after every check passes, and the deploy promotes that exact digest without rebuilding, keyless via Workload Identity Federation, then smoke-tests the live URL. Only pushes to `main` in this repository deploy, never a fork's pull request. |
+| **Delivery** | Multi-stage Dockerfile to a 30 MB distroless, non-root image. GitHub Actions: lint, typecheck, build, `go vet`, race-detector tests, a TypeScript/Go parity check, container smoke test, Lighthouse budgets and a CRITICAL-CVE gate, with every action pinned to a commit SHA. The image is built once: CI pushes it only after every check passes and attests its SBOM and build provenance. The deploy refuses an image whose attestations don't verify, holds the release if the site's own error budget is spent (unless the commit is marked `Reliability-fix:`), starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back to the previous revision on its own if that fails; a manual **rollback drill** rehearses exactly that in production. Every release becomes a GitHub release with its SBOM and provenance attached. Keyless via Workload Identity Federation; only pushes to `main` in this repository deploy, never a fork's pull request. Base images pinned by digest, Dependabot for updates, CodeQL and OpenSSF Scorecard on every push, Go fuzz tests for the inputs visitors control. |
 | **Infrastructure** (`infra/`) | Terraform for Cloud Run (scale to zero, probes, least-privilege runtime identity), Artifact Registry with cleanup policies, Secret Manager for the contact webhook and the optional LLM key, the uptime check behind the SLO (`infra/slo.tf`), Cloud Trace write access for the runtime identity (`infra/tracing.tf`), and a GitHub OIDC pool limited to this repository's `main` branch. |
 
 Every number on the site traces to the CV, Primustech's PR history, the platforms' own docs or the FYP report.
@@ -106,13 +112,18 @@ cd infra
 cp example.tfvars terraform.tfvars   # fill in; ignored by git
 terraform init
 terraform apply
-# then set repository variables GCP_PROJECT, GCP_REGION, WIF_PROVIDER, DEPLOYER_SA from `terraform output`
+# then, from `terraform output`, set repository variables GCP_REGION and WIF_PROVIDER, and repository
+# secrets GCP_PROJECT and DEPLOYER_SA (secrets, so the public Actions logs mask them)
 ```
 
-On a push to `main`, CI builds the image once, tests it and pushes it only if every check passes
-(`.github/workflows/ci.yml`). The deploy (`.github/workflows/deploy.yml`) then promotes that exact digest to
-Cloud Run without rebuilding and finishes by running `scripts/smoke.sh` against the live URL. A manual run
-deploys `main`'s head only if CI has already pushed a tested image for it.
+On a push to `main`, CI builds the image once, tests it, and pushes and attests it only if every check passes
+(`.github/workflows/ci.yml`). The deploy (`.github/workflows/deploy.yml`) then releases that exact digest:
+it verifies the attestations, applies the error-budget gate (`scripts/budget-gate.sh`), starts the revision
+with no traffic, runs `scripts/smoke.sh` against its tagged URL, moves traffic, runs the smoke test against
+the live URL, and rolls back if that fails. A manual run releases `main`'s head only if CI has already pushed
+a tested image for it; tick **rollback drill** to rehearse the rollback, or give an override reason to release
+while the budget is spent. Because the pipeline pins traffic to the revision it checked, a Terraform change to
+the service goes live with the next release.
 
 ### Contact form messages
 

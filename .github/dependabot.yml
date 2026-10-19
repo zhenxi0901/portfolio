@@ -1,0 +1,37 @@
+# Monthly, grouped updates for everything pinned in this repository: action SHAs, base image
+# digests, npm packages and Go modules. Each arrives as one pull request per ecosystem and goes
+# through CI like any other change. Major versions are left for a deliberate upgrade.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      actions: { patterns: ["*"] }
+
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      base-images: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule: { interval: monthly }
+    groups:
+      web: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: gomod
+    directory: /api
+    schedule: { interval: monthly }
+    groups:
+      api: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

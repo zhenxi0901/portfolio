@@ -1,0 +1,35 @@
+name: scorecard
+
+# OpenSSF Scorecard: an outside, automated check of this repository's supply-chain practices
+# (pinned dependencies, token permissions, dangerous workflow patterns, SAST, signed releases...).
+# Results go to code scanning and to the public Scorecard API behind the README badge.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 3 * * 1"
+  branch_protection_rule:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # upload the results to code scanning
+      id-token: write # publish the results to the Scorecard API
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with: { persist-credentials: false }
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with: { name: scorecard, path: results.sarif, retention-days: 5 }
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with: { sarif_file: results.sarif }
