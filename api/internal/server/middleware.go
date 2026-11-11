@@ -55,11 +55,11 @@ func (s *Server) observe(next http.Handler) http.Handler {
 	})
 }
 
-// machineRoutes are requested by machines, not visitors: probes, uptime checks, scrapes, and the image
-// proxies that fetch the badge and the profile card. They stay out of the status page's numbers,
+// machineRoutes are requested by machines, not visitors: probes, uptime checks, scrapes, the image
+// proxies that fetch the badge and the profile card, and AI agents on the MCP endpoint. They stay out of the status page's numbers,
 // out of the logs at Info, and never count as an instance's first visitor (timing.go).
 var machineRoutes = map[string]bool{
-	"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true, "/api/badge/uptime": true, "/api/card.svg": true,
+	"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true, "/api/badge/uptime": true, "/api/card.svg": true, "/api/card.txt": true, "/mcp": true,
 }
 
 // routeLabel keeps metric cardinality bounded: the mux pattern, never the raw path.

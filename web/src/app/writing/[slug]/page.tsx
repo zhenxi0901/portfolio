@@ -17,7 +17,7 @@ export async function generateMetadata(props: PageProps<"/writing/[slug]">) {
   const { slug } = await props.params;
   const post = posts.find((p) => p.slug === slug);
   if (!post) return {};
-  return pageMetadata({ title: post.title, description: post.summary, path: `/writing/${post.slug}` });
+  return pageMetadata({ title: post.title, description: post.summary, path: `/writing/${post.slug}`, markdown: `writing/${post.slug}.md` });
 }
 
 function Body({ blocks }: { blocks: Block[] }) {

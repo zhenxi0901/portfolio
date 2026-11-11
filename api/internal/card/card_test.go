@@ -148,3 +148,22 @@ func TestLoadsTheGeneratedDeliveryFile(t *testing.T) {
 		t.Errorf("generated delivery.json lost fields the card needs: %+v", d)
 	}
 }
+
+func TestTerminalCard(t *testing.T) {
+	d := Data{Commit: "9dfbfb6", Region: "asia-southeast1", SLOAvailable: true, Availability: 0.99996, BudgetRemaining: 0.97,
+		Releases: "open", UptimeLabel: "uptime since 19 Oct", Delivery: delivery(t), Now: now}
+	s := string(Terminal(d, "https://example.test"))
+	for _, want := range []string{"Li ZhenXi", "commit 9dfbfb6", "99.99%", "since 19 Oct, measured from outside", "97.0% of the error budget left, releases open",
+		"32 deploys in 30 days, lead time 4.4 min, change failure rate 0%", "https://example.test/mcp", "https://example.test/llms.txt"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("terminal card lacks %q:\n%s", want, s)
+		}
+	}
+	d.UptimeLabel = "uptime, 30 days"
+	if s := string(Terminal(d, "https://example.test")); !strings.Contains(s, "over 30 days, measured from outside") {
+		t.Errorf("full-window label:\n%s", s)
+	}
+	if s := string(Terminal(Data{Commit: "dev", Region: "local"}, "http://localhost:8080")); !strings.Contains(s, "not measured on this copy") || strings.Contains(s, "Cloud Run") {
+		t.Errorf("unmeasured card:\n%s", s)
+	}
+}

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 
 const OUT = fileURLToPath(new URL("../out/", import.meta.url));
-const TEXT = new Set([".html", ".js", ".css", ".json", ".txt", ".svg", ".xml"]);
+const TEXT = new Set([".html", ".js", ".css", ".json", ".txt", ".svg", ".xml", ".md"]);
 const MIN_BYTES = 1024; // below this, headers outweigh the saving
 
 const kb = (n) => `${Math.round(n / 1024)} KB`;

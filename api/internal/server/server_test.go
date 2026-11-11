@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/zhenxi0901/portfolio/api/internal/ask"
 )
 
 func newTestServer(t *testing.T) (*httptest.Server, Config) {
@@ -276,5 +278,146 @@ func TestProfileCard(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != 200 {
 		t.Errorf("card without delivery.json = %d", resp.StatusCode)
+	}
+}
+
+func rpc(t *testing.T, url, body string, headers map[string]string) (int, map[string]any) {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, url+"/mcp", strings.NewReader(body))
+	must(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	must(t, err)
+	defer resp.Body.Close()
+	var out map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	return resp.StatusCode, out
+}
+
+// An agent can connect to the site as an MCP server, in either era of the protocol, and get answers
+// from the same facts the Ask console uses.
+func TestMCPTools(t *testing.T) {
+	ts, _ := newTestServer(t)
+
+	// Legacy: handshake, then list and call.
+	code, out := rpc(t, ts.URL, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}`, nil)
+	if code != 200 || out["result"].(map[string]any)["protocolVersion"] != "2025-06-18" {
+		t.Fatalf("initialize: %d %v", code, out)
+	}
+	_, out = rpc(t, ts.URL, `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`, nil)
+	tools := out["result"].(map[string]any)["tools"].([]any)
+	var names []string
+	for _, tl := range tools {
+		names = append(names, tl.(map[string]any)["name"].(string))
+	}
+	if strings.Join(names, ",") != "ask,search_facts,list_topics,get_status,get_delivery" {
+		t.Fatalf("tools: %v", names)
+	}
+	_, out = rpc(t, ts.URL, `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"ask","arguments":{"question":"How did you cut the cloud bill?"}}}`, nil)
+	res := out["result"].(map[string]any)
+	text := res["content"].([]any)[0].(map[string]any)["text"].(string)
+	if res["isError"] != false || !strings.Contains(text, "15%") || !strings.Contains(text, "- Cost review: "+ts.URL+"/#platform") {
+		t.Errorf("ask: %v", res)
+	}
+
+	// Modern: self-describing requests with mirrored headers.
+	meta := `"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}`
+	h := map[string]string{"MCP-Protocol-Version": "2026-07-28", "Mcp-Method": "tools/call", "Mcp-Name": "search_facts"}
+	code, out = rpc(t, ts.URL, `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"search_facts","arguments":{"query":"kafka topics","limit":2},`+meta+`}}`, h)
+	res, _ = out["result"].(map[string]any)
+	if code != 200 || res["resultType"] != "complete" || len(res["structuredContent"].(map[string]any)["facts"].([]any)) != 2 {
+		t.Errorf("search_facts: %d %v", code, out)
+	}
+	h["Mcp-Name"] = "get_status"
+	_, out = rpc(t, ts.URL, `{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_status",`+meta+`}}`, h)
+	if sc := out["result"].(map[string]any)["structuredContent"].(map[string]any); sc["commit"] != "abcdef1" || sc["region"] != "test" {
+		t.Errorf("get_status: %v", out)
+	}
+	// Bad input is the tool's own error, which a model can read and fix.
+	h["Mcp-Name"] = "ask"
+	_, out = rpc(t, ts.URL, `{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"ask","arguments":{"question":"x"},`+meta+`}}`, h)
+	if out["result"].(map[string]any)["isError"] != true {
+		t.Errorf("a one-letter question should be a tool error: %v", out)
+	}
+	// Without the delivery file, get_delivery says so instead of inventing numbers.
+	h["Mcp-Name"] = "get_delivery"
+	_, out = rpc(t, ts.URL, `{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"get_delivery",`+meta+`}}`, h)
+	if out["result"].(map[string]any)["isError"] != true {
+		t.Errorf("get_delivery without data: %v", out)
+	}
+
+	resp, err := http.Get(ts.URL + "/mcp")
+	must(t, err)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("GET /mcp = %d, want 405", resp.StatusCode)
+	}
+}
+
+// curl gets the home page as a text card; anything that asks for HTML, or is a browser, gets HTML.
+func TestHomePageForTerminals(t *testing.T) {
+	ts, _ := newTestServer(t)
+	get := func(ua, accept string) (string, string) {
+		req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
+		req.Header.Set("User-Agent", ua)
+		if accept != "" {
+			req.Header.Set("Accept", accept)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		must(t, err)
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return resp.Header.Get("Content-Type"), string(b)
+	}
+	if ct, body := get("curl/8.5.0", "*/*"); !strings.HasPrefix(ct, "text/plain") || !strings.Contains(body, "Li ZhenXi") || !strings.Contains(body, "commit abcdef1") || !strings.Contains(body, ts.URL+"/mcp") {
+		t.Errorf("curl: %s\n%s", ct, body)
+	}
+	for name, c := range map[string][2]string{
+		"curl asking for HTML": {"curl/8.5.0", "text/html"},
+		"a browser":            {"Mozilla/5.0 (X11; Linux x86_64) Chrome/140", "text/html,application/xhtml+xml"},
+		"an unknown client":    {"Go-http-client/1.1", ""},
+	} {
+		if ct, body := get(c[0], c[1]); !strings.HasPrefix(ct, "text/html") || !strings.Contains(body, "<h1>home</h1>") {
+			t.Errorf("%s: got %s %q, want the HTML page", name, ct, body)
+		}
+	}
+	// The card has an address of its own, whoever asks.
+	respCard, err := http.Get(ts.URL + "/api/card.txt")
+	must(t, err)
+	cardBody, _ := io.ReadAll(respCard.Body)
+	respCard.Body.Close()
+	if !strings.HasPrefix(respCard.Header.Get("Content-Type"), "text/plain") || !strings.Contains(string(cardBody), "Li ZhenXi") {
+		t.Errorf("/api/card.txt: %s %q", respCard.Header.Get("Content-Type"), cardBody)
+	}
+	// Both answers on / say that they depend on the client.
+	htmlReq, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
+	htmlReq.Header.Set("Accept", "text/html")
+	respHTML, err := http.DefaultClient.Do(htmlReq)
+	must(t, err)
+	respHTML.Body.Close()
+	if v := respHTML.Header.Get("Vary"); !strings.Contains(v, "User-Agent") {
+		t.Errorf("home page Vary = %q", v)
+	}
+	// Only the home page: other paths stay files.
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/knowledge.json", nil)
+	req.Header.Set("User-Agent", "curl/8.5.0")
+	resp, err := http.DefaultClient.Do(req)
+	must(t, err)
+	resp.Body.Close()
+	if !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
+		t.Errorf("curl /knowledge.json: %s", resp.Header.Get("Content-Type"))
+	}
+}
+
+// A case study's fact links to its own page; every other fact links to its section of the home page.
+func TestFactURL(t *testing.T) {
+	if got := factURL("https://x.test", ask.Fact{ID: "case-reaper", Anchor: "case-reaper"}); got != "https://x.test/work/reaper" {
+		t.Errorf("case fact: %s", got)
+	}
+	if got := factURL("https://x.test", ask.Fact{ID: "fyp", Anchor: "research"}); got != "https://x.test/#research" {
+		t.Errorf("section fact: %s", got)
 	}
 }

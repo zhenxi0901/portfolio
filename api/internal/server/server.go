@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -141,17 +142,13 @@ func (s *Server) Handler() http.Handler {
 	})
 	// The live card on the GitHub profile: ?theme=light for light mode.
 	mux.HandleFunc("GET /api/card.svg", func(w http.ResponseWriter, r *http.Request) {
-		rep := s.slo.Report(r.Context())
-		svg := card.SVG(card.Data{
-			Commit: short(s.cfg.Commit), Region: s.cfg.Region,
-			SLOAvailable: rep.Available, Availability: rep.Availability, BudgetRemaining: rep.BudgetRemaining, Releases: rep.Releases,
-			SLOUpdated: rep.Updated, SLOStale: rep.Stale, UptimeLabel: rep.UptimeLabel(),
-			Delivery: s.delivery, Now: time.Now(),
-		}, r.URL.Query().Get("theme") != "light")
+		svg := card.SVG(s.cardData(r.Context()), r.URL.Query().Get("theme") != "light")
 		w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		_, _ = w.Write(svg)
 	})
+	// The same card as text, with ANSI colours: what `curl <site>` gets, at an address of its own.
+	mux.HandleFunc("GET /api/card.txt", s.handleTextCard)
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)
@@ -161,7 +158,7 @@ func (s *Server) Handler() http.Handler {
 	// The catch-all wins over a method-specific pattern, so a known path with the wrong method would
 	// read as 404; answer 405 with the allowed method instead.
 	apiMethods := map[string]string{
-		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD",
+		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD", "/api/card.txt": "GET, HEAD",
 		"/api/ask": "POST", "/api/contact": "POST",
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
@@ -173,7 +170,11 @@ func (s *Server) Handler() http.Handler {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such endpoint"})
 	})
 
-	mux.Handle("/", staticHandler(s.cfg.StaticDir))
+	// The site as tools for AI agents: a Model Context Protocol server (internal/mcp, mcptools.go).
+	mcpLimit := ratelimit.New(60, time.Minute)
+	mux.Handle("/mcp", s.limit("mcp", mcpLimit, s.traced("/mcp", s.mcpServer())))
+
+	mux.Handle("/", s.forTerminals(staticHandler(s.cfg.StaticDir)))
 
 	var h http.Handler = mux
 	h = s.timing(h)
@@ -255,6 +256,59 @@ func (s *Server) traced(route string, next http.Handler) http.Handler {
 			span.SetStatus(codes.Error, http.StatusText(rec.code))
 		}
 	})
+}
+
+// cardData is what the profile card and the terminal card both show.
+func (s *Server) cardData(ctx context.Context) card.Data {
+	rep := s.slo.Report(ctx)
+	return card.Data{
+		Commit: short(s.cfg.Commit), Region: s.cfg.Region,
+		SLOAvailable: rep.Available, Availability: rep.Availability, BudgetRemaining: rep.BudgetRemaining, Releases: rep.Releases,
+		SLOUpdated: rep.Updated, SLOStale: rep.Stale, UptimeLabel: rep.UptimeLabel(),
+		Delivery: s.delivery, Now: time.Now(),
+	}
+}
+
+// forTerminals answers a command-line client that asks for the home page with a text card instead
+// of HTML it cannot render. Only "/" and only when the client did not ask for HTML, so scripts that
+// fetch pages (and say so in Accept) are unaffected.
+func (s *Server) forTerminals(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" || (r.Method != http.MethodGet && r.Method != http.MethodHead) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Either answer depends on who asked, and a cache in between has to know that.
+		w.Header().Set("Vary", "User-Agent, Accept")
+		if !isTerminal(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		s.handleTextCard(w, r)
+	})
+}
+
+func (s *Server) handleTextCard(w http.ResponseWriter, r *http.Request) {
+	scheme := "http"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write(card.Terminal(s.cardData(r.Context()), scheme+"://"+r.Host))
+}
+
+func isTerminal(r *http.Request) bool {
+	if strings.Contains(r.Header.Get("Accept"), "text/html") {
+		return false
+	}
+	ua := strings.ToLower(r.UserAgent())
+	for _, p := range []string{"curl/", "wget/", "httpie/"} {
+		if strings.HasPrefix(ua, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
