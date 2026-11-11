@@ -245,7 +245,7 @@ const ai: Scenario = {
       minutes: 3,
       evidence: "cause",
       result:
-        "It restarted at 09:57 and came back without its GPU. It is running the same cross-encoder on CPU, about 30 times slower, and its health check only asks whether it answers, so it reports healthy.",
+        "It restarted at 09:57 and came back on CPU: it could not reach its GPU, and the server falls back to CPU when it finds none. Same cross-encoder, about 30 times slower, and its health check only asks whether it answers, so it reports healthy.",
     },
     {
       id: "changes",
@@ -253,7 +253,7 @@ const ai: Scenario = {
       label: "Changes: deploys and events",
       minutes: 2,
       evidence: "change",
-      result: "No release for two days. One event, at 09:57: the reranker's instance was recreated, and the replacement has no GPU attached.",
+      result: "No release for two days. One event, at 09:57: host maintenance restarted the reranker's machine, and its GPU driver did not load on the way back up.",
     },
     {
       id: "provider",
@@ -341,11 +341,11 @@ const ai: Scenario = {
     {
       id: "restore",
       kind: "act",
-      label: "Give the reranker its GPU back, then turn reranking on",
+      label: "Get the reranker back on its GPU, then turn reranking on",
       minutes: 4,
       effect: "verify",
       result:
-        "The replacement instance gets its GPU and scores 40 candidates in 0.8 s again. With reranking back on, the median is back to 7 s and p95 to 11 s, and the page has cleared.",
+        "Reinstalling the driver and restarting the server puts the reranker back on its GPU: 40 candidates in 0.8 s again. With reranking back on, the median is back to 7 s and p95 to 11 s, and the page has cleared.",
     },
   ],
   checks: [
@@ -357,7 +357,7 @@ const ai: Scenario = {
     { kind: "always", text: "Restored full quality and watched latency hold before closing" },
   ],
   rootCause:
-    "Root cause: the reranker's instance was recreated at 09:57 without its GPU. It kept answering on CPU, about 30 times slower, and its health check only asked whether it answered, so nothing was down and nothing errored. One slow stage made every answer slow, and one trace showed which. Almost every answer missed the objective, a burn of about 20x, and a fast-burn page waits until the last hour averages over 14.4x: 43 minutes at 20x, which is why it came at 10:42. That wait is the price of a loose objective: at 95%, even a total failure burns at only 20x. The follow-ups a real postmortem would carry: alert on the reranker's own latency, not only on whether it answers, and refuse to start it without a GPU.",
+    "Root cause: host maintenance restarted the reranker's machine at 09:57, and its GPU driver did not load on the way back up. The server fell back to CPU without complaint, about 30 times slower, and its health check only asked whether it answered, so nothing was down and nothing errored. One slow stage made every answer slow, and one trace showed which. Almost every answer missed the objective, a burn of about 20x, and a fast-burn page waits until the last hour averages over 14.4x: 43 minutes at 20x, which is why it came at 10:42. That wait is the price of a loose objective: at 95%, even a total failure burns at only 20x. The follow-ups a real postmortem would carry: alert on the reranker's own latency, not only on whether it answers, and refuse to start it without a GPU.",
 };
 
 export const scenarios: Scenario[] = [iot, ai];

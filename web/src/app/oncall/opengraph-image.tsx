@@ -10,7 +10,7 @@ export default function Image() {
   return ogImage({
     eyebrow: "Incident drills · IoT and AI platforms",
     eyebrowColor: ogTone.critical,
-    title: "You're on call. Pick an incident and the pager goes off.",
+    title: "You're on call. Pick an incident.",
     summary:
       "Stale telemetry on a building IoT platform at 02:14, or slow answers from an AI document assistant at 10:42. Investigate, stop the error budget burning, and get your own postmortem.",
     stats: [

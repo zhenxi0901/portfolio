@@ -126,8 +126,18 @@ export function Drill({ scenario }: { scenario: Scenario }) {
         </div>
 
         <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
-          <p className="font-semibold">What you have found</p>
-          <div ref={feed} className="mt-3 max-h-[26rem] space-y-3 overflow-y-auto pr-1" aria-live="polite">
+          <p id={`oncall-found-${scenario.id}`} className="font-semibold">
+            What you have found
+          </p>
+          {/* It scrolls once it grows, so it takes focus: keyboard users can then scroll it with the arrow keys. */}
+          <div
+            ref={feed}
+            role="region"
+            aria-labelledby={`oncall-found-${scenario.id}`}
+            tabIndex={0}
+            className="mt-3 max-h-[26rem] space-y-3 overflow-y-auto rounded-2xl pr-1"
+            aria-live="polite"
+          >
             {log.length === 0 && <p className="text-sm text-ink-3">{scenario.emptyHint}</p>}
             {[...log].reverse().map((e) => (
               <div key={e.move.id + e.at} className="rounded-2xl border border-line bg-surface-2/60 p-3.5">
@@ -193,10 +203,11 @@ function MoveGroup({
             <li key={m.id}>
               <button
                 type="button"
-                disabled={done}
-                onClick={() => onPlay(m)}
+                // Not disabled: a disabled button drops keyboard focus, and the look just played is the focused one.
+                aria-disabled={done || undefined}
+                onClick={() => !done && onPlay(m)}
                 data-focus={m.effect === "verify" ? "verify" : undefined}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line px-3.5 py-2.5 text-left text-sm transition-colors hover:border-ink-3 disabled:opacity-45 disabled:hover:border-line"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line px-3.5 py-2.5 text-left text-sm transition-colors hover:border-ink-3 aria-disabled:cursor-default aria-disabled:opacity-45 aria-disabled:hover:border-line"
               >
                 <span>{m.label}</span>
                 <span className="shrink-0 font-mono text-[11px] text-ink-3">{done ? "seen" : `${m.minutes} min`}</span>
