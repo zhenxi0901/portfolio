@@ -47,7 +47,7 @@ export function AgentTime() {
       </figcaption>
 
       <div className="mt-4">
-        <Segmented<View> label="Which tasks: all, those whose servers reach the internet, or those backed by applications" options={VIEWS} value={view} onChange={setView} />
+        <Segmented<View> label="Which tasks: all, those whose servers reach the internet, or the pool tasks, mostly backed by applications" options={VIEWS} value={view} onChange={setView} />
       </div>
 
       <div
@@ -76,7 +76,10 @@ export function AgentTime() {
 
       <div className="mt-7 border-t border-line pt-5">
         <p className="text-sm font-medium">What one call costs, by server</p>
-        <p className="mt-0.5 text-sm text-ink-2">Each bar runs from the median call to the 95th percentile, on a log scale.</p>
+        <p className="mt-0.5 text-sm text-ink-2">
+          Each bar runs from the median call to the 95th percentile, on a log scale. Nine of the thirteen servers, {fyp.mcpServers.reduce((n, s) => n + s.calls, 0)} of
+          874 calls.
+        </p>
         <div className="mt-4 grid grid-cols-[6.5rem_1fr] items-center gap-x-3 gap-y-1.5 sm:grid-cols-[7.5rem_1fr]">
           {fyp.mcpServers.map((s) => (
             <div key={s.name} className="contents">
@@ -114,8 +117,8 @@ export function AgentTime() {
         </ul>
         <p className="mt-4 text-sm leading-relaxed text-ink-2">
           Servers that reach the internet are slow with long tails: a browser call takes 1.4 s at the median, and an arXiv search 11 s at the 95th percentile.
-          Two ideas for saving time did not pay on this workload: starting a server only at its first call costs about 1.2 s per server, as
-          much as all the MCP waiting it would save.
+          Two ideas would save memory, not time: starting a server only at its first call adds about 1.2 s per server, roughly as much as all the
+          MCP waiting in a run, and restoring an idle application from a snapshot takes about 1.5 s.
         </p>
       </div>
     </figure>

@@ -8,7 +8,7 @@
   },
   {
     "question": "What did the final-year project find?",
-    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 - now. Contributed a Go benchmark adapter to ARIES, the lab's open-source agent-serving framework. Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,700 lines, merged Nov 2026). Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
+    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 - now. Contributed a Go benchmark adapter to ARIES, the lab's open-source agent-serving framework. Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026). Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
     "sources": [
       "role-ntu-hyscale-lab"
     ]
@@ -40,7 +40,8 @@
     "question": "k8s migration",
     "answer": "One VM to a GKE platform (Primustech, 2026). Moved a live building-operations platform off a single Docker Compose VM and onto Kubernetes. The IoT platform behind the company's facility-management product ran on one Docker Compose VM: one failure domain, hand-run deploys and no autoscaling. Migrated the production database, cut the public domain over, then turned on deletion protection and passed a restore drill.",
     "sources": [
-      "case-gke"
+      "case-gke",
+      "role-primustech-iot"
     ]
   },
   {
@@ -55,7 +56,7 @@
     "answer": "A pipeline where failed merges never deploy (Primustech, 2026). Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds. Made releases and Terraform applies approval-gated and serialised per component, then moved the repository from Bitbucket to GitHub with full history.",
     "sources": [
       "case-pipeline",
-      "case-gke"
+      "role-primustech-iot"
     ]
   },
   {
@@ -112,7 +113,7 @@
   },
   {
     "question": "How does traffic reach the cluster?",
-    "answer": "How internet traffic reaches the cluster: load balancer, WAF, ingress, Services, pods and the database. Browser (HTTPS 443): One public hostname. Any other host, or the raw IP, gets a 404 by design.",
+    "answer": "How internet traffic reaches the cluster: load balancer, WAF, ingress, Services, pods and the database. Browser (HTTPS 443): One public hostname. Cloud Armor (WAF): OWASP CRS rules plus a login throttle, tuned per route so legitimate traffic passes, with auth and rate limits behind them.",
     "sources": [
       "path-user",
       "path-partner"

@@ -83,10 +83,10 @@ export const cases: CaseStudy[] = [
       "Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds.",
       "Made releases and Terraform applies approval-gated and serialised per component, then moved the repository from Bitbucket to GitHub with full history.",
     ],
-    result: "169 pull requests merged through it so far. A red merge never reaches production.",
+    result: "169 of my pull requests merged so far. A red merge never reaches production.",
     stack: ["Cloud Build", "Artifact Registry", "Artifact Analysis", "GitHub", "Terraform"],
     numbers: [
-      { value: "169", label: "pull requests merged through the pipeline so far" },
+      { value: "169", label: "of my pull requests merged on the platform so far" },
       { value: "1", label: "image digest per release: built once, then promoted" },
       { value: "0", label: "red merges that reached production" },
     ],
@@ -134,7 +134,7 @@ export const cases: CaseStudy[] = [
       "Chose signals by failure mode: absence alerts for ingestion, silent-loss detection, consumer lag checked against throughput, HPA headroom, and Kafka memory on RSS rather than working set.",
       "Fixed a ZooKeeper leader-election livelock that appeared after a node was replaced, and kept every alert and dashboard in Terraform with zero drift.",
     ],
-    result: "Failures that used to be silent now page someone, and the metrics bill went down, not up.",
+    result: "Failures that used to be silent now raise an alert, and the metrics bill went down, not up.",
     stack: ["Grafana", "Prometheus", "PromQL", "Cloud Monitoring", "ZooKeeper"],
     numbers: [
       { value: "28", label: "alert policies, all in Terraform" },
@@ -154,20 +154,20 @@ export const cases: CaseStudy[] = [
     title: "Remote control that fails safe",
     summary: "The platform could watch a building's air-conditioning. Letting it switch units on and off took a different kind of care.",
     problem:
-      "A wrong command to a compressor is not like a wrong row in a table: it wears real equipment, or leaves a shop without cooling. The first control lanes had grown rule by rule, and nothing wrote down what must hold before a lane may command real equipment.",
+      "A wrong command to a compressor is not like a wrong row in a table: it wears real equipment, or leaves a building without cooling. The first control lanes had grown rule by rule, and nothing wrote down what must hold before a lane may command real equipment.",
     did: [
-      "Wrote the control safety pattern every lane now follows: ten principles, each with the finding it came from, how the platform enforces it and what the site must provide, plus a commissioning checklist and a record kept per site.",
+      "Wrote the control safety pattern each lane is measured against: ten principles, each with the finding it came from, how the platform enforces it and what the site must provide, plus a commissioning checklist and a record kept per site.",
       "Made arming deliberate. A lane commands equipment only when its dry-run setting is exactly \"false\"; before, any value other than \"true\" armed it, so a typo would have started it live. Now anything else stops the bridge at startup.",
-      "Made the site's manual selector win: while a unit is on manual the platform sends nothing, retries nothing and raises no false alarm, and the schedule resumes when the selector goes back.",
-      "Capped commands per unit per hour, held setpoints to 20-30 °C, and confirmed every command from the plant's own readback instead of the command's echo. A command that does not take gets three attempts, two minutes apart, then an alarm.",
+      "Made the site's manual selector win: while a unit is on manual the platform sends nothing, retries nothing and raises no false alarm. By design, control goes back to the schedule when the selector returns to auto.",
+      "Capped commands per unit per hour, held setpoints to 20-30 °C, and designed every command to be confirmed from the plant's own readback instead of the command's echo. A command that does not take gets three attempts, two minutes apart, then an alarm.",
       "Built a Modbus bench simulator, so the whole path is rehearsed before a real unit is touched, and gave each lane its own alert budget.",
     ],
     result:
-      "Three control lanes follow one written pattern, checked by 431 tests. If anything goes wrong, the equipment ends up in the site's agreed safe state, under local control.",
+      "Three control lanes are measured against one written pattern, and the bridge that drives them has 431 tests. The pattern's rule: whatever goes wrong, the equipment ends up in the site's agreed safe state, under local control.",
     stack: ["MQTT", "Modbus", "Python", "Kubernetes", "Terraform", "Cloud Monitoring"],
     numbers: [
       { value: "10", label: "safety principles, each traced to the finding behind it" },
-      { value: "431", label: "tests on the control lanes" },
+      { value: "431", label: "tests on the bridge that drives the control lanes" },
       { value: "6-12", label: "commands per unit per hour at most, set per lane" },
     ],
     deeper: [
@@ -186,17 +186,17 @@ export const cases: CaseStudy[] = [
       "The platform carried live telemetry and control traffic. Its cache accepted clients without a password, one transport pod held every gateway session, and nobody had written down what would be lost when a node went away. Every fix was a change to a system that could not stop.",
     did: [
       "Gave the cache a password in two steps. First every client sends it, which the server accepts while it still requires none; then the server requires it. Neither step can break the cache, and either can be undone alone.",
-      "Rehearsed default-deny network policy before enabling it, and found the obvious rollout was not reversible: the allow rules alone closed 28 of the 46 paths checked, and deleting the deny rule afterwards left 43 closed. So each namespace gets a transition policy to fall back to, and its own cutover window.",
-      "Recorded all 16 single points of failure, each with its blast radius, a recovery time marked measured or estimated, and an owner. A node upgrade had taken data lanes out for between 9 seconds and 3 minutes 18 seconds, and losing the one transport pod left 88 seconds with no route for commands.",
-      "Ran that transport at two replicas behind a disruption budget. On the test rig, sessions on a lost pod are back through the other in 1 to 2 seconds.",
+      "Rehearsed a default-deny network policy before any cutover, and found the obvious rollout was not reversible: the allow rules alone closed 28 of the 46 paths that should close only at cutover, and deleting the deny rule afterwards left 43 closed. So the cutover plan gives each namespace a transition policy to fall back to, and its own window.",
+      "Recorded all 16 single points of failure, each with its blast radius, a recovery time marked measured or estimated, and an owner wherever one could be named. A node upgrade had taken lanes out for between 9 seconds and 3 minutes 18 seconds, and losing the one transport pod left 88 seconds with no route for commands.",
+      "Ran that transport at two replicas behind a disruption budget. In the next live node upgrades a moved session was back in 5 to 16 seconds instead of 88; on the test rig it takes 1 to 2.",
       "Set freshness objectives per data lane from 30 days of measured cadence, separating \"the site is late\" from \"we are behind\", with alerts, runbooks and synthetic cases that proved the notifications arrive.",
     ],
-    result: "Each change went out as steps that could be checked and undone on their own, and the platform now has a register of what breaks, for how long, and who decides.",
+    result: "Every change is planned as steps that can be checked and undone on their own, and the platform now has a register of what breaks, for how long, and who decides.",
     stack: ["GKE", "Calico NetworkPolicy", "Valkey", "Terraform", "Secret Manager", "Cloud Monitoring"],
     numbers: [
       { value: "2", label: "steps for a breaking change: widen first, tighten second" },
-      { value: "28 of 46", label: "paths the allow rules alone closed in rehearsal" },
-      { value: "88 s → 1-2 s", label: "without a command route when a transport pod is lost (test rig)" },
+      { value: "28 of 46", label: "paths meant to close only at cutover that the allow rules alone closed, in rehearsal" },
+      { value: "88 s → 5-16 s", label: "without a command route when a transport pod moves, before and after a second replica (live upgrades)" },
     ],
     deeper: [
       { label: "What I alert on there, and the SLOs", href: "/#platform-signals" },
@@ -212,7 +212,7 @@ export const cases: CaseStudy[] = [
     summary: "Infrastructure for the company's two AI products: an operations agent that answers from live building data, and a document assistant.",
     problem: "The agent and RAG services needed repeatable deploys, locked-down secrets and numbers on speed and cost.",
     did: [
-      "Deployed and operated the multi-agent API and the RAG services on Cloud Run with models on Vertex AI.",
+      "Deployed and operated the multi-agent API and the RAG services on Cloud Run, with models on Vertex AI and OpenRouter.",
       "Set up per-environment Cloud Build CI/CD, IAM service accounts, Secret Manager and shared-VPC networking for dev, staging and production.",
       "Benchmarked the stack: load and latency tests of the agent API, per-request token cost tracking, and model comparisons on latency and cost.",
     ],
@@ -252,26 +252,26 @@ export const experience: Role[] = [
     role: "DevOps Engineer Intern",
     period: "May 2026 - now",
     place: "Singapore",
-    points: [],
+    // Work for a customer that runs on neither product.
+    points: ["For a customer, outside both platforms: a read-only Modbus reader for 718 energy-meter channels, tested at full scale against a simulator."],
     tags: [],
     // One internship on two products, so the work is listed per product, as the Work section is.
     byProduct: [
       {
         product: "iot",
         points: [
-          "Own the platform's Cloud Build CI/CD pipeline: 169 merged PRs so far.",
+          "Own the platform's Cloud Build CI/CD pipeline; 169 of my PRs merged so far.",
           "Migrated it from one VM to GKE microservices with Terraform.",
-          "Cut its cloud spend by about 15% across monitoring, database and compute.",
-          "Wrote the safety pattern for remote control of air-conditioning and built its guards: deliberate arming, manual override, rate caps and readback from the plant.",
-          "Hardened the live cluster in reversible steps: cache authentication, a rehearsed network-policy cutover, and a register of single points of failure with measured recovery times.",
-          "Commissioned equipment control at a customer site against a Modbus bench simulator, and built a read-only Modbus collector for 718 energy-meter channels.",
+          "Wrote the safety pattern for remote control of air-conditioning and built its guards into the control bridge: deliberate arming, manual override, rate caps and readback from the plant.",
+          "Changed the live cluster in reversible steps: a password on the cache in two steps, a second replica for the command transport, and a register of single points of failure with measured or estimated recovery times.",
+          "Ran on-site control tests at a customer site, rehearsed first on a Modbus bench simulator I built.",
         ],
         tags: ["GKE", "Terraform", "Cloud Build", "Kafka", "MQTT", "Modbus", "Grafana"],
       },
       {
         product: "ai",
         points: [
-          "Deployed and operated the agent and RAG services on Cloud Run, with models on Vertex AI.",
+          "Deployed and operated the agent and RAG services on Cloud Run, with models on Vertex AI and OpenRouter.",
           "Set up per-environment CI/CD, IAM, Secret Manager and shared-VPC networking for dev, staging and production.",
           "Benchmarked the stack: load and latency tests of the agent API, token cost per request, and models compared on latency and cost.",
           "Built a demo building for the agents to query: 50 storeys, 2,014 BMS devices.",
@@ -287,7 +287,7 @@ export const experience: Role[] = [
     place: "Singapore",
     points: [
       "Contributed a Go benchmark adapter to ARIES, the lab's open-source agent-serving framework.",
-      "Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,700 lines, merged Nov 2026).",
+      "Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026).",
       "Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
       "Found and fixed a Docker race that dropped runs under load.",
     ],
@@ -299,7 +299,7 @@ export const experience: Role[] = [
     period: "Aug 2026 - Oct 2026",
     place: "Singapore",
     points: [
-      "Built the Android tablet controller, in Kotlin, for an autonomous robot car: an STM32 drives it, a Raspberry Pi plans the route and a camera recognises the targets.",
+      "Built the Android tablet controller, in Kotlin, for an autonomous robot car: an STM32 drives it, a Raspberry Pi links it to the tablet, and a laptop plans the route and recognises targets in the Pi's camera feed.",
       "21 merged pull requests. Made the tablet and the Pi agree on the map (the Pi kept planning for obstacles the tablet had cleared), and removed a planning state the app could never leave.",
     ],
     tags: ["Kotlin", "Android", "Raspberry Pi", "Python", "STM32"],
@@ -350,7 +350,7 @@ export const fyp = {
     { key: "grade", label: "Grading", share: 4 },
   ],
   findings: [
-    { value: "2.7%", label: "of agent time is spent inside tool calls" },
+    { value: "2.7%", label: "of agent time is spent inside MCP tool calls" },
     { value: "23%", label: "of wall clock goes to setup, vs 2% for single-service tasks" },
     { value: "96%", label: "of input tokens served from the prefix cache" },
     { value: "~7x", label: "more A100 time held by serving jobs than the agents used" },
@@ -368,7 +368,9 @@ export const fyp = {
       { key: "between", label: "The harness in between", all: 0.5, internet: 0.4, apps: 0.6 },
     ],
   },
-  // Table 21.4: the server's own time per call, from the gateway's records (874 calls).
+  // Table 21.4: the server's own time per call, from the gateway's records. Nine of its thirteen
+  // servers, 800 of its 874 calls; the page says so. Left out are servers with few calls, among them
+  // an academic-search server on the internet at 1.8 s median, which is why the facts say "0.2 to 1.8 s".
   mcpServers: [
     { name: "filesystem", kind: "local", calls: 88, p50: 2, p95: 3 },
     { name: "pdf-tools", kind: "local", calls: 43, p50: 8, p95: 21 },
@@ -413,7 +415,7 @@ export const flows: Flow[] = [
     hops: [
       { at: "Browser", tag: "HTTPS 443", text: "One public hostname. Any other host, or the raw IP, gets a 404 by design." },
       { at: "Global HTTPS load balancer", tag: "anycast IP", text: "TLS ends here on a reserved global IP with a Google-managed certificate." },
-      { at: "Cloud Armor", tag: "WAF", text: "OWASP CRS rules plus a login throttle. Routes that legitimately carry rich bodies skip body inspection but stay behind auth and rate limits." },
+      { at: "Cloud Armor", tag: "WAF", text: "OWASP CRS rules plus a login throttle, tuned per route so legitimate traffic passes, with auth and rate limits behind them." },
       { at: "GKE Ingress", tag: "L7 paths", text: "Path routing sends the device API, the REST and WebSocket API, and the web UI to separate Services." },
       { at: "Service to pods", tag: "ClusterIP", text: "Core API pods are spread across three zones and across nodes, so losing a zone costs a third of capacity, not all of it." },
       { at: "Core API to Cloud SQL", tag: "private IP", text: "A Cloud SQL Auth Proxy sidecar connects over private service access using Workload Identity: no key files, no password on the wire." },
@@ -461,7 +463,7 @@ export const flows: Flow[] = [
     hops: [
       { at: "Engineer to a private VM", tag: "IAP TCP", text: "No public SSH port. The firewall admits only Google's IAP range to tagged VMs, and every connection is checked against IAM." },
       { at: "Cloud VM to an on-site controller", tag: "WireGuard", text: "A NetBird overlay: both ends dial out and nothing opens inbound. Explicit access groups replace the default all-to-all rule." },
-      { at: "The catch", tag: "isolation", text: "That VM sits in its own subnet with egress to the cluster denied, but WireGuard is encapsulated UDP, so the VPC firewall cannot see inner traffic. The overlay's policy carries half the containment." },
+      { at: "Two layers", tag: "isolation", text: "That VM sits in its own subnet with egress to the cluster denied. WireGuard is encapsulated UDP, which the VPC firewall cannot inspect, so the overlay enforces its own policy as a second layer." },
       { at: "GPU to benchmark VM", tag: "reverse SSH", text: "For my FYP, SGLang on an NSCC A100 reached a GCP VM through a reconnecting SSH tunnel and a reverse forward over IAP, exposed locally with socat." },
     ],
   },

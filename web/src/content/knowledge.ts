@@ -55,15 +55,19 @@ export function buildKnowledge(): Fact[] {
 
   for (const r of experience) {
     const id = `role-${r.org.toLowerCase().replace(/[^a-z]+/g, "-")}`;
-    // A role on two products is two facts, so a question about either finds its own half.
-    for (const part of r.byProduct ?? [{ product: null, points: r.points, tags: r.tags }]) {
+    // A role on two products is two facts, so a question about either finds its own half; anything
+    // it did on neither product is one more.
+    const parts = r.byProduct
+      ? [...r.byProduct, ...(r.points.length ? [{ product: null, points: r.points, tags: r.tags }] : [])]
+      : [{ product: null, points: r.points, tags: r.tags }];
+    for (const part of parts) {
       const on = part.product ? products[part.product].name : null;
       facts.push({
         id: part.product ? `${id}-${part.product}` : id,
         title: on ? `${r.role} at ${r.org}: ${on}` : `${r.role} at ${r.org}`,
         anchor: "experience",
         lead: on ? `${r.role} at ${r.org}, ${r.period}, on the ${on}.` : `${r.role} at ${r.org}, ${r.period}.`,
-        text: `${part.points.join(" ")} Based in ${r.place}. Tools used: ${part.tags.join(", ")}.`,
+        text: `${part.points.join(" ")} Based in ${r.place}.` + (part.tags.length ? ` Tools used: ${part.tags.join(", ")}.` : ""),
       });
     }
   }
@@ -177,7 +181,7 @@ export function buildKnowledge(): Fact[] {
     anchor: "research",
     text:
       `My final-year project at NTU HyScale Lab benchmarks long-horizon LLM agent workloads. I contributed a Go benchmark adapter to ARIES, ` +
-      `the lab's open-source agent-serving framework, so Toolathlon tasks (109 tasks, 34 MCP servers) run with live applications in isolated containers. ` +
+      `the lab's open-source agent-serving framework, so Toolathlon tasks (108 tasks, 34 MCP servers) run with live applications in isolated containers.` +
       `Findings: ${fyp.findings.map((f) => `${f.value} ${f.label}`).join("; ")}. ` +
       `Running 4 tasks at once gave ${fyp.concurrency[2].attempts} attempts per hour against ${fyp.concurrency[0].attempts} at 1, a 3.02x throughput, ` +
       `using ${fyp.concurrency[2].memGiB} GiB of memory. Self-hosted Qwen3-4B was served with SGLang on an NVIDIA A100 at NSCC, reached from the Google Cloud benchmark VM over an SSH tunnel through IAP. ` +
@@ -192,7 +196,7 @@ export function buildKnowledge(): Fact[] {
     text:
       `Merged into ARIES on ${fyp.apptainer.merged}: ${fyp.apptainer.lines.toLocaleString("en-US")} lines across ${fyp.apptainer.files} files. ` +
       `On NSCC's ASPIRE 2A supercomputer, the agent, its sandbox and Qwen3-4B served by SGLang ran in one batch job on the same A100 node. ` +
-      `Each part is an Apptainer (Singularity) instance with a fake root; the run has its own user and network namespace through slirp4netns, ` +
+      `The harness and the sandbox are Apptainer (Singularity) instances with a fake root, and the bridge is a process beside them; the run has its own user and network namespace through slirp4netns, ` +
       `so other users of a shared node cannot reach it; and because the cluster has no cgroup per container, CPU and memory are measured from /proc. ` +
       `One hang traced to a fake-root daemon per command, fixed with one per instance. Portable agent plugins (skills and MCP servers) are in review next.`,
   });
@@ -203,9 +207,9 @@ export function buildKnowledge(): Fact[] {
     anchor: "research",
     lead: "I profiled MCP tool servers across 48 instrumented agent runs.",
     text:
-      `Model calls are ${fyp.agentTime.parts[0].all}% of the agent's time; MCP calls are 8.6% overall, 13% in tasks whose servers reach the internet and 3.4% in tasks backed by applications. ` +
-      `Local MCP servers answer in 2 to 15 ms, application servers in 6 to 191 ms, and servers that reach the internet in 0.2 to 1.4 s at the median with long tails. ` +
-      `Starting a server lazily at its first call costs about 1.2 s per server, about as much as all the MCP waiting, and snapshotting an idle application takes about 1.5 s to restore, so neither saving pays on this workload. ` +
+      `Model calls are ${fyp.agentTime.parts[0].all}% of the agent's time and the harness's own tools ${fyp.agentTime.parts[1].all}%; MCP calls are 8.6% overall, 13% in tasks whose servers reach the internet and 3.4% in the pool tasks, which are mostly backed by applications. ` +
+      `Local MCP servers answer in 2 to 15 ms, application servers in 6 to 191 ms, and servers that reach the internet in 0.2 to 1.8 s at the median with long tails. ` +
+      `Two ideas would save memory rather than time: starting a server lazily at its first call adds about 1.2 s per server, roughly as much as all the MCP waiting in a run, and restoring an idle application from a snapshot takes about 1.5 s. Neither promises much on this workload. ` +
       `The expensive server is the Playwright browser: 437 MiB and 56 CPU-seconds a run.`,
   });
 

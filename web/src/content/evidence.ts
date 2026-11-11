@@ -134,7 +134,7 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "ARIES #92", href: fyp.apptainer.pr }],
       },
       {
-        claim: "Portable plugins (skills and MCP servers) for two more agent runtimes.",
+        claim: "Portable plugins (skills and MCP servers) that work in both of ARIES's agent harnesses.",
         seen: { label: "Research", href: "/#research" },
         kind: "public",
         proof: "Open and in review, not merged. Listed here so the site does not imply otherwise.",
@@ -155,7 +155,7 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "My merged pull requests", href: "https://github.com/whupdido/mdp/pulls?q=is%3Apr+author%3Azhenxi0901+is%3Amerged" }],
       },
       {
-        claim: "320 agent runs: tool calls were 2.7% of agent time, 96% of input tokens came from the prefix cache, and four tasks at once gave 3.02x the throughput.",
+        claim: "320 agent runs: MCP tool calls were 2.7% of agent time, 96% of input tokens came from the prefix cache, and four tasks at once gave 3.02x the throughput.",
         seen: { label: "What 320 agent runs taught me", href: "/writing/serving-llm-agents" },
         kind: "private",
         proof: "From my final-year project's report and result files, which are in a private repository while the project is still in progress. The write-up gives the method, the models and the hardware.",
@@ -168,7 +168,7 @@ export const claimGroups: ClaimGroup[] = [
     lead: "This is an employer's production system. Its repository, bills and documents are private, and nothing here links to them. I am saying that plainly rather than dressing it up.",
     claims: [
       {
-        claim: "169 pull requests merged into a production IoT platform.",
+        claim: "169 of my pull requests merged into a production IoT platform's repository.",
         seen: { label: "The numbers under the hero", href: "/" },
         kind: "private",
         proof: "Counted from the private repository's pull request history under my GitHub account.",
@@ -177,16 +177,16 @@ export const claimGroups: ClaimGroup[] = [
         claim: "Cloud spend cut by about 15%, including 914 orphaned Kafka topics removed and 40% fewer monitoring samples.",
         seen: { label: "Cutting cloud spend", href: "/work/reaper" },
         kind: "private",
-        proof: "From the cost review I wrote for the platform. The case study gives each move with its before, its after and the trade-off.",
+        proof: "The cost review I wrote for the platform records each cut and its trade-off: 914 orphaned topics removed, 40% fewer samples per scrape, the database and pods resized. The case study gives each move with its before and after.",
       },
       {
-        claim: "Three remote-control lanes follow one written safety pattern of ten principles, checked by 431 tests.",
+        claim: "Three remote-control lanes are measured against one written safety pattern of ten principles, and the bridge that drives them has 431 tests.",
         seen: { label: "Remote control that fails safe", href: "/work/control" },
         kind: "private",
         proof: "The pattern, the tests and the commissioning records are in the private repository. The case study has a working model of the guards.",
       },
       {
-        claim: "A network-policy rehearsal found that the obvious rollout closed 28 of 46 paths and could not be undone cleanly.",
+        claim: "A network-policy rehearsal found that the obvious rollout closed 28 of the 46 paths meant to close only at cutover, and could not be undone cleanly.",
         seen: { label: "Changing a live cluster in steps", href: "/work/two-step" },
         kind: "private",
         proof: "From the rehearsal's own record of each path checked, kept with the change in the private repository.",
