@@ -10,6 +10,17 @@ import * as THREE from "three";
 import { scrollToId } from "@/lib/utils";
 import { HUBS } from "@/components/hero/hubs";
 
+// @react-three/fiber 9.8 (the latest stable) still makes a THREE.Clock for every canvas, and three
+// r183+ warns that Clock is deprecated. This scene never touches it, so that one message is dropped;
+// three's other output reaches the console as before. Remove once fiber moves to THREE.Timer.
+const CLOCK_DEPRECATED = "THREE.Clock: This module has been deprecated";
+THREE.setConsoleFunction((type, message, ...params) => {
+  if (type === "warn" && message.startsWith(CLOCK_DEPRECATED)) return;
+  const [first] = params as [{ isStackTrace?: boolean; getError?: (m: string) => unknown } | undefined];
+  if (first?.isStackTrace && first.getError) console[type](first.getError(message));
+  else console[type](message, ...params);
+});
+
 /**
  * A small "service mesh": hubs are systems ZhenXi has run or built, pods hang off them,
  * and packets travel the edges like requests. Click a hub to jump to the matching work.
