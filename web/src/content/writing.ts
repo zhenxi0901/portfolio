@@ -22,6 +22,84 @@ export type Post = {
 
 export const posts: Post[] = [
   {
+    slug: "agents-without-root",
+    title: "Running an agent benchmark on a supercomputer, without root",
+    summary:
+      "ARIES started every part of a run with Docker. A supercomputer gives users neither Docker nor root, so I added an Apptainer backend: 6,678 lines, a way to measure containers that have no cgroup, and one hang that looked like the agent's fault.",
+    date: "11 Nov 2026",
+    product: "aries",
+    stats: [
+      { value: "6,678", label: "lines across 46 files, merged into ARIES on 10 Nov" },
+      { value: "1", label: "batch job holds the agent, its sandbox and the model" },
+      { value: "0", label: "root, Docker or per-container cgroups available" },
+    ],
+    body: [
+      {
+        kind: "p",
+        text: "My final-year project measures what long agent tasks cost to run. Until now the agents ran on a cloud VM and the model on an A100 at NSCC, Singapore's national supercomputer, joined by a tunnel, with the GPU reserved for about seven times as long as the agents used it. If the whole stack ran inside one batch job on the cluster, the model and the agents would share a node. The cluster's terms are strict, though: no Docker, no root, Apptainer without setuid, cgroups version 1, and no route from compute nodes to hosted model APIs.",
+      },
+      { kind: "h2", text: "Containers without a daemon, or root" },
+      {
+        kind: "p",
+        text: "ARIES runs each part of a run (the agent harness, the task sandbox, the bridge between them) as a container. The new backend starts each as an Apptainer instance with a fake root and an overlay of its own. Images are unpacked once into plain directories owned by the user. With a packed image as the lower layer, installing a package as \"root\" fails on files that belong to other IDs; unpacked, every file is the user's, so the fake root can change any of them.",
+      },
+      {
+        kind: "p",
+        text: "An unpacked image forgets the configuration its OCI image carried, including its working directory. So setup reads that from the packed file before unpacking it, with a small reader written from the format's reference implementation rather than a new dependency, and a run that names no working directory starts where it would have under Docker.",
+      },
+      { kind: "h2", text: "A shared node is a hostile network" },
+      {
+        kind: "p",
+        text: "The bridge between agent and sandbox listens on ports with no authentication. That is fine inside a private Docker network and not fine on a node other users can log in to. So the run re-executes itself inside its own user and network namespace: outbound traffic goes through slirp4netns, and nothing outside the namespace has a route to those ports.",
+      },
+      { kind: "h2", text: "Measuring containers that have no cgroup" },
+      {
+        kind: "p",
+        text: "The project's whole point is measurement, and ARIES reads each container's CPU and memory from its cgroup. On this cluster cgroups are one per job and owned by root. So each instance is measured from /proc instead: the CPU of the live processes in its PID namespace, plus the CPU of every finished command, which the command's wrapper reads about itself as it exits and reports back. A command shorter than one sample is still counted. Memory is the processes' proportional set size.",
+      },
+      {
+        kind: "callout",
+        text: "A measurement you cannot take the usual way is still worth taking, as long as you write down what it leaves out.",
+      },
+      {
+        kind: "p",
+        text: "What it leaves out is in the docs: memory excludes the page cache, the launcher's own CPU outside the instance (about 0.06 s a command) is not charged, and CPU and memory limits cannot be enforced at all without cgroups version 2, so the backend refuses them unless a profile says in so many words that they are unenforced.",
+      },
+      { kind: "h2", text: "The hang that looked like the agent's fault" },
+      {
+        kind: "p",
+        text: "On a rerun at NSCC an agent's git cherry-pick froze, holding the repository's lock, until the task ran out of time. It looked like a model doing something silly. It was the backend. Every command started its own fake-root daemon, which exited with the command. The agent harness saves each command's environment and restores it in the next, so a later command inherited the key of a daemon that was gone. Its messages went into a queue nothing read, and when the queue filled, the command blocked.",
+      },
+      {
+        kind: "code",
+        text: "agent  $ git cherry-pick <commit>\n         blocked in msgsnd(), holding .git/index.lock\n         ... until the task's time limit",
+        caption: "What the run looked like from outside: a slow agent.",
+      },
+      {
+        kind: "p",
+        text: "The fix is one fake-root daemon per instance, started with it, whose key every command inherits; file ownership then lasts across commands, as it would on a real root filesystem. Earlier runs had passed because they sent only read-only Git commands, or none. The test that mattered was the first one that wrote.",
+      },
+      { kind: "h2", text: "What runs now, and what does not" },
+      {
+        kind: "list",
+        items: [
+          "On ASPIRE 2A, a Terminal-Bench 2 task ran end to end in one batch job, twice: with a stub model on a CPU node, and with Qwen3-4B served by SGLang on the same A100 node as the agent.",
+          "One task at a time. Concurrency above 1 is rejected on this backend for now, and there is an open issue for it.",
+          "Commands that must run as a non-root user are refused, so one benchmark that needs them is rejected before it starts rather than failing halfway.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "The pull request took 18 reviews. One change from them I would keep anywhere: if a finished command's CPU cannot be recorded, the instance's later samples now fail instead of quietly undercounting. A benchmark that reports a wrong number is worse than one that reports none.",
+      },
+    ],
+    links: [
+      { label: "The pull request: an Apptainer deployment backend for ARIES", href: "https://github.com/hyscale-lab/ARIES/pull/92" },
+      { label: "The research section, with the charts", href: "/#research" },
+      { label: "What 320 agent runs taught me about serving LLM agents", href: "/writing/serving-llm-agents" },
+    ],
+  },
+  {
     slug: "serving-llm-agents",
     title: "What 320 agent runs taught me about serving LLM agents",
     summary:
@@ -160,3 +238,9 @@ export const posts: Post[] = [
     ],
   },
 ];
+
+/** Site path of a post, checked against the list so a renamed slug fails the build, not the link. */
+export function postHref(slug: string) {
+  if (!posts.some((p) => p.slug === slug)) throw new Error(`no post "${slug}"`);
+  return `/writing/${slug}`;
+}

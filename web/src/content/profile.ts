@@ -19,7 +19,7 @@ export type Stat = { value: number; decimals?: number; prefix?: string; suffix?:
 
 export const stats: Stat[] = [
   { value: 15, prefix: "~", suffix: "%", label: "cloud spend cut across monitoring, database and compute" },
-  { value: 63, label: "pull requests merged into a production delivery pipeline" },
+  { value: 169, label: "pull requests merged into a production IoT platform" },
   { value: 320, label: "long-horizon LLM agent runs benchmarked for my final-year project" },
   { value: 3.02, decimals: 2, suffix: "x", label: "throughput from running four isolated agent tasks at once" },
 ];
@@ -83,10 +83,10 @@ export const cases: CaseStudy[] = [
       "Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds.",
       "Made releases and Terraform applies approval-gated and serialised per component, then moved the repository from Bitbucket to GitHub with full history.",
     ],
-    result: "63 merged pull requests so far. A red merge never reaches production.",
+    result: "169 pull requests merged through it so far. A red merge never reaches production.",
     stack: ["Cloud Build", "Artifact Registry", "Artifact Analysis", "GitHub", "Terraform"],
     numbers: [
-      { value: "63", label: "pull requests merged into the pipeline so far" },
+      { value: "169", label: "pull requests merged through the pipeline so far" },
       { value: "1", label: "image digest per release: built once, then promoted" },
       { value: "0", label: "red merges that reached production" },
     ],
@@ -147,6 +147,63 @@ export const cases: CaseStudy[] = [
     ],
   },
   {
+    id: "control",
+    products: ["iot"],
+    org: "Primustech",
+    year: "2026",
+    title: "Remote control that fails safe",
+    summary: "The platform could watch a building's air-conditioning. Letting it switch units on and off took a different kind of care.",
+    problem:
+      "A wrong command to a compressor is not like a wrong row in a table: it wears real equipment, or leaves a shop without cooling. The first control lanes had grown rule by rule, and nothing wrote down what must hold before a lane may command real equipment.",
+    did: [
+      "Wrote the control safety pattern every lane now follows: ten principles, each with the finding it came from, how the platform enforces it and what the site must provide, plus a commissioning checklist and a record kept per site.",
+      "Made arming deliberate. A lane commands equipment only when its dry-run setting is exactly \"false\"; before, any value other than \"true\" armed it, so a typo would have started it live. Now anything else stops the bridge at startup.",
+      "Made the site's manual selector win: while a unit is on manual the platform sends nothing, retries nothing and raises no false alarm, and the schedule resumes when the selector goes back.",
+      "Capped commands per unit per hour, held setpoints to 20-30 °C, and confirmed every command from the plant's own readback instead of the command's echo. A command that does not take gets three attempts, two minutes apart, then an alarm.",
+      "Built a Modbus bench simulator, so the whole path is rehearsed before a real unit is touched, and gave each lane its own alert budget.",
+    ],
+    result:
+      "Three control lanes follow one written pattern, checked by 431 tests. If anything goes wrong, the equipment ends up in the site's agreed safe state, under local control.",
+    stack: ["MQTT", "Modbus", "Python", "Kubernetes", "Terraform", "Cloud Monitoring"],
+    numbers: [
+      { value: "10", label: "safety principles, each traced to the finding behind it" },
+      { value: "431", label: "tests on the control lanes" },
+      { value: "6-12", label: "commands per unit per hour at most, set per lane" },
+    ],
+    deeper: [
+      { label: "How a command reaches the plant, hop by hop", href: "/#platform-paths" },
+      { label: "The same idea on this site: releases that roll themselves back", href: "/decisions#build-once-check-before-traffic" },
+    ],
+  },
+  {
+    id: "two-step",
+    products: ["iot"],
+    org: "Primustech",
+    year: "2026",
+    title: "Changing a live cluster in steps that can't break it",
+    summary: "Security and reliability changes to a running platform, each split so that no single step can take it down, and rehearsed first.",
+    problem:
+      "The platform carried live telemetry and control traffic. Its cache accepted clients without a password, one transport pod held every gateway session, and nobody had written down what would be lost when a node went away. Every fix was a change to a system that could not stop.",
+    did: [
+      "Gave the cache a password in two steps. First every client sends it, which the server accepts while it still requires none; then the server requires it. Neither step can break the cache, and either can be undone alone.",
+      "Rehearsed default-deny network policy before enabling it, and found the obvious rollout was not reversible: the allow rules alone closed 28 of the 46 paths checked, and deleting the deny rule afterwards left 43 closed. So each namespace gets a transition policy to fall back to, and its own cutover window.",
+      "Recorded all 16 single points of failure, each with its blast radius, a recovery time marked measured or estimated, and an owner. A node upgrade had taken data lanes out for between 9 seconds and 3 minutes 18 seconds, and losing the one transport pod left 88 seconds with no route for commands.",
+      "Ran that transport at two replicas behind a disruption budget. On the test rig, sessions on a lost pod are back through the other in 1 to 2 seconds.",
+      "Set freshness objectives per data lane from 30 days of measured cadence, separating \"the site is late\" from \"we are behind\", with alerts, runbooks and synthetic cases that proved the notifications arrive.",
+    ],
+    result: "Each change went out as steps that could be checked and undone on their own, and the platform now has a register of what breaks, for how long, and who decides.",
+    stack: ["GKE", "Calico NetworkPolicy", "Valkey", "Terraform", "Secret Manager", "Cloud Monitoring"],
+    numbers: [
+      { value: "2", label: "steps for a breaking change: widen first, tighten second" },
+      { value: "28 of 46", label: "paths the allow rules alone closed in rehearsal" },
+      { value: "88 s → 1-2 s", label: "without a command route when a transport pod is lost (test rig)" },
+    ],
+    deeper: [
+      { label: "What I alert on there, and the SLOs", href: "/#platform-signals" },
+      { label: "This site's own two-step: check a release before it takes traffic", href: "/decisions#build-once-check-before-traffic" },
+    ],
+  },
+  {
     id: "ai-platform",
     products: ["ai"],
     org: "Primustech",
@@ -190,11 +247,14 @@ export const experience: Role[] = [
     period: "May 2026 - now",
     place: "Singapore",
     points: [
-      "Own the Cloud Build CI/CD pipeline for an IoT platform on GKE: 63 merged PRs.",
+      "Own the Cloud Build CI/CD pipeline for an IoT platform on GKE: 169 merged PRs so far.",
       "Migrated the platform from one VM to GKE microservices with Terraform.",
+      "Wrote the safety pattern for remote control of air-conditioning and built its guards: deliberate arming, manual override, rate caps and readback from the plant.",
+      "Hardened the live cluster in reversible steps: cache authentication, a rehearsed network-policy cutover, and a register of single points of failure with measured recovery times.",
+      "Commissioned equipment control at a customer site against a Modbus bench simulator, and built a read-only Modbus collector for 718 energy-meter channels.",
       "Deployed, operated and benchmarked the company's LLM services on Cloud Run.",
     ],
-    tags: ["GKE", "Terraform", "Cloud Build", "Cloud Run", "Grafana"],
+    tags: ["GKE", "Terraform", "Cloud Build", "Cloud Run", "MQTT", "Modbus", "Grafana"],
   },
   {
     org: "NTU HyScale Lab",
@@ -203,10 +263,22 @@ export const experience: Role[] = [
     place: "Singapore",
     points: [
       "Contributed a Go benchmark adapter to ARIES, the lab's open-source agent-serving framework.",
-      "Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100.",
+      "Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,700 lines, merged Nov 2026).",
+      "Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
       "Found and fixed a Docker race that dropped runs under load.",
     ],
-    tags: ["Go", "Docker", "SGLang", "MCP", "NSCC HPC"],
+    tags: ["Go", "Docker", "Apptainer", "SGLang", "MCP", "NSCC HPC"],
+  },
+  {
+    org: "NTU Multidisciplinary Design Project",
+    role: "Robot car: Android app and Raspberry Pi integration",
+    period: "Aug 2026 - Oct 2026",
+    place: "Singapore",
+    points: [
+      "Built the Android tablet controller, in Kotlin, for an autonomous robot car: an STM32 drives it, a Raspberry Pi plans the route and a camera recognises the targets.",
+      "21 merged pull requests. Made the tablet and the Pi agree on the map (the Pi kept planning for obstacles the tablet had cleared), and removed a planning state the app could never leave.",
+    ],
+    tags: ["Kotlin", "Android", "Raspberry Pi", "Python", "STM32"],
   },
   {
     org: "ENGIE South East Asia",
@@ -259,7 +331,41 @@ export const fyp = {
     { value: "96%", label: "of input tokens served from the prefix cache" },
     { value: "~7x", label: "more A100 time held by serving jobs than the agents used" },
   ],
-};
+  // MCP profiling, docs/15 section 21 (10 Oct 2026): 48 instrumented runs, 16 tasks in three passes,
+  // half of them tasks whose MCP servers reach the public internet. Shares of the agent phase from
+  // the harness's own spans (Table 21.3); "local" MCP servers round to 0.0% and are left out.
+  agentTime: {
+    runs: 48,
+    parts: [
+      { key: "model", label: "Model calls", all: 72.5, internet: 78.7, apps: 65.3 },
+      { key: "own", label: "The harness's own tools: terminal, code, files", all: 18.5, internet: 7.9, apps: 30.7 },
+      { key: "mcpNet", label: "MCP servers that reach the internet", all: 7.0, internet: 13.0, apps: 0 },
+      { key: "mcpApp", label: "MCP servers backed by an application", all: 1.6, internet: 0, apps: 3.4 },
+      { key: "between", label: "The harness in between", all: 0.5, internet: 0.4, apps: 0.6 },
+    ],
+  },
+  // Table 21.4: the server's own time per call, from the gateway's records (874 calls).
+  mcpServers: [
+    { name: "filesystem", kind: "local", calls: 88, p50: 2, p95: 3 },
+    { name: "pdf-tools", kind: "local", calls: 43, p50: 8, p95: 21 },
+    { name: "excel", kind: "local", calls: 22, p50: 15, p95: 27 },
+    { name: "emails", kind: "application", calls: 84, p50: 6, p95: 83 },
+    { name: "woocommerce", kind: "application", calls: 64, p50: 129, p95: 443 },
+    { name: "canvas", kind: "application", calls: 265, p50: 191, p95: 655 },
+    { name: "arxiv search", kind: "internet", calls: 21, p50: 220, p95: 11344 },
+    { name: "yahoo-finance", kind: "internet", calls: 128, p50: 785, p95: 1766 },
+    { name: "playwright", kind: "internet", calls: 85, p50: 1419, p95: 3282 },
+  ],
+  // hyscale-lab/ARIES#92, merged 10 Nov 2026.
+  apptainer: {
+    pr: "https://github.com/hyscale-lab/ARIES/pull/92",
+    merged: "10 Nov 2026",
+    lines: 6678,
+    files: 46,
+  },
+  // hyscale-lab/ARIES#96, open and in review as of 11 Nov 2026.
+  plugins: { pr: "https://github.com/hyscale-lab/ARIES/pull/96" },
+} as const;
 
 export const publication = {
   title: "PVChat: Personalized Video Chat with One-Shot Learning",

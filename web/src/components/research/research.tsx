@@ -6,8 +6,10 @@ import { ConcurrencyChart } from "@/components/research/concurrency-chart";
 import { WallClockBar } from "@/components/research/wallclock-bar";
 import { PrefixCache } from "@/components/research/prefix-cache";
 import { GpuLink } from "@/components/research/gpu-link";
+import { postHref } from "@/content/writing";
+import { AgentTime } from "@/components/research/agent-time";
+import { Rootless } from "@/components/research/rootless";
 import { ZoomImage } from "@/components/research/zoom-image";
-import { posts } from "@/content/writing";
 import { ProductTag } from "@/components/site/product-tag";
 
 export function Research() {
@@ -20,7 +22,7 @@ export function Research() {
               <ProductTag p="aries" className="mb-5" />
               <SectionHeading
                 title="What does an AI agent actually cost to run?"
-                lead="My final-year project at NTU's HyScale Lab. I made ARIES, the lab's open-source agent-serving framework, run long tasks against live apps (mail, a shop, an LMS), then measured 320 runs on a hosted API and self-hosted SGLang on an A100."
+                lead="My final-year project at NTU's HyScale Lab. I made ARIES, the lab's open-source agent-serving framework, run long tasks against live apps (mail, a shop, an LMS), then measured 320 runs on a hosted API and self-hosted SGLang on an A100. Since then: what MCP tool servers cost, and the whole stack running on a supercomputer without root."
               />
               <Reveal delay={0.1}>
                 <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8">
@@ -34,7 +36,7 @@ export function Research() {
               </Reveal>
               <Reveal delay={0.15} className="mt-10 flex flex-wrap gap-x-6 gap-y-3">
                 <a
-                  href={`/writing/${posts.find((p) => p.product === "aries")!.slug}`}
+                  href={postHref("serving-llm-agents")}
                   className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-accent-ink decoration-2 underline-offset-4"
                 >
                   Read the write-up <ArrowUpRight size={14} />
@@ -59,10 +61,16 @@ export function Research() {
               <WallClockBar />
             </Reveal>
             <Reveal>
+              <AgentTime />
+            </Reveal>
+            <Reveal>
               <PrefixCache />
             </Reveal>
             <Reveal>
               <GpuLink />
+            </Reveal>
+            <Reveal>
+              <Rootless />
             </Reveal>
             <Reveal>
               <figure className="overflow-hidden rounded-3xl border border-line bg-surface">
