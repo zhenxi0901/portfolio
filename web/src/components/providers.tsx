@@ -45,7 +45,15 @@ export function usePalette() {
   return ctx;
 }
 
-type TerminalCtx = { open: boolean; setOpen: (v: boolean) => void };
+type TerminalCtx = {
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  /** A command the terminal types for the visitor once it is open, then clears. */
+  pending: string | null;
+  /** Opens the terminal and runs a command in it, e.g. from a "work it as text" button. */
+  runInTerminal: (command: string) => void;
+  clearPending: () => void;
+};
 const TerminalContext = createContext<TerminalCtx | null>(null);
 
 export function useTerminal() {
@@ -84,6 +92,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [paletteOpen]);
 
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   // Once opened it stays mounted, so closing it keeps the session on screen for next time.
   const [terminalUsed, setTerminalUsed] = useState(false);
   const setTerminal = useCallback(
@@ -132,7 +141,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [setTerminal]);
 
   const palette = useMemo(() => ({ open: paletteOpen, setOpen: setPaletteOpen, toggle }), [paletteOpen, setPaletteOpen, toggle]);
-  const terminal = useMemo(() => ({ open: terminalOpen, setOpen: setTerminal }), [terminalOpen, setTerminal]);
+  const runInTerminal = useCallback(
+    (command: string) => {
+      setPending(command);
+      setTerminal(true);
+    },
+    [setTerminal],
+  );
+  const clearPending = useCallback(() => setPending(null), []);
+  const terminal = useMemo(
+    () => ({ open: terminalOpen, setOpen: setTerminal, pending, runInTerminal, clearPending }),
+    [terminalOpen, setTerminal, pending, runInTerminal, clearPending],
+  );
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

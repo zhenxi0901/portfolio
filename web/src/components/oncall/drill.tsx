@@ -3,29 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowCounterClockwise, BellRinging, CheckCircle, MagnifyingGlass, Wrench, XCircle } from "@phosphor-icons/react";
-import type { Check, Move, Scenario } from "@/content/oncall";
+import type { Move, Scenario } from "@/content/oncall";
+import { clock, debrief, idle, lowerFirst, movesNow, paged, pct, play as playMove, spent as spentOf, statusLabel, type DrillState } from "@/lib/drill";
 import { cn } from "@/lib/utils";
-
-type Entry = { move: Move; at: number };
-type Phase = "idle" | "paged" | "mitigated" | "resolved";
-
-function clock(start: string, minutesAfterPage: number) {
-  const [h, m] = start.split(":").map(Number);
-  const t = h * 60 + m + minutesAfterPage;
-  return `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-}
-
-const pct = (x: number) => `${(x * 100).toFixed(2)}%`;
-/** "Raise the API timeout" becomes "raise the API timeout": only the first letter, so acronyms stay. */
-const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 
 export function Drill({ scenario }: { scenario: Scenario }) {
   const at = (minutesAfterPage: number) => clock(scenario.start, minutesAfterPage);
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [minutes, setMinutes] = useState(0);
-  const [log, setLog] = useState<Entry[]>([]);
-  const [mitigatedAt, setMitigatedAt] = useState<number | null>(null);
-  const [silenced, setSilenced] = useState(false);
+  // The rules (what each move does, the clock, the budget, the score) are lib/drill's, shared with
+  // the terminal's `oncall` command; this component draws them.
+  const [s, setS] = useState<DrillState>(idle);
+  const { phase, minutes, log } = s;
   const feed = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
   // Each phase change removes the button that was just pressed, so focus is moved on purpose:
@@ -40,31 +27,17 @@ export function Drill({ scenario }: { scenario: Scenario }) {
 
   const used = new Set(log.map((e) => e.move.id));
   const burning = phase === "paged";
-  const spent = (mitigatedAt ?? minutes) * scenario.burnPerMinute;
+  const spent = spentOf(scenario, s);
 
   const start = () => {
     focusNext.current = "pager";
-    setPhase("paged");
-    setMinutes(0);
-    setLog([]);
-    setMitigatedAt(null);
-    setSilenced(false);
+    setS(paged);
   };
 
   const play = (move: Move) => {
-    const now = minutes + move.minutes;
-    setMinutes(now);
-    setLog((l) => [...l, { move, at: now }]);
-    if (move.effect === "mitigate") {
-      focusNext.current = "verify";
-      setMitigatedAt(now);
-      setPhase("mitigated");
-    }
-    if (move.effect === "silence") setSilenced(true);
-    if (move.effect === "verify") {
-      focusNext.current = "debrief";
-      setPhase("resolved");
-    }
+    if (move.effect === "mitigate") focusNext.current = "verify";
+    if (move.effect === "verify") focusNext.current = "debrief";
+    setS((current) => playMove(current, move));
     requestAnimationFrame(() => feed.current?.scrollTo({ top: 0, behavior: "smooth" }));
   };
 
@@ -88,8 +61,7 @@ export function Drill({ scenario }: { scenario: Scenario }) {
     );
   }
 
-  const looks = scenario.moves.filter((m) => m.kind === "look");
-  const acts = scenario.moves.filter((m) => m.kind === "act" && (m.effect === "verify" ? phase !== "paged" : phase === "paged"));
+  const { looks, acts } = movesNow(scenario, s);
 
   return (
     <div ref={root} className="mt-10 grid gap-4 lg:grid-cols-12">
@@ -105,7 +77,7 @@ export function Drill({ scenario }: { scenario: Scenario }) {
               time. Focus moves to the title on each phase change, and the feed below announces results. */}
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs">
             <span className={phase === "paged" ? "text-critical" : "text-good"}>
-              {phase === "paged" ? (silenced ? "PAGE SILENCED, STILL BURNING" : "PAGE, FIRING") : phase === "mitigated" ? "MITIGATED, VERIFYING" : "RESOLVED"}
+              {statusLabel(s)}
             </span>
             <span className="text-ink-3">paged at {scenario.start}</span>
           </p>
@@ -171,7 +143,7 @@ export function Drill({ scenario }: { scenario: Scenario }) {
             <MoveGroup title={phase === "paged" ? "Act" : "Close out"} icon={<Wrench size={16} />} moves={acts} used={used} onPlay={play} />
           </>
         )}
-        {phase === "resolved" && <Debrief scenario={scenario} log={log} minutes={minutes} spent={spent} onRestart={start} />}
+        {phase === "resolved" && <Debrief scenario={scenario} state={s} onRestart={start} />}
       </div>
     </div>
   );
@@ -220,27 +192,11 @@ function MoveGroup({
   );
 }
 
-function Debrief({ scenario, log, minutes, spent, onRestart }: { scenario: Scenario; log: Entry[]; minutes: number; spent: number; onRestart: () => void }) {
+function Debrief({ scenario, state, onRestart }: { scenario: Scenario; state: DrillState; onRestart: () => void }) {
   const at = (minutesAfterPage: number) => clock(scenario.start, minutesAfterPage);
-  const mitigation = log.findIndex((e) => e.move.effect === "mitigate");
-  const mitigateMinutes = log[mitigation]?.at ?? minutes;
-  // Scored the way a budget policy reads: mitigate first, investigate second. Each scenario says what counts.
-  const score = (c: Check): boolean => {
-    switch (c.kind) {
-      case "before-mitigate":
-        return log.slice(0, mitigation).some((e) => e.move.evidence === c.evidence);
-      case "mitigated-within":
-        return mitigateMinutes <= c.minutes;
-      case "found":
-        return log.some((e) => e.move.evidence !== undefined && c.evidence.includes(e.move.evidence));
-      case "never":
-        return !log.some((e) => e.move.effect === c.effect);
-      case "always":
-        return true;
-    }
-  };
-  const checks = scenario.checks.map((c) => ({ ok: score(c), text: c.text.replace("{m}", String(mitigateMinutes)) }));
-  const wasted = log.filter((e) => e.move.effect === "nothing" || e.move.effect === "silence" || e.move.effect === "refused");
+  const { log, minutes } = state;
+  const { mitigateMinutes, checks, wasted } = debrief(scenario, state);
+  const spent = spentOf(scenario, state);
 
   return (
     <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6">

@@ -305,7 +305,8 @@ export function buildKnowledge(): Fact[] {
     text:
       scenarios.map((s) => `${products[s.product].name}, paged at ${s.start}: ${s.page.title}.`).join(" ") +
       " Each drill uses the platform's own services and dashboards; the objectives behind the pages are proposals or made up for practice, and so is what goes wrong. " +
-      "Every look and every action costs simulated minutes while the error budget burns, and at the end you get a debrief of your own response: the timeline, time to mitigate, budget spent and what went well.",
+      "Every look and every action costs simulated minutes while the error budget burns, and at the end you get a debrief of your own response: the timeline, time to mitigate, budget spent and what went well. " +
+      "The site's terminal runs the same drills as text: type oncall.",
   });
 
   facts.push({
