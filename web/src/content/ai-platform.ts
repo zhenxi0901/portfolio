@@ -273,10 +273,12 @@ export const measures: Measure[] = [
   },
 ];
 
+// Numbers about this platform only. (The prefix-cache figure that used to sit here is from the
+// ARIES research, and lives in the Research section and the trace tab that explains it.)
 export const aiStats = [
+  { value: "2", label: "AI products: an operations agent and a document assistant" },
   { value: "3", label: "environments deployed the same way: dev, staging and production" },
   { value: "2,014", label: "BMS devices in the 50-storey demo building I built for the agents to query" },
-  { value: "96%", label: "of agent input tokens served from the prefix cache in my research" },
 ];
 
 /** The AI infrastructure layer by layer: what is used, what it does, and which parts are mine. */

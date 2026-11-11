@@ -1,19 +1,38 @@
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { cases } from "@/content/profile";
+import { productOrder, products, type ProductKey } from "@/content/products";
+import { Reveal } from "@/components/motion/reveal";
+import { productIcon, productTone } from "@/components/site/product-tag";
 import { SectionHeading } from "@/components/site/section-heading";
 import { CaseCard } from "@/components/work/case-card";
 import { caseViz } from "@/components/work/case-viz";
-import { ProductKey } from "@/components/work/product-key";
+import { ProductKey as ProductLegend } from "@/components/work/product-key";
+import { cn } from "@/lib/utils";
 
-const byId = Object.fromEntries(cases.map((c) => [c.id, c]));
-const {
-  gke: GkeViz,
-  pipeline: PipelineViz,
-  reaper: ReaperViz,
-  observability: AlertsViz,
-  control: ControlViz,
-  "two-step": TwoStepViz,
-  "ai-platform": AiViz,
-} = caseViz;
+type Tone = "plain" | "dots" | "tint" | "raised";
+
+/** Where each card sits in its product's 12-column grid. A card with no entry takes half a row. */
+const placement: Record<string, { span: string; tone?: Tone; wide?: boolean }> = {
+  gke: { span: "lg:col-span-7 lg:row-span-2", tone: "dots" },
+  pipeline: { span: "lg:col-span-5", tone: "raised" },
+  reaper: { span: "lg:col-span-5" },
+  observability: { span: "lg:col-span-5", tone: "raised" },
+  control: { span: "lg:col-span-7", tone: "dots" },
+  "two-step": { span: "lg:col-span-12", wide: true },
+  "ai-platform": { span: "lg:col-span-12", tone: "tint", wide: true },
+};
+
+/** Each product's deeper section further down the page. */
+const deeper: Partial<Record<ProductKey, string>> = {
+  iot: "Inside the platform: traffic, SLOs, cost",
+  ai: "The platform up close: follow a request",
+};
+
+// One group per product, in the order the legend lists them. A case belongs to its first product.
+const groups = productOrder.map((p) => ({ p, studies: cases.filter((c) => c.products[0] === p) })).filter((g) => g.studies.length > 0);
+
+const numerals = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+const count = (n: number) => numerals[n] ?? String(n);
 
 export function Work() {
   return (
@@ -24,32 +43,58 @@ export function Work() {
             Production work you can <span className="text-accent-ink">play with</span>.
           </>
         }
-        lead="Seven things I shipped at Primustech, on its two products. Each card is a small working model of the real system. Press the buttons."
+        lead={`${count(cases.length)} things I shipped at Primustech, grouped by the product each one belongs to. Each card is a small working model of the real system. Press the buttons.`}
       />
-      <ProductKey />
-      <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-12 ">
-        <CaseCard study={byId.gke} tone="dots" className="lg:col-span-7 lg:row-span-2">
-          <GkeViz />
-        </CaseCard>
-        <CaseCard study={byId.pipeline} tone="raised" className="lg:col-span-5">
-          <PipelineViz />
-        </CaseCard>
-        <CaseCard study={byId.reaper} className="lg:col-span-5">
-          <ReaperViz />
-        </CaseCard>
-        <CaseCard study={byId.observability} tone="raised" className="lg:col-span-5">
-          <AlertsViz />
-        </CaseCard>
-        <CaseCard study={byId.control} tone="dots" className="lg:col-span-7">
-          <ControlViz />
-        </CaseCard>
-        <CaseCard study={byId["two-step"]} className="lg:col-span-6">
-          <TwoStepViz />
-        </CaseCard>
-        <CaseCard study={byId["ai-platform"]} tone="tint" className="lg:col-span-6">
-          <AiViz />
-        </CaseCard>
-      </div>
+      <ProductLegend />
+
+      {groups.map(({ p, studies }) => {
+        const Icon = productIcon[p];
+        const tone = productTone[p];
+        return (
+          <div key={p} id={`work-${p}`} className="mt-16 scroll-mt-24" role="group" aria-labelledby={`work-${p}-title`}>
+            <Reveal>
+              <div className={cn("flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b pb-4", tone.border)}>
+                <div className="flex items-center gap-3.5">
+                  <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", tone.soft, tone.text)}>
+                    <Icon size={22} weight="duotone" aria-hidden />
+                  </span>
+                  <div>
+                    <p className="font-mono text-[11px] text-ink-3">
+                      {products[p].org} · {products[p].runs}
+                    </p>
+                    <h3 id={`work-${p}-title`} className="text-2xl font-semibold tracking-[-0.03em] sm:text-[1.7rem]">
+                      {products[p].name}
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                  <span className={cn("font-mono text-xs", tone.text)}>
+                    {studies.length} case {studies.length === 1 ? "study" : "studies"}
+                  </span>
+                  {deeper[p] && (
+                    <a href={`#${products[p].anchor}`} className="group inline-flex items-center gap-1.5 text-ink-2 transition-colors hover:text-ink">
+                      {deeper[p]}
+                      <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </Reveal>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-12">
+              {studies.map((study) => {
+                const { span, tone: cardTone, wide } = placement[study.id] ?? { span: "lg:col-span-6" };
+                const Viz = caseViz[study.id];
+                return (
+                  <CaseCard key={study.id} study={study} tone={cardTone} wide={wide} className={span}>
+                    {Viz && <Viz />}
+                  </CaseCard>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </section>
   );
 }
