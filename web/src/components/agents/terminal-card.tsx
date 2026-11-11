@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { parseAnsi } from "@/lib/ansi";
 import { API_BASE } from "@/lib/api";
+import { withTimeout } from "@/lib/signal";
 import { SITE_URL } from "@/lib/site";
 
 /** What `curl <site>` prints right now, fetched from the same handler at /api/card.txt. */
@@ -12,7 +13,7 @@ export function TerminalCard() {
 
   useEffect(() => {
     let alive = true;
-    fetch(`${API_BASE}/api/card.txt`)
+    fetch(`${API_BASE}/api/card.txt`, { signal: withTimeout(undefined) })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
       .then((t) => {
         if (!alive) return;
@@ -27,7 +28,7 @@ export function TerminalCard() {
 
   return (
     <figure className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
-      <figcaption className="font-mono text-[11px] text-ink-3" aria-live="polite">
+      <figcaption className="font-mono text-[11px] text-ink-3">
         {state === "live" && "fetched just now · the same text curl gets"}
         {state === "loading" && "asking the server…"}
         {state === "offline" && "the server did not answer · run the command yourself"}

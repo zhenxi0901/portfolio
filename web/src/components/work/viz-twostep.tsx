@@ -94,11 +94,14 @@ export function TwoStepViz() {
         <Button
           size="sm"
           variant="secondary"
+          // aria-disabled, not disabled: a button that disables itself while focused drops keyboard focus.
           onClick={() => {
+            if (!send && !require) return;
             setSend(false);
             setRequire(false);
           }}
-          disabled={!send && !require}
+          aria-disabled={!send && !require}
+          className="aria-disabled:opacity-50"
         >
           <ArrowCounterClockwise /> Reset
         </Button>

@@ -13,8 +13,10 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zhenxi0901/portfolio/api/internal/ask"
+	"github.com/zhenxi0901/portfolio/api/internal/slo"
 )
 
 func newTestServer(t *testing.T) (*httptest.Server, Config) {
@@ -441,5 +443,157 @@ func TestFactURL(t *testing.T) {
 	}
 	if got := factURL("https://x.test", ask.Fact{ID: "fyp", Anchor: "research"}); got != "https://x.test/#research" {
 		t.Errorf("section fact: %s", got)
+	}
+}
+
+// callTool calls one MCP tool the way an older client would, and returns its text and data.
+func callTool(t *testing.T, url, name, args string) (string, map[string]any, bool) {
+	t.Helper()
+	_, out := rpc(t, url, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"`+name+`","arguments":`+args+`}}`, map[string]string{"MCP-Protocol-Version": "2025-06-18"})
+	res, ok := out["result"].(map[string]any)
+	if !ok {
+		t.Fatalf("%s: no result: %v", name, out)
+	}
+	text := res["content"].([]any)[0].(map[string]any)["text"].(string)
+	data, _ := res["structuredContent"].(map[string]any)
+	return text, data, res["isError"] == true
+}
+
+// next dev runs the pages on another origin; the MCP endpoint has to answer it like the API does.
+func TestMCPFromAnAllowedOrigin(t *testing.T) {
+	ts, _ := newTestServer(t)
+	pre, _ := http.NewRequest(http.MethodOptions, ts.URL+"/mcp", nil)
+	pre.Header.Set("Origin", "http://localhost:3000")
+	pre.Header.Set("Access-Control-Request-Method", "POST")
+	pre.Header.Set("Access-Control-Request-Headers", "content-type, mcp-protocol-version, mcp-method, mcp-name")
+	resp, err := http.DefaultClient.Do(pre)
+	must(t, err)
+	resp.Body.Close()
+	allow := resp.Header.Get("Access-Control-Allow-Headers")
+	if resp.StatusCode != http.StatusNoContent || resp.Header.Get("Access-Control-Allow-Origin") != "http://localhost:3000" || !strings.Contains(allow, "Mcp-Method") || !strings.Contains(allow, "Mcp-Name") {
+		t.Fatalf("preflight: %d ACAO %q allow %q", resp.StatusCode, resp.Header.Get("Access-Control-Allow-Origin"), allow)
+	}
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}`))
+	req.Header.Set("Origin", "http://localhost:3000")
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	must(t, err)
+	resp.Body.Close()
+	if resp.StatusCode != 200 || resp.Header.Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+		t.Errorf("POST from the allowed origin: %d ACAO %q", resp.StatusCode, resp.Header.Get("Access-Control-Allow-Origin"))
+	}
+}
+
+// The home page goes to terminals only when they do not ask for HTML, judged as HTTP means it.
+func TestTerminalAcceptHeader(t *testing.T) {
+	ts, _ := newTestServer(t)
+	get := func(method, accept string) (int, string) {
+		req, _ := http.NewRequest(method, ts.URL+"/", nil)
+		req.Header.Set("User-Agent", "curl/8.5.0")
+		if accept != "" {
+			req.Header.Set("Accept", accept)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		must(t, err)
+		resp.Body.Close()
+		return resp.StatusCode, resp.Header.Get("Content-Type")
+	}
+	for accept, wantText := range map[string]bool{
+		"":                           true,
+		"*/*":                        true,
+		"text/html;q=0, text/plain":  true,
+		"text/html; q=0.0":           true,
+		"TEXT/HTML":                  false,
+		"text/plain, text/html;q=.5": false,
+	} {
+		_, ct := get(http.MethodGet, accept)
+		if gotText := strings.HasPrefix(ct, "text/plain"); gotText != wantText {
+			t.Errorf("Accept %q: got %s, want text card %v", accept, ct, wantText)
+		}
+	}
+	if code, ct := get(http.MethodHead, ""); code != 200 || !strings.HasPrefix(ct, "text/plain") {
+		t.Errorf("HEAD from curl: %d %s", code, ct)
+	}
+}
+
+// A copy of the site running anywhere but Cloud Run says so, rather than claiming to be live.
+func TestStatusToolOnALocalCopy(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.Region = "local"
+	ts := startServer(t, cfg)
+	text, data, _ := callTool(t, ts.URL, "get_status", `{}`)
+	if !strings.Contains(text, "local copy") || strings.Contains(text, "Cloud Run") || data["local"] != true {
+		t.Errorf("local get_status: %s %v", text, data)
+	}
+}
+
+func TestSLOSummary(t *testing.T) {
+	read := time.Date(2026, 10, 19, 6, 0, 0, 0, time.UTC)
+	since := read.Add(-48 * time.Hour)
+	fresh := slo.Report{Available: true, Availability: 0.9999, BudgetRemaining: 0.9, Releases: "open", Updated: read, Since: &since}
+	text, data := sloSummary(fresh)
+	if !strings.Contains(text, "99.990%") || strings.Contains(text, "last good") || data["updated"] != "2026-10-19T06:00:00Z" {
+		t.Errorf("fresh: %s %v", text, data)
+	}
+	stale := fresh
+	stale.Stale = true
+	if text, data := sloSummary(stale); !strings.Contains(text, "last good numbers, read 19 Oct 06:00 UTC") || data["stale"] != true {
+		t.Errorf("stale: %s %v", text, data)
+	}
+	if text, data := sloSummary(slo.Report{Reason: "Measurements are unavailable right now."}); !strings.Contains(text, "unavailable right now") || data["available"] != false {
+		t.Errorf("unavailable: %s %v", text, data)
+	}
+}
+
+// search_facts takes any whole number from 1 to 5, and says what it got when it refuses.
+func TestSearchFactsLimit(t *testing.T) {
+	ts, _ := newTestServer(t)
+	for args, want := range map[string]string{
+		`{"query":"kafka","limit":5.0}`:  "",
+		`{"query":"kafka","limit":null}`: "",
+		`{"query":"kafka","limit":"5"}`:  `got "5"`,
+		`{"query":"kafka","limit":1e9}`:  `got 1e9`,
+		`{"query":"kafka","limit":2.5}`:  `got 2.5`,
+		`{"query":"kafka","limit":0}`:    `got 0`,
+	} {
+		text, _, isErr := callTool(t, ts.URL, "search_facts", args)
+		if want == "" && isErr {
+			t.Errorf("%s refused: %s", args, text)
+		}
+		if want != "" && (!isErr || !strings.Contains(text, want)) {
+			t.Errorf("%s: %q, want an error with %q", args, text, want)
+		}
+	}
+}
+
+// get_delivery rounds like the site, and only claims the numbers for this build when they are.
+func TestDeliveryTool(t *testing.T) {
+	for head, wantBuilt := range map[string]bool{"abcdef1": true, "0123456": false} {
+		cfg := testConfig(t)
+		raw := `{"windowDays":30,"deploys":8,"leadTimeMinutes":{"median":4.2,"commits":9},"changeFailureRate":0.125,` +
+			`"safeguards":{"lastDrill":null},"head":{"sha":"` + head + `","title":"t","committed":"2026-10-19T10:00:00Z"}}`
+		must(t, os.WriteFile(filepath.Join(cfg.StaticDir, "delivery.json"), []byte(raw), 0o644))
+		ts := startServer(t, cfg)
+		text, data, _ := callTool(t, ts.URL, "get_delivery", `{}`)
+		if !strings.Contains(text, "Change failure rate: 13%.") {
+			t.Errorf("rounding: %s", text)
+		}
+		_, built := data["built_from"]
+		if built != wantBuilt || strings.Contains(text, "when it built this image") != wantBuilt {
+			t.Errorf("head %s: built_from %v, text %q", head, built, text)
+		}
+	}
+}
+
+// A small Markdown file is served without a compressed variant; its type must not depend on the OS.
+func TestMarkdownType(t *testing.T) {
+	cfg := testConfig(t)
+	must(t, os.WriteFile(filepath.Join(cfg.StaticDir, "notes.md"), []byte("# hi\n"), 0o644))
+	ts := startServer(t, cfg)
+	resp, err := http.Get(ts.URL + "/notes.md")
+	must(t, err)
+	resp.Body.Close()
+	if ct := resp.Header.Get("Content-Type"); ct != "text/markdown; charset=utf-8" {
+		t.Errorf("notes.md: %s", ct)
 	}
 }

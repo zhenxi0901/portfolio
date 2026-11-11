@@ -77,6 +77,11 @@ func staticHandler(dir string) http.Handler {
 			return
 		}
 
+		// The plain file gets its type from the same table as its variants. Left to net/http it would
+		// come from the OS's MIME list, which in some images has no .md, so Markdown went out as text/plain.
+		if ct := contentTypes[path.Ext(name)]; ct != "" {
+			w.Header().Set("Content-Type", ct)
+		}
 		if name == "index.html" {
 			// Pass the original request: both FileServer and ServeFileFS redirect paths ending in /index.html.
 			http.ServeFileFS(w, r, root, name)

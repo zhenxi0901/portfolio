@@ -30,7 +30,7 @@ function Badge({ kind }: { kind: ProofKind }) {
   );
 }
 
-function ClaimCard({ c }: { c: Claim }) {
+function ClaimCard({ c, id }: { c: Claim; id: string }) {
   return (
     <li className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -39,17 +39,19 @@ function ClaimCard({ c }: { c: Claim }) {
           claimed in: {c.seen.label}
         </a>
       </div>
-      <h3 className="mt-3 max-w-[60ch] text-lg font-semibold leading-snug tracking-[-0.02em]">{c.claim}</h3>
+      <h3 id={id} className="mt-3 max-w-[60ch] text-lg font-semibold leading-snug tracking-[-0.02em]">
+        {c.claim}
+      </h3>
       <p className="mt-2 max-w-[70ch] text-[15px] leading-relaxed text-ink-2">{c.proof}</p>
 
-      {c.check && <LiveCheck kind={c.check} />}
+      {c.check && <LiveCheck kind={c.check} describedBy={id} />}
 
       {c.command && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <code tabIndex={0} className="min-w-0 flex-1 basis-64 overflow-x-auto whitespace-nowrap rounded-[14px] border border-line bg-bg px-3.5 py-2 font-mono text-xs text-ink-2">
             {c.command}
           </code>
-          <CopyButton text={c.command} label="Copy" />
+          <CopyButton text={c.command} label="Copy" describedBy={id} />
         </div>
       )}
 
@@ -106,8 +108,8 @@ export default function EvidencePage() {
         <Part key={g.id} title={g.title} aside={`${g.claims.length} claims`}>
           <p className="mb-5 max-w-[68ch] text-[15px] leading-relaxed text-ink-2">{g.lead}</p>
           <ul className="space-y-3">
-            {g.claims.map((c) => (
-              <ClaimCard key={c.claim} c={c} />
+            {g.claims.map((c, k) => (
+              <ClaimCard key={c.claim} c={c} id={`claim-${g.id}-${k}`} />
             ))}
           </ul>
         </Part>

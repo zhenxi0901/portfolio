@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CircleNotch } from "@phosphor-icons/react";
 import { agentTools } from "@/content/agents";
 import { mcpRequest, type McpExchange as Exchange, type McpField as Field, type McpTool as LiveTool } from "@/lib/mcp-client";
+import { onTabKeys } from "@/lib/tabs";
 import { cn } from "@/lib/utils";
 
 function startArgs(name: string): Record<string, string> {
@@ -22,6 +23,8 @@ export function Console() {
   const [busy, setBusy] = useState(false);
   const [exchange, setExchange] = useState<Exchange | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  // Numbers each call; an answer for an earlier one (the visitor picked another tool meanwhile) is dropped.
+  const latest = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -47,6 +50,8 @@ export function Console() {
   const fields = Object.entries(tool.inputSchema?.properties ?? fallback);
 
   const pick = (next: string) => {
+    latest.current++;
+    setBusy(false);
     setName(next);
     setArgs(startArgs(next));
     setExchange(null);
@@ -62,11 +67,15 @@ export function Console() {
       const v = (args[key] ?? "").trim();
       if (v !== "") typed[key] = isNumber(field) ? Number(v) : v;
     }
+    const call = ++latest.current;
     try {
-      setExchange(await mcpRequest("tools/call", { name: tool.name, arguments: typed }, tool.name));
+      const x = await mcpRequest("tools/call", { name: tool.name, arguments: typed }, tool.name);
+      if (call !== latest.current) return;
+      setExchange(x);
     } catch {
+      if (call !== latest.current) return;
       setExchange(null);
-      setFailed("The request did not reach the server. Check your connection and try again.");
+      setFailed("The request did not get an answer. Check your connection and try again.");
     }
     setBusy(false);
   };
@@ -80,14 +89,19 @@ export function Console() {
 
   return (
     <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
-      <p className="font-mono text-[11px] text-ink-3" aria-live="polite">
+      <p className="font-mono text-[11px] text-ink-3">
         {listed === "live" && `${tools.length} tools · names, descriptions and inputs read from tools/list just now`}
         {listed === "loading" && "asking the server for its tools…"}
         {listed === "offline" && "the server did not answer tools/list · showing the names this page was built with"}
       </p>
 
       <div className="mt-4 grid gap-5 lg:grid-cols-[15rem_1fr]">
-        <div role="tablist" aria-label="Tools" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+        <div
+          role="tablist"
+          aria-label="Tools"
+          onKeyDown={(e) => onTabKeys(e, tools.length, tools.indexOf(tool), (i) => pick(tools[i].name))}
+          className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible"
+        >
           {tools.map((t) => (
             <button
               key={t.name}
@@ -96,6 +110,7 @@ export function Console() {
               id={`tool-tab-${t.name}`}
               aria-selected={t.name === tool.name}
               aria-controls="tool-panel"
+              tabIndex={t.name === tool.name ? 0 : -1}
               onClick={() => pick(t.name)}
               className={cn(
                 "shrink-0 rounded-2xl border px-3.5 py-2.5 text-left transition-colors",
@@ -135,7 +150,7 @@ export function Console() {
                     value={args[key] ?? ""}
                     onChange={(e) => setArgs((a) => ({ ...a, [key]: e.target.value }))}
                     className={cn(
-                      "mt-1 block h-11 rounded-[14px] border border-line-strong bg-bg px-3.5 text-[15px] text-ink",
+                      "mt-1 block h-11 rounded-[14px] border border-line-strong bg-bg px-3.5 text-base text-ink sm:text-[15px]",
                       isNumber(field) ? "w-28" : "w-full",
                     )}
                   />
@@ -154,7 +169,11 @@ export function Console() {
             </button>
           </form>
 
-          <div aria-live="polite">
+          {/* One short line for screen readers; the request and answer below are there to read, not to be read out. */}
+          <p role="status" className="sr-only">
+            {busy ? `Calling ${tool.name}` : exchange ? `${tool.name}: HTTP ${exchange.status}, ${Math.round(exchange.ms)} ms${error || rejected ? ", with an error" : ""}` : (failed ?? "")}
+          </p>
+          <div>
             {failed && <p className="mt-4 text-sm text-critical">{failed}</p>}
             {exchange && (
               <div className="mt-5 space-y-3">

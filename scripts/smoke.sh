@@ -13,7 +13,7 @@ check() { # name, command
 }
 echo "Smoke test against $BASE"
 check "health (/api/health)"         "curl -fsS $BASE/api/health | grep ok"
-check "home page has the name"      "curl -fsS $HTML $BASE/ | grep '<title>' | grep 'Li ZhenXi'"
+check "home page has the name"      "curl -fsS $HTML $BASE/ | grep -o '<title>[^<]*</title>' | grep 'Li ZhenXi'"
 check "curl gets the text card"     "curl -fsS $BASE/ | grep 'This page is a live service'"
 check "knowledge.json served"       "curl -fsS $BASE/knowledge.json | grep case-reaper"
 check "unknown page is 404"         "test \$(curl -s -o /dev/null -w '%{http_code}' $BASE/does-not-exist) = 404"
@@ -31,11 +31,20 @@ asset_immutable() {
 }
 check "hashed assets immutable"     "asset_immutable"
 check "pages sent compressed"       "curl -fsS -o /dev/null -D - $HTML -H 'Accept-Encoding: br, gzip' $BASE/ | grep -i '^content-encoding: br'"
-# The site as an MCP server: an older client's handshake, then a tool call in the current protocol.
+# The site as an MCP server, in both protocol eras. Each check looks for something only its own era
+# sends, so a request quietly served by the other side fails: an older client's handshake and tool
+# call (no resultType), then the current revision's discovery and tool call (resultType).
 mcp() { curl -fsS -X POST "$BASE/mcp" -H 'Content-Type: application/json' "$@"; }
-check "MCP handshake (legacy)"      "mcp -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}}}' | grep '\"protocolVersion\":\"2025-06-18\"'"
-META='\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}'
-check "MCP tool call (2026-07-28)"  "mcp -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/call' -H 'Mcp-Name: ask' -d '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"ask\",\"arguments\":{\"question\":\"How did you cut the cloud bill?\"},'\"$META\"'}}' | grep 15%"
+META='"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}'
+ASK='"name":"ask","arguments":{"question":"How did you cut the cloud bill?"}'
+mcp_old_handshake() { mcp -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}' | grep '"protocolVersion":"2025-06-18"'; }
+mcp_old_call() { mcp -H 'MCP-Protocol-Version: 2025-06-18' -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{$ASK}}" | grep 15% | grep -v resultType; }
+mcp_discover() { mcp -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: server/discover' -d "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"server/discover\",\"params\":{$META}}" | grep '"supportedVersions":\["2026-07-28"'; }
+mcp_call() { mcp -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/call' -H 'Mcp-Name: ask' -d "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{$ASK,$META}}" | grep '"resultType":"complete"' | grep 15%; }
+check "MCP handshake (2025-06-18)"  "mcp_old_handshake"
+check "MCP tool call (2025-06-18)"  "mcp_old_call"
+check "MCP discovery (2026-07-28)"  "mcp_discover"
+check "MCP tool call (2026-07-28)"  "mcp_call"
 check "llms.txt and a Markdown page" "curl -fsS $BASE/llms.txt | grep '/md/work/gke.md' && curl -fsS $BASE/md/work/gke.md | grep '^# '"
 check "metrics exposed"             "curl -fsS $BASE/metrics | grep portfolio_build_info"
 exit $fail

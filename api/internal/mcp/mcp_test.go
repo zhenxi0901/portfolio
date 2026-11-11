@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testServer() *Server {
@@ -27,7 +28,7 @@ func testServer() *Server {
 	}})
 }
 
-type reply struct {
+type answer struct {
 	ID     any `json:"id"`
 	Result struct {
 		ResultType        string                        `json:"resultType"`
@@ -47,7 +48,7 @@ type reply struct {
 	} `json:"error"`
 }
 
-func do(t *testing.T, s *Server, method, body string, headers map[string]string) (int, reply, string) {
+func do(t *testing.T, s *Server, method, body string, headers map[string]string) (int, answer, string) {
 	t.Helper()
 	req := httptest.NewRequest(method, "http://site.test/mcp", strings.NewReader(body))
 	for k, v := range headers {
@@ -55,7 +56,7 @@ func do(t *testing.T, s *Server, method, body string, headers map[string]string)
 	}
 	rec := httptest.NewRecorder()
 	s.ServeHTTP(rec, req)
-	var r reply
+	var r answer
 	_ = json.Unmarshal(rec.Body.Bytes(), &r)
 	return rec.Code, r, rec.Body.String()
 }
@@ -130,7 +131,13 @@ func TestModernRejections(t *testing.T) {
 			modern("tools/list"), 400, -32602},
 		"modern header, nothing in the body": {`{"jsonrpc":"2.0","id":1,"method":"tools/list"}`, modern("tools/list"), 400, -32602},
 		"unknown method":                     {`{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{` + meta + `}}`, modern("resources/list"), 404, -32601},
-		"unknown tool":                       {`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"nope",` + meta + `}}`, modern("tools/call", "Mcp-Name", "nope"), 400, -32602},
+		// A problem with the call itself is 200 with an error: a bare 4xx would tell the client to
+		// fall back to the legacy transport.
+		"unknown tool":     {`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"nope",` + meta + `}}`, modern("tools/call", "Mcp-Name", "nope"), 200, -32602},
+		"no tool name":     {`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{` + meta + `}}`, modern("tools/call"), 200, -32602},
+		"ping, now gone":   {`{"jsonrpc":"2.0","id":1,"method":"ping","params":{` + meta + `}}`, modern("ping"), 404, -32601},
+		"bad base64 name":  {`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo",` + meta + `}}`, modern("tools/call", "Mcp-Name", "=?base64?***?="), 400, -32020},
+		"version not text": {`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":7}}}`, modern("tools/list"), 400, -32602},
 	} {
 		code, r, body := do(t, s, "POST", c.body, c.headers)
 		if code != c.status || r.Error == nil || r.Error.Code != c.code {
@@ -197,7 +204,7 @@ func TestTransportRules(t *testing.T) {
 		"a foreign browser origin":   {list, map[string]string{"Origin": "https://evil.example"}, 403},
 		"the site's own origin":      {list, map[string]string{"Origin": "http://site.test"}, 200},
 		"no origin (not a browser)":  {list, nil, 200},
-		"a batch":                    {`[` + list + `]`, nil, 400},
+		"a batch from 2025-06-18 on": {`[` + list + `]`, map[string]string{"MCP-Protocol-Version": "2025-06-18"}, 400},
 		"not JSON":                   {`{`, nil, 400},
 		"not JSON-RPC 2.0":           {`{"id":1,"method":"tools/list"}`, nil, 400},
 		"a null id":                  {`{"jsonrpc":"2.0","id":null,"method":"tools/list"}`, nil, 400},
@@ -210,5 +217,136 @@ func TestTransportRules(t *testing.T) {
 	s.AllowedOrigins = []string{"https://inspector.example"}
 	if code, _, _ := do(t, s, "POST", list, map[string]string{"Origin": "https://inspector.example"}); code != 200 {
 		t.Errorf("an allowed origin was refused: %d", code)
+	}
+}
+
+// A client on another revision, older or newer, is told which versions this server speaks before
+// any rule of 2026-07-28 is applied to its request.
+func TestVersionIsSettledFirst(t *testing.T) {
+	s := testServer()
+	future := `"_meta":{"io.modelcontextprotocol/protocolVersion":"2027-01-01"}`
+	for name, h := range map[string]map[string]string{
+		"no capabilities and no Mcp-Method": {"MCP-Protocol-Version": "2027-01-01"},
+		"everything but the version right":  {"MCP-Protocol-Version": "2027-01-01", "Mcp-Method": "tools/list"},
+	} {
+		code, r, body := do(t, s, "POST", `{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{`+future+`}}`, h)
+		if code != 400 || r.Error == nil || r.Error.Code != -32022 || r.Error.Data["requested"] != "2027-01-01" {
+			t.Errorf("%s: %d %s, want 400 with -32022", name, code, body)
+		}
+	}
+	// Only the header names a version: still a version question first.
+	if code, r, body := do(t, s, "POST", `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`, map[string]string{"MCP-Protocol-Version": "2027-01-01"}); code != 400 || r.Error == nil || r.Error.Code != -32022 {
+		t.Errorf("header-only future version: %d %s", code, body)
+	}
+	// A handshake revision sent in the stateless shape is pointed at initialize.
+	_, r, _ := do(t, s, "POST", `{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2025-11-25","io.modelcontextprotocol/clientCapabilities":{}}}}`, map[string]string{"MCP-Protocol-Version": "2025-11-25", "Mcp-Method": "tools/list"})
+	if r.Error == nil || r.Error.Code != -32022 || !strings.Contains(r.Error.Message, "initialize") {
+		t.Errorf("legacy version in the modern shape: %+v", r.Error)
+	}
+	// A version header that is not a date is not compared as one.
+	if code, _, body := do(t, s, "POST", `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`, map[string]string{"MCP-Protocol-Version": "latest"}); code != 400 || !strings.Contains(body, "Unsupported MCP-Protocol-Version 'latest'") {
+		t.Errorf("non-date header: %d %s", code, body)
+	}
+}
+
+// The shape of a request is checked before anything is done with it, and an error always carries
+// the id: the request's when it could be read, null when it could not.
+func TestRequestShape(t *testing.T) {
+	s := testServer()
+	h := map[string]string{"MCP-Protocol-Version": "2025-06-18"}
+	for name, c := range map[string]struct {
+		body   string
+		code   int
+		withID bool
+	}{
+		"an object as id":        {`{"jsonrpc":"2.0","id":{"a":1},"method":"tools/list"}`, -32600, false},
+		"true as id":             {`{"jsonrpc":"2.0","id":true,"method":"tools/list"}`, -32600, false},
+		"an array as id":         {`{"jsonrpc":"2.0","id":[1],"method":"tools/list"}`, -32600, false},
+		"a fraction as id":       {`{"jsonrpc":"2.0","id":1.5,"method":"tools/list"}`, -32600, false},
+		"an exponent as id":      {`{"jsonrpc":"2.0","id":1e3,"method":"tools/list"}`, -32600, false},
+		"a number as method":     {`{"jsonrpc":"2.0","id":7,"method":5}`, -32600, true},
+		"a number as jsonrpc":    {`{"jsonrpc":2.0,"id":7,"method":"tools/list"}`, -32600, true},
+		"an array as params":     {`{"jsonrpc":"2.0","id":7,"method":"tools/list","params":[1]}`, -32602, true},
+		"a number, not a object": {`5`, -32600, false},
+		"not JSON at all":        {`{"jsonrpc"`, -32700, false},
+	} {
+		code, r, body := do(t, s, "POST", c.body, h)
+		if code != 400 || r.Error == nil || r.Error.Code != c.code {
+			t.Errorf("%s: %d %s, want 400 with %d", name, code, body, c.code)
+			continue
+		}
+		if want := `"id":null`; !c.withID && !strings.Contains(body, want) {
+			t.Errorf("%s: error without %s: %s", name, want, body)
+		}
+		if c.withID && r.ID != float64(7) {
+			t.Errorf("%s: lost the id: %s", name, body)
+		}
+	}
+	// Valid ids of both kinds are echoed as sent.
+	for _, id := range []string{`"abc"`, `-3`, `12345678901234567890`} {
+		if _, _, body := do(t, s, "POST", `{"jsonrpc":"2.0","id":`+id+`,"method":"tools/list"}`, h); !strings.Contains(body, `"id":`+id) {
+			t.Errorf("id %s not echoed: %s", id, body)
+		}
+	}
+	// JSON-RPC is UTF-8; a body that is not is refused rather than echoed back broken.
+	if code, r, _ := do(t, s, "POST", "{\"jsonrpc\":\"2.0\",\"id\":\"\xff\",\"method\":\"tools/list\"}", h); code != 400 || r.Error == nil || r.Error.Code != -32700 {
+		t.Errorf("invalid UTF-8: %d %+v", code, r.Error)
+	}
+}
+
+// 2025-03-26 required servers to accept batches. Its clients send no version header; later
+// revisions removed batches, and the stateless one never had them.
+func TestBatches(t *testing.T) {
+	s := testServer()
+	post := func(body string, h map[string]string) (int, string) {
+		code, _, out := do(t, s, "POST", body, h)
+		return code, out
+	}
+	list := `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`
+	note := `{"jsonrpc":"2.0","method":"notifications/initialized"}`
+
+	code, body := post(`[`+list+`,`+note+`,{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"echo","arguments":{"text":"b"}}}]`, nil)
+	var out []answer
+	if err := json.Unmarshal([]byte(body), &out); err != nil || code != 200 || len(out) != 2 {
+		t.Fatalf("batch: %d %s", code, body)
+	}
+	if len(out[0].Result.Tools) != 1 || out[1].Result.Content[0].Text != "b via http://site.test" {
+		t.Errorf("batch answers: %s", body)
+	}
+	if code, body := post(`[`+note+`,`+note+`]`, nil); code != 202 || body != "" {
+		t.Errorf("all notifications: %d %q, want 202 and no body", code, body)
+	}
+	if code, _ := post(`[`+list+`]`, map[string]string{"MCP-Protocol-Version": "2025-03-26"}); code != 200 {
+		t.Errorf("batch with the 2025-03-26 header: %d", code)
+	}
+	for name, c := range map[string]struct {
+		body string
+		h    map[string]string
+	}{
+		"empty":                    {`[]`, nil},
+		"too many":                 {`[` + strings.TrimSuffix(strings.Repeat(list+",", maxBatch+1), ",") + `]`, nil},
+		"from a later revision":    {`[` + list + `]`, map[string]string{"MCP-Protocol-Version": "2025-11-25"}},
+		"from the modern revision": {`[` + list + `]`, map[string]string{"MCP-Protocol-Version": Modern}},
+	} {
+		if code, body := post(c.body, c.h); code != 400 {
+			t.Errorf("%s: %d %.120s, want 400", name, code, body)
+		}
+	}
+	// Inside a batch, a stateless request and initialize each get their own error.
+	code, body = post(`[{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{`+meta+`}},{"jsonrpc":"2.0","id":2,"method":"initialize"}]`, nil)
+	if code != 200 || strings.Count(body, `"code":-32600`) != 2 {
+		t.Errorf("modern request and initialize in a batch: %d %s", code, body)
+	}
+}
+
+func TestTooManyRequests(t *testing.T) {
+	rec := httptest.NewRecorder()
+	TooManyRequests(rec, 60, 12500*time.Millisecond)
+	var r answer
+	if err := json.Unmarshal(rec.Body.Bytes(), &r); err != nil || rec.Code != 429 || r.Error == nil || r.Error.Code != -32000 || rec.Header().Get("Retry-After") != "13" {
+		t.Errorf("rate limit answer: %d %s Retry-After %q", rec.Code, rec.Body.String(), rec.Header().Get("Retry-After"))
+	}
+	if !strings.Contains(rec.Body.String(), `"id":null`) {
+		t.Errorf("rate limit answer has no null id: %s", rec.Body.String())
 	}
 }
