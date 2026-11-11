@@ -17,7 +17,7 @@ const isNumber = (f: Field) => f.type === "integer" || f.type === "number";
 /** A small MCP client in the page: lists the server's tools, then calls the one you pick. */
 export function Console() {
   const [live, setLive] = useState<LiveTool[] | null>(null);
-  const [listed, setListed] = useState<"loading" | "live" | "offline">("loading");
+  const [listed, setListed] = useState<"loading" | "live" | "offline" | "limited">("loading");
   const [name, setName] = useState(agentTools[0].name);
   const [args, setArgs] = useState<Record<string, string>>(() => startArgs(agentTools[0].name));
   const [busy, setBusy] = useState(false);
@@ -35,7 +35,7 @@ export function Console() {
         if (tools?.length) {
           setLive(tools);
           setListed("live");
-        } else setListed("offline");
+        } else setListed(x.status === 429 ? "limited" : "offline");
       })
       .catch(() => alive && setListed("offline"));
     return () => {
@@ -93,6 +93,7 @@ export function Console() {
         {listed === "live" && `${tools.length} tools · names, descriptions and inputs read from tools/list just now`}
         {listed === "loading" && "asking the server for its tools…"}
         {listed === "offline" && "the server did not answer tools/list · showing the names this page was built with"}
+        {listed === "limited" && "the server is rate limiting this browser · showing the names this page was built with"}
       </p>
 
       <div className="mt-4 grid gap-5 lg:grid-cols-[15rem_1fr]">
@@ -161,8 +162,9 @@ export function Console() {
             {fields.length === 0 && <p className="font-mono text-xs text-ink-3">this tool takes no arguments</p>}
             <button
               type="submit"
-              disabled={busy}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-on-accent transition-[transform,filter] hover:brightness-95 active:scale-[0.97] disabled:opacity-60"
+              // Not disabled, which would drop keyboard focus mid-call; the call itself is ignored while busy.
+              aria-disabled={busy || undefined}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-on-accent transition-[transform,filter] hover:brightness-95 active:scale-[0.97] aria-disabled:opacity-60"
             >
               {busy ? <CircleNotch size={16} className="animate-spin" aria-hidden /> : <ArrowRight size={16} aria-hidden />}
               Call {tool.name}

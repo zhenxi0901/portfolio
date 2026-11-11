@@ -100,7 +100,7 @@ export function Experience() {
                                   <button
                                     type="button"
                                     onClick={() => scrollToId(studies.length ? target : products[part.product].anchor)}
-                                    className="group inline-flex items-center gap-1 text-sm text-ink-3 transition-colors hover:text-ink"
+                                    className="group inline-flex min-h-6 items-center gap-1 text-sm text-ink-3 transition-colors hover:text-ink"
                                   >
                                     {studies.length === 0 ? products[part.product].chapter : studies.length === 1 ? "Its case study" : `Its ${studies.length} case studies`}
                                     <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden />

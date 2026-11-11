@@ -125,9 +125,9 @@ export function SloBoard() {
           <span className="rounded-md border border-line px-2 py-0.5 font-mono text-xs text-ink-2">Last 30 days</span>
           <button
             type="button"
-            onClick={start}
-            disabled={running}
-            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-60"
+            onClick={() => !running && start()}
+            aria-disabled={running || undefined}
+            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-on-accent aria-disabled:opacity-60"
           >
             {played && !running ? <ArrowCounterClockwise size={13} weight="bold" /> : <Play size={13} weight="fill" />}
             {played && !running ? "Replay the incident" : running ? "Incident running" : "Simulate an incident"}

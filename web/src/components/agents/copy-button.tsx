@@ -8,7 +8,7 @@ import { Check, Copy } from "@phosphor-icons/react";
  * its own, rather than the button's whole label twice. `describedBy` names what is copied, where
  * several buttons on a page would otherwise all be called "Copy".
  */
-export function CopyButton({ text, label, describedBy }: { text: string; label: string; describedBy?: string }) {
+export function CopyButton({ text, label, name, describedBy }: { text: string; label: string; name?: string; describedBy?: string }) {
   const [done, setDone] = useState(false);
   return (
     <button
@@ -27,6 +27,8 @@ export function CopyButton({ text, label, describedBy }: { text: string; label: 
     >
       {done ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
       <span>{done ? "Copied" : label}</span>
+      {/* What is copied, for screen readers, where a page has several buttons labelled "Copy". */}
+      {name && <span className="sr-only"> {name}</span>}
       <span role="status" className="sr-only">
         {done ? "Copied" : ""}
       </span>

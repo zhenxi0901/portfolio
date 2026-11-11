@@ -108,9 +108,10 @@ export function Ask() {
             />
             <button
               type="submit"
-              disabled={busy || !q.trim()}
+              // ask() ignores an empty question or a second one while busy; disabled would drop focus.
+              aria-disabled={busy || !q.trim() || undefined}
               aria-label="Ask"
-              className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-on-accent transition-transform active:scale-95 disabled:opacity-40"
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-on-accent transition-transform active:scale-95 aria-disabled:opacity-40"
             >
               <ArrowUp size={18} weight="bold" />
             </button>

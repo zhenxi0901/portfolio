@@ -20,10 +20,11 @@
   --accent: #b5f23d;
   --accent-ink: #3f6212;
   --on-accent: #0d0d10;
-  --good: #0a8a0a;
+  /* 4.8:1 or better on every light surface, for small status text. */
+  --good: #067a06;
   --critical: #c53030;
   /* One colour per product, so a visitor can tell which system a card or box belongs to. */
-  --p-iot: #0369a1;
+  --p-iot: #026398; /* 4.8:1 or better as tag text on its own tint, on every light surface */
   /* Product colours. Light values are dark enough for 12px text on their own 10% tint (4.5:1). */
   --p-ai: #92400e;
   --p-aries: #6d28d9;

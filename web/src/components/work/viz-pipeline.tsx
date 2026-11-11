@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle, Circle, CircleNotch, HandPalm, Play, ShieldWarning, XCircle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
@@ -81,25 +80,23 @@ export function PipelineViz() {
         })}
       </ol>
 
+      {/* The first button changes role (Run, then Approve, then Run again) rather than being swapped
+          for another, so keyboard focus stays on it through a run. */}
       <div className="mt-auto flex min-h-10 flex-wrap items-center gap-2">
-        <AnimatePresence mode="wait" initial={false}>
-          {run.phase === "approval" ? (
-            <motion.div key="approve" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <Button size="sm" onClick={() => setRun({ phase: "running", at: APPROVAL, cve: false })}>
-                <HandPalm weight="fill" /> Approve release
-              </Button>
-            </motion.div>
-          ) : (
-            <motion.div key="run" className="flex flex-wrap gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Button size="sm" onClick={() => start(false)} disabled={busy}>
-                <Play weight="fill" /> Run pipeline
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => start(true)} disabled={busy}>
-                <ShieldWarning /> Run with a bad image
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {run.phase === "approval" ? (
+          <Button size="sm" onClick={() => setRun({ phase: "running", at: APPROVAL, cve: false })}>
+            <HandPalm weight="fill" /> Approve release
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => !busy && start(false)} aria-disabled={busy || undefined}>
+            <Play weight="fill" /> Run pipeline
+          </Button>
+        )}
+        {run.phase !== "approval" && (
+          <Button size="sm" variant="secondary" onClick={() => !busy && start(true)} aria-disabled={busy || undefined}>
+            <ShieldWarning /> Run with a bad image
+          </Button>
+        )}
       </div>
       <p className="min-h-5 font-mono text-[11px] text-ink-3" aria-live="polite">
         {run.phase === "done" && "Deployed the exact digest that passed every gate."}

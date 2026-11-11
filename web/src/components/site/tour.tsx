@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Pause, Play, X } from "@phosphor-icons/react";
-import { goTo, modalOpen, openPlatformTab, scrollToId } from "@/lib/utils";
+import { goTo, modalOpen, openAiTab, openPlatformTab, scrollToId } from "@/lib/utils";
 
 type Stop = { id: string; title: string; text: string; open?: () => void };
 
@@ -22,6 +22,8 @@ const STOPS: Stop[] = [
     id: "ai",
     title: "The AI agent platform",
     text: "Follow a request through agents, RAG and models on Cloud Run, and switch on the lens to see which parts are mine.",
+    // The map itself, not the heading: the platform's case study sits between the two.
+    open: () => openAiTab("map"),
   },
   {
     id: "research",
@@ -77,7 +79,10 @@ export function Tour() {
       // The URL is tidied when the tour actually starts, so a re-run effect (Strict Mode in dev)
       // still sees ?tour.
       const t = setTimeout(() => {
-        window.history.replaceState(null, "", "/");
+        // Only ?tour goes: other parameters and the hash stay, as with ?terminal.
+        const url = new URL(window.location.href);
+        url.searchParams.delete("tour");
+        window.history.replaceState(null, "", url.pathname + url.search + url.hash);
         start();
       }, 600);
       return () => {
@@ -179,7 +184,13 @@ export function Tour() {
           </button>
         </div>
         <div className="mt-4 flex items-center gap-2">
-          <button type="button" onClick={() => go(i - 1)} disabled={i === 0} aria-label="Previous stop" className="rounded-full border border-line p-2 disabled:opacity-40">
+          <button
+            type="button"
+            onClick={() => i > 0 && go(i - 1)}
+            aria-disabled={i === 0 || undefined}
+            aria-label="Previous stop"
+            className="rounded-full border border-line p-2 aria-disabled:opacity-40"
+          >
             <ArrowLeft size={14} />
           </button>
           <button

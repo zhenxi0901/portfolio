@@ -2,7 +2,7 @@ import { ArrowUpRight, Globe, Lightning, Lock } from "@phosphor-icons/react/dist
 import { ArticleShell, Part } from "@/components/article/article-shell";
 import { CopyButton } from "@/components/agents/copy-button";
 import { LiveCheck } from "@/components/evidence/live-check";
-import { claimGroups, proofCounts, proofKinds, type Claim, type ProofKind } from "@/content/evidence";
+import { checkName, claimGroups, proofCounts, proofKinds, type Claim, type ProofKind } from "@/content/evidence";
 import { pageMetadata } from "@/lib/page-metadata";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +51,7 @@ function ClaimCard({ c, id }: { c: Claim; id: string }) {
           <code tabIndex={0} className="min-w-0 flex-1 basis-64 overflow-x-auto whitespace-nowrap rounded-[14px] border border-line bg-bg px-3.5 py-2 font-mono text-xs text-ink-2">
             {c.command}
           </code>
-          <CopyButton text={c.command} label="Copy" describedBy={id} />
+          <CopyButton text={c.command} label="Copy" name={c.check ? `the command that checks ${checkName[c.check]}` : "the command"} describedBy={id} />
         </div>
       )}
 

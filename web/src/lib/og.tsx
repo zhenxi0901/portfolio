@@ -98,12 +98,14 @@ export async function ogImage({ eyebrow, eyebrowColor = C.accent, title, summary
             lineHeight: big ? 0.95 : 1.05,
             maxWidth: big ? 900 : 1000,
             display: "flex",
+            // The renderer would squeeze these, not the stats, when a card runs long.
+            flexShrink: 0,
           }}
         >
           {title}
         </div>
         {summary && (
-          <div style={{ marginTop: 20, fontSize: big ? 30 : 27, lineHeight: 1.35, color: C.ink2, maxWidth: 1000, display: "flex" }}>{summary}</div>
+          <div style={{ marginTop: 20, fontSize: big ? 30 : 27, lineHeight: 1.35, color: C.ink2, maxWidth: 1000, display: "flex", flexShrink: 0 }}>{summary}</div>
         )}
         <div style={{ marginTop: "auto", paddingTop: 28, display: "flex", gap: 18 }}>
           {stats.slice(0, 3).map((s) => (

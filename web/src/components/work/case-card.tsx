@@ -46,7 +46,8 @@ export function CaseCard({
             {study.products.map((p) => (
               <ProductTag key={p} p={p} />
             ))}
-            <span className="font-mono text-xs text-ink-3">
+            {/* On the accent tint, ink-3 falls just under 4.5:1 in dark mode, so tinted cards use ink-2. */}
+            <span className={cn("font-mono text-xs", tone === "tint" ? "text-ink-2" : "text-ink-3")}>
               {study.org}, {study.year}
             </span>
           </div>

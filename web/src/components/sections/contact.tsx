@@ -17,6 +17,7 @@ export function Contact() {
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (sending) return;
     const form = e.currentTarget;
     const data = Object.fromEntries(new FormData(form)) as Record<string, string>;
     const next: Record<string, string> = {};
@@ -81,7 +82,7 @@ export function Contact() {
             <Field id="message" label="Message" error={errors.message} hint="The role, the team, and how to reach you.">
               <textarea id="message" name="message" rows={5} maxLength={4000} className={field + " resize-y"} aria-invalid={!!errors.message} />
             </Field>
-            <Button type="submit" size="lg" disabled={sending} className="w-fit">
+            <Button type="submit" size="lg" aria-disabled={sending || undefined} className="w-fit">
               <PaperPlaneTilt weight="fill" /> {sending ? "Sending..." : "Send message"}
             </Button>
           </form>

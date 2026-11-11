@@ -77,10 +77,10 @@ export function AlertsViz() {
       </AnimatePresence>
 
       <div className="mt-auto flex gap-2">
-        <Button size="sm" onClick={stopOne} disabled={up === 0}>
+        <Button size="sm" onClick={stopOne} aria-disabled={up === 0 || undefined}>
           <Power weight="bold" /> Stop a node
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => setAlive([true, true, true])} disabled={up === 3}>
+        <Button size="sm" variant="secondary" onClick={() => up < 3 && setAlive([true, true, true])} aria-disabled={up === 3 || undefined}>
           <ArrowCounterClockwise /> Restore
         </Button>
       </div>

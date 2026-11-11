@@ -109,9 +109,9 @@ export function CostReview() {
           <div className="mt-5 flex items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => setI(i - 1)}
-              disabled={i === 0}
-              className="inline-flex items-center gap-1.5 text-sm text-ink-2 transition-colors hover:text-ink disabled:opacity-30"
+              onClick={() => i > 0 && setI(i - 1)}
+              aria-disabled={i === 0 || undefined}
+              className="inline-flex items-center gap-1.5 text-sm text-ink-2 transition-colors hover:text-ink aria-disabled:opacity-30 aria-disabled:hover:text-ink-2"
             >
               <ArrowLeft size={14} /> Previous
             </button>
@@ -120,9 +120,9 @@ export function CostReview() {
             </span>
             <button
               type="button"
-              onClick={() => setI(i + 1)}
-              disabled={i === levers.length - 1}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-ink transition-colors disabled:opacity-30"
+              onClick={() => i < levers.length - 1 && setI(i + 1)}
+              aria-disabled={i === levers.length - 1 || undefined}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-ink transition-colors aria-disabled:opacity-30"
             >
               Next move <ArrowRight size={14} />
             </button>

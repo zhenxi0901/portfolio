@@ -37,7 +37,8 @@ export type CaseStudy = {
   result: string;
   stack: string[];
   /** Headline numbers for the case's own page. Each restates a figure from the text above. */
-  numbers: { value: string; label: string }[];
+  /** `short` stands in on the share card, where a long label would crowd the title. */
+  numbers: { value: string; label: string; short?: string }[];
   /** Where the site goes further into this work. */
   deeper: { label: string; href: string }[];
 };
@@ -196,7 +197,11 @@ export const cases: CaseStudy[] = [
     numbers: [
       { value: "2", label: "steps for a breaking change: widen first, tighten second" },
       { value: "28 of 46", label: "paths meant to close only at cutover that the allow rules alone closed, in rehearsal" },
-      { value: "88 s → 5-16 s", label: "without a command route when a transport pod moves, before and after a second replica (live upgrades)" },
+      {
+        value: "88 s → 5-16 s",
+        label: "without a command route when a transport pod moves, before and after a second replica (live upgrades)",
+        short: "without a command route when a transport pod moves: one replica, then two",
+      },
     ],
     deeper: [
       { label: "What I alert on there, and the SLOs", href: "/#platform-signals" },

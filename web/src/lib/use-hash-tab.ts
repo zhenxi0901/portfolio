@@ -14,7 +14,9 @@ export function useHashTab<T extends string>(section: string, ids: readonly T[],
       const id = hash.startsWith(`${section}-`) ? (hash.slice(section.length + 1) as T) : null;
       if (!id || !ids.includes(id)) return;
       open(id);
-      requestAnimationFrame(() => scrollToId(section));
+      // To the tabs themselves where a section marks them (the AI section has a case card between
+      // its heading and its views), else to the section.
+      requestAnimationFrame(() => scrollToId(document.getElementById(`${section}-views`) ? `${section}-views` : section));
     };
     apply();
     window.addEventListener("hashchange", apply);

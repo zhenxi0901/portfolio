@@ -359,9 +359,10 @@ function IconButton({ label, onClick, disabled, children }: { label: string; onC
       type="button"
       aria-label={label}
       title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className="grid size-9 place-items-center rounded-full border border-line text-ink transition-colors hover:border-line-strong disabled:opacity-35"
+      // aria-disabled, not disabled: the button keeps keyboard focus when it reaches the first or last step.
+      onClick={() => !disabled && onClick()}
+      aria-disabled={disabled || undefined}
+      className="grid size-9 place-items-center rounded-full border border-line text-ink transition-colors hover:border-line-strong aria-disabled:opacity-35 aria-disabled:hover:border-line"
     >
       {children}
     </button>

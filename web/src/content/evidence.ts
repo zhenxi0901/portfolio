@@ -10,6 +10,9 @@ export type ProofKind = "live" | "public" | "private";
 /** A check the page can run from the visitor's browser against this site's own API. */
 export type LiveCheck = "slo" | "status" | "mcp";
 
+/** What each check reads, for the accessible names of its buttons: the page has several of each. */
+export const checkName: Record<LiveCheck, string> = { slo: "the availability", status: "the running commit", mcp: "the MCP server" };
+
 export type Claim = {
   claim: string;
   /** Where the site makes the claim. */

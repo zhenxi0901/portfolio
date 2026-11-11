@@ -110,7 +110,11 @@ func SVG(d Data, darkTheme bool) []byte {
 	// Header: who, where, and the state the server reports about itself.
 	fmt.Fprintf(&b, `<circle cx="32" cy="35" r="6" fill="%s"/>`+"\n", statusFill)
 	text(46, 41, 17, "600", p.text, sans, "start", "Li ZhenXi · portfolio")
-	text(W-24, 41, 13, "400", p.muted, mono, "end", "live on Cloud Run · "+d.Region)
+	where := "live on Cloud Run · " + d.Region
+	if d.Region == "local" {
+		where = "a local copy, not the live site"
+	}
+	text(W-24, 41, 13, "400", p.muted, mono, "end", where)
 
 	// What is running: the commit, and its title when the pipeline's record matches it.
 	line := "commit " + d.Commit
@@ -194,6 +198,9 @@ func (d *Delivery) head() *Head {
 
 func summary(d Data) string {
 	s := fmt.Sprintf("Commit %s live on Cloud Run in %s.", d.Commit, d.Region)
+	if d.Region == "local" {
+		s = fmt.Sprintf("Commit %s, on a local copy, not the live site.", d.Commit)
+	}
 	if d.SLOAvailable {
 		s += fmt.Sprintf(" Uptime over 30 days %.2f%%, error budget left %.1f%%.", slo.FloorPct(d.Availability, 2), slo.FloorPct(max(d.BudgetRemaining, 0), 1))
 	}

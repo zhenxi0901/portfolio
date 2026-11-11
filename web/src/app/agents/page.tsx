@@ -33,7 +33,7 @@ const built = [
   "No sessions. Each request stands alone, so any Cloud Run instance can answer it and scaling to zero loses nothing.",
   `Two protocol eras. It speaks the stateless ${MCP_PROTOCOL} revision, and still answers the initialize handshake that older clients open with.`,
   "No model on my side. The tools return the site's own text and numbers; the agent that called them does the reasoning with its own model.",
-  "Read-only, and written against Go's standard library: about 350 lines for the protocol, no SDK. Browser origins are checked, bodies are capped at 64 KiB, and each client gets 60 requests a minute.",
+  "Read-only, and written against Go's standard library: about 500 lines for the protocol, no SDK. Browser origins are checked, bodies are capped at 64 KiB, and each client gets 60 requests a minute.",
   "Tested like the rest of the site: every release calls a tool in both protocol eras before it takes traffic.",
 ];
 
