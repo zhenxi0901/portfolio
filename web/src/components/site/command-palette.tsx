@@ -152,6 +152,14 @@ export function CommandPalette() {
       action: () => goTo("/oncall#oncall-ai"),
     },
     {
+      id: "oncall-terminal",
+      group: "Actions",
+      label: "Go on call in the terminal, as text",
+      keywords: ["on call", "oncall", "incident", "drill", "terminal", "shell", "text", "cli"],
+      icon: <TerminalWindow size={16} />,
+      action: () => terminal.runInTerminal("oncall"),
+    },
+    {
       id: "copy-email",
       now: true,
       group: "Actions",

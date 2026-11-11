@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
 import { useTerminal } from "@/components/providers";
 import { startTour } from "@/components/site/tour";
-import { complete, promptFor, runCommand, shortPromptFor, welcome, type Line, type ShellEnv } from "@/lib/shell";
+import { complete, promptFor, runCommand, shortPromptFor, welcome, type DrillSession, type Line, type ShellEnv } from "@/lib/shell";
 import { cn, goTo } from "@/lib/utils";
 
 /** One thing on the screen: a command the visitor ran (with the prompt it ran at) and what it printed. */
@@ -18,7 +18,7 @@ type Entry = { id: number; prompt?: string; command?: string; lines: Line[] };
  * reopening keeps the session.
  */
 export default function Terminal() {
-  const { open, setOpen } = useTerminal();
+  const { open, setOpen, pending, clearPending } = useTerminal();
   const { resolvedTheme, setTheme } = useTheme();
   const [entries, setEntries] = useState<Entry[]>([{ id: 0, lines: welcome }]);
   const [input, setInput] = useState("");
@@ -30,6 +30,8 @@ export default function Terminal() {
   const draft = useRef("");
   const nextId = useRef(1);
   const cwdRef = useRef("");
+  // An on-call drill under way (`oncall ai`): kept with the session, like the directory.
+  const drill = useRef<DrillSession | null>(null);
   // The command that is out, so Ctrl+C can cancel it.
   const running = useRef<AbortController | null>(null);
   // Where focus was before the terminal opened: there is no Dialog.Trigger to give it back to.
@@ -76,6 +78,10 @@ export default function Terminal() {
       },
       close: () => setOpen(false),
       navigate: (path) => setTimeout(() => goTo(path), 250),
+      drill: drill.current,
+      setDrill: (d) => {
+        drill.current = d;
+      },
       startTour: () => {
         setOpen(false);
         setTimeout(startTour, 250);
@@ -91,6 +97,18 @@ export default function Terminal() {
     setBusy(false);
     requestAnimationFrame(() => field.current?.focus());
   };
+
+  // A command handed over as the terminal opens ("work it as text" on /oncall, or the palette):
+  // typed for the visitor once the dialog is up, exactly as if they had typed it.
+  const runPending = useEffectEvent((command: string) => {
+    clearPending();
+    void run(command);
+  });
+  useEffect(() => {
+    if (!open || !pending) return;
+    const timer = setTimeout(() => runPending(pending), 60);
+    return () => clearTimeout(timer);
+  }, [open, pending]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Keys pressed while an input method is composing (Chinese, Japanese, ...) are its own.
@@ -111,7 +129,7 @@ export default function Terminal() {
       // nothing typed, Tab moves focus as usual, so the keyboard is never trapped here.
       e.preventDefault();
       e.stopPropagation();
-      const { value, options } = complete(input, cwdRef.current);
+      const { value, options } = complete(input, cwdRef.current, drill.current);
       setInput(value);
       if (options.length) print({ prompt: promptFor(cwdRef.current), command: input, lines: [[{ text: options.join("   "), cls: "text-ink-3" }]] });
     } else if (e.key === "l" && e.ctrlKey) {
@@ -183,7 +201,8 @@ export default function Terminal() {
                     </p>
                   )}
                   {entry.lines.map((segs, i) => (
-                    <p key={i} className="min-h-[1.65em] whitespace-pre-wrap break-words">
+                    // At most 88 characters wide, the measure shell.ts writes prose for; narrower screens wrap sooner.
+                    <p key={i} className="min-h-[1.65em] max-w-[88ch] whitespace-pre-wrap break-words">
                       {segs.map((seg, k) => {
                         const command = seg.run;
                         return seg.href ? (

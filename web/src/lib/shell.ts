@@ -1,12 +1,16 @@
 // The command engine behind the site's terminal (components/site/terminal.tsx). Nothing here is a
 // mock: `status`, `slo`, `ask`, `mcp` and `curl` call this site's real API, and `cat` reads the same
-// Markdown copies that /llms.txt points agents at. The "files" are the site's own pages.
+// Markdown copies that /llms.txt points agents at. The "files" are the site's own pages. The one
+// simulation is `oncall`, the /oncall drills worked as text, and it says so when it starts.
 import { agentTools } from "@/content/agents";
+import { scenarios, type Move, type Scenario } from "@/content/oncall";
+import { products } from "@/content/products";
 import { postmortems } from "@/content/postmortems";
 import { cases, profile } from "@/content/profile";
 import { posts } from "@/content/writing";
 import { parseAnsi } from "@/lib/ansi";
 import { api, ApiError, API_BASE } from "@/lib/api";
+import { clock, debrief, lowerFirst, movesNow, paged, pct as budget, play, seen, spent, statusLabel, type DrillState } from "@/lib/drill";
 import { mcpRequest } from "@/lib/mcp-client";
 import { isTimeout, noAnswer, withTimeout } from "@/lib/signal";
 import { SITE_URL } from "@/lib/site";
@@ -28,12 +32,19 @@ export type ShellEnv = {
   close: () => void;
   navigate: (path: string) => void;
   startTour: () => void;
+  /** The on-call drill under way, if any. It lasts as long as the terminal's session. */
+  drill: DrillSession | null;
+  setDrill: (drill: DrillSession | null) => void;
 };
+
+/** An on-call drill worked in the terminal: which one, and how far it has got. */
+export type DrillSession = { id: Scenario["id"]; state: DrillState };
 
 const DIM = "text-ink-3";
 const BOLD = "font-semibold text-ink";
 const ACCENT = "text-accent-ink";
 const ERR = "text-critical";
+const GOOD = "text-good";
 
 const t = (text: string, cls?: string): Seg => ({ text, cls });
 const line = (...segs: (Seg | string)[]): Line => segs.map((s) => (typeof s === "string" ? { text: s } : s));
@@ -116,20 +127,13 @@ export const shortPromptFor = (cwd: string) => `~${cwd ? "/" + cwd : ""}$`;
 const pct = (x: number, digits: number) => `${(Math.floor(x * 100 * 10 ** digits + 1e-6) / 10 ** digits).toFixed(digits)}%`;
 const ago = (seconds: number) => (seconds < 90 ? `${Math.round(seconds)} s` : seconds < 5400 ? `${Math.round(seconds / 60)} min` : `${(seconds / 3600).toFixed(1)} h`);
 
-/** Wraps prose at word boundaries so long answers read as paragraphs, not one scrolling line. */
-function wrap(text: string, width = 88): string[] {
-  const out: string[] = [];
-  for (const para of text.split("\n")) {
-    let current = "";
-    for (const word of para.split(" ")) {
-      if (current && current.length + word.length + 1 > width) {
-        out.push(current);
-        current = word;
-      } else current = current ? `${current} ${word}` : word;
-    }
-    out.push(current);
-  }
-  return out;
+/**
+ * Prose as one line per paragraph. The browser wraps it at the terminal's measure (each line is at
+ * most 88 characters wide, see terminal.tsx), so a phone re-flows a paragraph instead of breaking
+ * again lines that were already broken at 88, which left a word or two stranded on every other line.
+ */
+function wrap(text: string): string[] {
+  return text.split("\n");
 }
 
 function markdownLines(md: string): Line[] {
@@ -211,6 +215,135 @@ function curlTarget(args: string[]): string | undefined {
   return undefined;
 }
 
+// ── On call: the /oncall drills, worked as text ──────────────────────────────────────────────────
+// The rules are lib/drill's, the same the page plays by; this only prints them.
+
+const drillOf = (id: string) => scenarios.find((s) => s.id === id);
+const ONCALL_WIDTH = "oncall ".length + Math.max(...scenarios.flatMap((s) => s.moves.map((m) => m.id.length))) + 2;
+const prose = (text: string, cls?: string): Line[] => wrap(text).map((l) => [t(l, cls)]);
+
+/** A move as a button that plays it: the command, what it is, and what it costs. */
+function moveRow(m: Move, s: DrillState): Line {
+  const command = `oncall ${m.id}`;
+  const done = seen(s, m);
+  return line({ text: command, run: command, cls: done ? DIM : ACCENT }, gap(command.length, ONCALL_WIDTH), t(m.label, done ? DIM : undefined), t(done ? "  seen" : `  ${m.minutes} min`, DIM));
+}
+
+/** The pager's state, the clock and the budget: printed after every move. */
+function drillStatus(sc: Scenario, s: DrillState): Line {
+  const burning = s.phase === "paged";
+  return line(
+    t(statusLabel(s), burning ? ERR : GOOD),
+    t(`  ${clock(sc.start, s.minutes)}, ${s.minutes} min in · `, DIM),
+    t(`${budget(spent(sc, s))} of the month's error budget spent${burning ? ", still burning" : ""}`, burning ? ERR : DIM),
+  );
+}
+
+/** What can be done next, as buttons: the looks not yet seen and the actions this phase allows. */
+function nextMoves(sc: Scenario, s: DrillState): Line[] {
+  const { looks, acts } = movesNow(sc, s);
+  const buttons = (ms: Move[]): Seg[] => ms.flatMap((m, i) => [...(i ? [t(" · ", DIM)] : []), { text: m.id, run: `oncall ${m.id}`, cls: ACCENT }]);
+  const fresh = looks.filter((m) => !seen(s, m));
+  return [
+    ...(fresh.length ? [line(t("Investigate  ", DIM), ...buttons(fresh))] : []),
+    line(t(s.phase === "paged" ? "Act          " : "Close out    ", DIM), ...buttons(acts)),
+  ];
+}
+
+/** The whole board: the page, the clock, and every move with what it costs. */
+function drillBoard(sc: Scenario, s: DrillState): Line[] {
+  const { looks, acts } = movesNow(sc, s);
+  return [
+    drillStatus(sc, s),
+    line(t(sc.page.title, BOLD)),
+    ...prose(sc.page.detail),
+    line(""),
+    line(t("Investigate", BOLD)),
+    ...looks.map((m) => moveRow(m, s)),
+    line(""),
+    line(t(s.phase === "paged" ? "Act" : "Close out", BOLD)),
+    ...acts.map((m) => moveRow(m, s)),
+  ];
+}
+
+function drillList(): Line[] {
+  const width = Math.max(...scenarios.map((s) => `oncall ${s.id}`.length)) + 3;
+  return [
+    dim("On call: a simulated incident, worked as text. Pick one:"),
+    ...scenarios.map((s) => line({ text: `oncall ${s.id}`, run: `oncall ${s.id}`, cls: ACCENT }, gap(`oncall ${s.id}`.length, width), t(s.summary), t(`  ${products[s.product].name}`, DIM))),
+    line(t("The same drills, with dashboards: ", DIM), cmd("open oncall")),
+  ];
+}
+
+function startDrill(sc: Scenario, env: ShellEnv): Line[] {
+  const before = env.drill;
+  const note =
+    before && before.state.phase !== "resolved" ? (before.id === sc.id ? "Started over." : `Left the ${products[drillOf(before.id)!.product].name} drill.`) : "";
+  env.setDrill({ id: sc.id, state: paged });
+  return [
+    ...(note ? [dim(note), line("")] : []),
+    ...prose(sc.intro),
+    line(""),
+    ...drillBoard(sc, paged),
+    line(""),
+    ...prose(`${sc.honesty} Every move costs simulated minutes, and the budget burns until you stop it.`, DIM),
+    line(t("Click a move or type it; Tab completes. ", DIM), cmd("oncall"), t(" shows the board again, ", DIM), cmd("oncall quit"), t(" ends the drill.", DIM)),
+  ];
+}
+
+/** The postmortem of the run: the same checks, numbers and timeline as the page's debrief. */
+function postmortem(sc: Scenario, s: DrillState): Line[] {
+  const { mitigateMinutes, checks, wasted } = debrief(sc, s);
+  const others = scenarios.filter((o) => o.id !== sc.id);
+  return [
+    line(t("YOUR POSTMORTEM", GOOD)),
+    line(t(`Burn stopped after ${mitigateMinutes} minutes, closed after ${s.minutes}`, BOLD)),
+    ...prose(
+      `A focused path (${sc.focusedPath}) takes about ${sc.goodPathMinutes} minutes, with the root cause found after the burn stops. You spent ${budget(spent(sc, s))} of the month's error budget.`,
+      DIM,
+    ),
+    line(""),
+    ...checks.map((c) => line(t(c.ok ? "  ✓ " : "  ✗ ", c.ok ? GOOD : ERR), t(c.text, c.ok ? undefined : DIM))),
+    ...(wasted.length
+      ? [line(""), ...prose(`${wasted.length === 1 ? "One move" : `${wasted.length} moves`} did not help: ${wasted.map((e) => lowerFirst(e.move.label)).join("; ")}.`, DIM)]
+      : []),
+    line(""),
+    line(t("Timeline", BOLD)),
+    line(t(`  ${sc.start}  `, DIM), `paged: ${sc.page.title}`),
+    ...s.log.map((e) => line(t(`  ${clock(sc.start, e.at)}  `, DIM), e.move.label)),
+    line(""),
+    ...prose(sc.rootCause),
+    line(""),
+    line(
+      t("Again: ", DIM),
+      cmd(`oncall ${sc.id}`),
+      ...others.flatMap((o) => [t("  ·  ", DIM), cmd(`oncall ${o.id}`)]),
+      t("  ·  with dashboards: ", DIM),
+      cmd("open oncall"),
+    ),
+  ];
+}
+
+/** One move: its result, then the state of the incident, or the postmortem when it closes it. */
+function playDrill(sc: Scenario, before: DrillState, m: Move, env: ShellEnv): Line[] {
+  if (seen(before, m)) {
+    const at = before.log.find((e) => e.move.id === m.id)!.at;
+    return [dim(`Seen at ${clock(sc.start, at)}. It has not changed, and looking again costs nothing:`), ...prose(m.result)];
+  }
+  const { acts } = movesNow(sc, before);
+  if (m.kind === "act" && !acts.includes(m)) {
+    if (m.effect === "verify") return [line(t("Not yet: ", ERR), t("that is how you close out, once the burn has stopped.", DIM))];
+    const close = acts.find((a) => a.effect === "verify");
+    return [line(t("The burn has stopped; that was a way to stop it. ", DIM), ...(close ? [t("Close out: ", DIM), cmd(`oncall ${close.id}`)] : []))];
+  }
+  const s = play(before, m);
+  env.setDrill({ id: sc.id, state: s });
+  const out: Line[] = [line(t(clock(sc.start, s.minutes), BOLD), t(`  ${m.label} · +${m.minutes} min`, DIM)), ...prose(m.result), line("")];
+  if (s.phase === "resolved") return [...out, ...postmortem(sc, s)];
+  if (s.phase === "mitigated" && before.phase === "paged") out.push(line(t("The burn has stopped. ", GOOD), t("Confirm the fix before you close the incident.", DIM)));
+  return [...out, drillStatus(sc, s), ...nextMoves(sc, s)];
+}
+
 // ── Commands ─────────────────────────────────────────────────────────────────────────────────────
 
 type Command = { summary: string; usage?: string; hidden?: boolean; run: (args: string[], env: ShellEnv, raw: string) => Promise<Line[]> | Line[] };
@@ -224,6 +357,9 @@ const commands: Record<string, Command> = {
       line(""),
       line(t("Live, from this site's API", BOLD)),
       ...["status", "slo", "deploys", "ask", "mcp", "curl", "neofetch"].map(helpRow),
+      line(""),
+      line(t("Practice", BOLD)),
+      helpRow("oncall"),
       line(""),
       line(t("Shell", BOLD)),
       ...["theme", "tour", "contact", "history", "clear", "exit"].map(helpRow),
@@ -477,6 +613,31 @@ const commands: Record<string, Command> = {
       return [line(t(`  visitor@${new URL(SITE_URL).host}`, BOLD)), ...logo.map((l, i) => line(t(l, ACCENT), t(info[i][0].padEnd(9), DIM), info[i][1]))];
     },
   },
+  oncall: {
+    summary: "a simulated incident, worked as text",
+    usage: "oncall [iot|ai]",
+    run: (args, env) => {
+      const [arg] = operands(args).map((a) => a.toLowerCase());
+      const session = env.drill;
+      const sc = session ? drillOf(session.id) : undefined;
+      if (!arg || arg === "board") {
+        if (!session || !sc) return drillList();
+        return session.state.phase === "resolved" ? postmortem(sc, session.state) : drillBoard(sc, session.state);
+      }
+      if (arg === "quit" || arg === "stop") {
+        if (!session) return [dim("Not on call. Start with: oncall iot, or oncall ai")];
+        env.setDrill(null);
+        return [line(t("Off call. ", GOOD), t("Start another any time: ", DIM), cmd("oncall"))];
+      }
+      const next = drillOf(arg);
+      if (next) return startDrill(next, env);
+      if (!session || !sc) return [line(t(`oncall: no drill called ${arg}. `, ERR), t("Pick one: ", DIM), cmd("oncall iot"), t(" · ", DIM), cmd("oncall ai"))];
+      if (session.state.phase === "resolved") return [line(t("This incident is closed. Run it again: ", DIM), cmd(`oncall ${sc.id}`))];
+      const move = sc.moves.find((m) => m.id === arg);
+      if (!move) return [line(t(`oncall: no move called ${arg} in this drill. `, ERR), cmd("oncall"), t(" lists them.", DIM))];
+      return playDrill(sc, session.state, move, env);
+    },
+  },
   theme: {
     summary: "light or dark",
     usage: "theme light|dark",
@@ -587,23 +748,33 @@ function pathCandidates(cwd: string, partial: string, withPages: boolean): strin
   return [...names.map((n) => base + n), ...(withPages && !base ? Object.keys(PAGES) : [])];
 }
 
-function candidates(words: string[], cwd: string): string[] {
+/** The drills, the board's keywords and, during a drill, the moves that make sense now. */
+function oncallCandidates(drill: DrillSession | null): string[] {
+  const base = [...scenarios.map((s) => s.id), "board", "quit"];
+  const sc = drill ? drillOf(drill.id) : undefined;
+  if (!drill || !sc || drill.state.phase === "resolved") return base;
+  const { looks, acts } = movesNow(sc, drill.state);
+  return [...looks.filter((m) => !seen(drill.state, m)), ...acts].map((m) => m.id).concat(base);
+}
+
+function candidates(words: string[], cwd: string, drill: DrillSession | null): string[] {
   const [name, ...rest] = words;
   const last = rest[rest.length - 1] ?? "";
   if (rest.length === 0) return visible;
   if (name === "cat" || name === "ls" || name === "cd") return pathCandidates(cwd, last, false).filter((c) => (name === "cd" ? c.endsWith("/") : true));
   if (name === "open") return pathCandidates(cwd, last, true);
   if (name === "theme") return ["light", "dark"];
+  if (name === "oncall") return rest.length === 1 ? oncallCandidates(drill) : [];
   if (name === "curl") return CURL_PATHS;
   if (name === "mcp") return rest.length === 1 ? ["tools", "call"] : rest.length === 2 && rest[0] === "call" ? agentTools.map((a) => a.name) : [];
   return [];
 }
 
 /** Completes the last word of the input. One match fills it in; several fill the common prefix and are listed. */
-export function complete(input: string, cwd: string): { value: string; options: string[] } {
+export function complete(input: string, cwd: string, drill: DrillSession | null = null): { value: string; options: string[] } {
   const words = input.trimStart().split(/\s+/);
   const last = words[words.length - 1];
-  const matches = candidates(words, cwd).filter((c) => c.startsWith(last));
+  const matches = candidates(words, cwd, drill).filter((c) => c.startsWith(last));
   if (matches.length === 0) return { value: input, options: [] };
   let prefix = matches[0];
   for (const m of matches) while (!m.startsWith(prefix)) prefix = prefix.slice(0, -1);
@@ -614,7 +785,8 @@ export function complete(input: string, cwd: string): { value: string; options: 
 /** What the terminal prints when it first opens. */
 export const welcome: Line[] = [
   line(t(profile.name, BOLD), t("  SRE, cloud and AI infrastructure", DIM)),
-  dim("A small shell over this site's real API. Nothing here is canned: each command asks the server."),
+  // Not "nothing here is canned" any more: oncall is a simulation, and says so when it starts.
+  dim("A small shell over this site's real API: the live commands ask the server as you type them."),
   line(""),
   line(t("Try  ", DIM), cmd("status"), t("  ·  ", DIM), cmd("slo"), t("  ·  ", DIM), cmd("ask how did you cut the cloud bill"), t("  ·  ", DIM), cmd("ls work"), t("  ·  ", DIM), cmd("help")),
 ];
