@@ -115,6 +115,13 @@ export function CommandPalette() {
           >
             For agents: this site as an MCP server
           </Item>
+          <Item
+            keywords={["evidence", "proof", "verify", "claims", "sources", "numbers", "check", "trust"]}
+            icon={<Article size={16} />}
+            onSelect={() => run(() => goTo("/evidence"))}
+          >
+            Evidence: where the claims come from
+          </Item>
         </Command.Group>
         <Command.Group heading="Actions">
           <Item keywords={["tour", "overview", "highlights", "recruiter", "quick"]} icon={<ArrowRight size={16} />} onSelect={() => run(startTour)}>

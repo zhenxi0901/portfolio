@@ -17,6 +17,11 @@ export function Impact() {
           </Reveal>
         ))}
       </div>
+      <p className="mx-auto max-w-[1320px] px-4 pb-6 text-sm text-ink-3 sm:px-8">
+        <a href="/evidence" className="underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink hover:decoration-accent-ink">
+          Where these numbers come from, and which ones you can check yourself
+        </a>
+      </p>
     </section>
   );
 }

@@ -15,6 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/changelog`, changeFrequency: "daily", priority: 0.5 },
     { url: `${SITE_URL}/decisions`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/agents`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/evidence`, changeFrequency: "monthly", priority: 0.7 },
     ...cases.map((c) => ({ url: `${SITE_URL}/work/${c.id}`, changeFrequency: "monthly" as const, priority: 0.8 })),
     ...posts.map((p) => ({ url: `${SITE_URL}/writing/${p.slug}`, changeFrequency: "yearly" as const, priority: 0.7 })),
     ...postmortems.map((p) => ({ url: `${SITE_URL}/postmortems/${p.slug}`, changeFrequency: "yearly" as const, priority: 0.6 })),
