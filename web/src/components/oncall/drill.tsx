@@ -3,21 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowCounterClockwise, BellRinging, CheckCircle, MagnifyingGlass, Wrench, XCircle } from "@phosphor-icons/react";
-import { scenario, type Move } from "@/content/oncall";
+import type { Check, Move, Scenario } from "@/content/oncall";
 import { cn } from "@/lib/utils";
 
 type Entry = { move: Move; at: number };
 type Phase = "idle" | "paged" | "mitigated" | "resolved";
 
-function clock(minutesAfterPage: number) {
-  const [h, m] = scenario.start.split(":").map(Number);
+function clock(start: string, minutesAfterPage: number) {
+  const [h, m] = start.split(":").map(Number);
   const t = h * 60 + m + minutesAfterPage;
   return `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 }
 
 const pct = (x: number) => `${(x * 100).toFixed(2)}%`;
+/** "Raise the API timeout" becomes "raise the API timeout": only the first letter, so acronyms stay. */
+const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 
-export function Drill() {
+export function Drill({ scenario }: { scenario: Scenario }) {
+  const at = (minutesAfterPage: number) => clock(scenario.start, minutesAfterPage);
   const [phase, setPhase] = useState<Phase>("idle");
   const [minutes, setMinutes] = useState(0);
   const [log, setLog] = useState<Entry[]>([]);
@@ -49,12 +52,12 @@ export function Drill() {
   };
 
   const play = (move: Move) => {
-    const at = minutes + move.minutes;
-    setMinutes(at);
-    setLog((l) => [...l, { move, at }]);
+    const now = minutes + move.minutes;
+    setMinutes(now);
+    setLog((l) => [...l, { move, at: now }]);
     if (move.effect === "mitigate") {
       focusNext.current = "verify";
-      setMitigatedAt(at);
+      setMitigatedAt(now);
       setPhase("mitigated");
     }
     if (move.effect === "silence") setSilenced(true);
@@ -71,7 +74,7 @@ export function Drill() {
         <p className="font-semibold">How it works</p>
         <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-ink-2">
           <li>A page fires. Every look and every action costs simulated minutes, and the error budget burns while you work.</li>
-          <li>The dashboards, runbook and guardrail are the platform&apos;s real ones; the incident is invented for practice.</li>
+          <li>{scenario.honesty}</li>
           <li>When it is over you get your own postmortem: timeline, time to recover, budget spent and what went well.</li>
         </ul>
         <button
@@ -113,7 +116,7 @@ export function Drill() {
           <dl className="mt-5 grid grid-cols-2 gap-4">
             <div className="flex flex-col-reverse justify-end">
               <dt className="text-xs text-ink-2">now ({minutes} min in)</dt>
-              <dd className="font-mono text-2xl font-semibold">{clock(minutes)}</dd>
+              <dd className="font-mono text-2xl font-semibold">{at(minutes)}</dd>
             </div>
             <div className="flex flex-col-reverse justify-end">
               <dt className="text-xs text-ink-2">of the month&apos;s error budget spent{burning ? ", still burning" : ""}</dt>
@@ -125,11 +128,11 @@ export function Drill() {
         <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
           <p className="font-semibold">What you have found</p>
           <div ref={feed} className="mt-3 max-h-[26rem] space-y-3 overflow-y-auto pr-1" aria-live="polite">
-            {log.length === 0 && <p className="text-sm text-ink-3">Nothing yet. Pick a dashboard, the logs or the runbook to start.</p>}
+            {log.length === 0 && <p className="text-sm text-ink-3">{scenario.emptyHint}</p>}
             {[...log].reverse().map((e) => (
               <div key={e.move.id + e.at} className="rounded-2xl border border-line bg-surface-2/60 p-3.5">
                 <p className="flex flex-wrap items-baseline gap-x-2 font-mono text-[11px] text-ink-3">
-                  <span className="text-ink">{clock(e.at)}</span>
+                  <span className="text-ink">{at(e.at)}</span>
                   <span>{e.move.label}</span>
                   <span>+{e.move.minutes} min</span>
                 </p>
@@ -147,7 +150,7 @@ export function Drill() {
         {phase !== "resolved" && log.length > 0 && (
           <div aria-hidden className="rounded-3xl border border-line-strong bg-surface-2/60 p-4 lg:hidden">
             <p className="font-mono text-[11px] text-ink-3">
-              {clock(log[log.length - 1].at)} {log[log.length - 1].move.label}
+              {at(log[log.length - 1].at)} {log[log.length - 1].move.label}
             </p>
             <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{log[log.length - 1].move.result}</p>
           </div>
@@ -158,7 +161,7 @@ export function Drill() {
             <MoveGroup title={phase === "paged" ? "Act" : "Close out"} icon={<Wrench size={16} />} moves={acts} used={used} onPlay={play} />
           </>
         )}
-        {phase === "resolved" && <Debrief log={log} minutes={minutes} spent={spent} onRestart={start} />}
+        {phase === "resolved" && <Debrief scenario={scenario} log={log} minutes={minutes} spent={spent} onRestart={start} />}
       </div>
     </div>
   );
@@ -206,19 +209,26 @@ function MoveGroup({
   );
 }
 
-function Debrief({ log, minutes, spent, onRestart }: { log: Entry[]; minutes: number; spent: number; onRestart: () => void }) {
-  const rollback = log.findIndex((e) => e.move.effect === "mitigate");
-  const before = (evidence: Move["evidence"], idx: number) => log.slice(0, idx).some((e) => e.move.evidence === evidence);
-  const mitigateMinutes = log[rollback]?.at ?? minutes;
-  // Scored the way the platform's budget policy reads: mitigate first, investigate second.
-  const checks = [
-    { ok: before("change", rollback), text: "Checked what changed before rolling back, so the rollback was a decision, not a guess" },
-    { ok: mitigateMinutes <= 12, text: `Stopped the burn within 12 minutes (took ${mitigateMinutes})` },
-    { ok: log.some((e) => e.move.evidence === "parser"), text: "Found why before closing: messages parsing to nothing while every pod stayed Ready" },
-    { ok: !log.some((e) => e.move.effect === "silence"), text: "Never silenced the page" },
-    { ok: !log.some((e) => e.move.effect === "refused"), text: "Stayed inside the guardrail: no deleting broker data" },
-    { ok: true, text: "Confirmed recovery over several publish cycles before closing" },
-  ];
+function Debrief({ scenario, log, minutes, spent, onRestart }: { scenario: Scenario; log: Entry[]; minutes: number; spent: number; onRestart: () => void }) {
+  const at = (minutesAfterPage: number) => clock(scenario.start, minutesAfterPage);
+  const mitigation = log.findIndex((e) => e.move.effect === "mitigate");
+  const mitigateMinutes = log[mitigation]?.at ?? minutes;
+  // Scored the way a budget policy reads: mitigate first, investigate second. Each scenario says what counts.
+  const score = (c: Check): boolean => {
+    switch (c.kind) {
+      case "before-mitigate":
+        return log.slice(0, mitigation).some((e) => e.move.evidence === c.evidence);
+      case "mitigated-within":
+        return mitigateMinutes <= c.minutes;
+      case "found":
+        return log.some((e) => e.move.evidence !== undefined && c.evidence.includes(e.move.evidence));
+      case "never":
+        return !log.some((e) => e.move.effect === c.effect);
+      case "always":
+        return true;
+    }
+  };
+  const checks = scenario.checks.map((c) => ({ ok: score(c), text: c.text.replace("{m}", String(mitigateMinutes)) }));
   const wasted = log.filter((e) => e.move.effect === "nothing" || e.move.effect === "silence" || e.move.effect === "refused");
 
   return (
@@ -228,8 +238,8 @@ function Debrief({ log, minutes, spent, onRestart }: { log: Entry[]; minutes: nu
         Burn stopped after {mitigateMinutes} minutes, closed after {minutes}
       </p>
       <p className="mt-1 text-sm text-ink-2">
-        A focused path (check what changed, roll back, confirm) takes about {scenario.goodPathMinutes}, with the root cause found after
-        the burn stops. You spent {pct(spent)} of the month&apos;s error budget.
+        A focused path ({scenario.focusedPath}) takes about {scenario.goodPathMinutes} minutes, with the root cause found after the burn
+        stops. You spent {pct(spent)} of the month&apos;s error budget.
       </p>
 
       <ul className="mt-5 space-y-2.5">
@@ -247,28 +257,23 @@ function Debrief({ log, minutes, spent, onRestart }: { log: Entry[]; minutes: nu
 
       {wasted.length > 0 && (
         <p className="mt-4 rounded-2xl bg-surface-2 p-3.5 text-sm leading-relaxed text-ink-2">
-          {wasted.length === 1 ? "One move" : `${wasted.length} moves`} did not help: {wasted.map((e) => e.move.label.toLowerCase()).join("; ")}.
+          {wasted.length === 1 ? "One move" : `${wasted.length} moves`} did not help: {wasted.map((e) => lowerFirst(e.move.label)).join("; ")}.
         </p>
       )}
 
       <p className="mt-5 text-sm font-semibold">Timeline</p>
       <ol className="mt-2 space-y-1.5 border-l border-line pl-4 font-mono text-xs text-ink-2">
         <li>
-          <span className="text-ink">{scenario.start}</span> paged: {scenario.page.title.toLowerCase()}
+          <span className="text-ink">{scenario.start}</span> paged: {scenario.page.title}
         </li>
         {log.map((e) => (
           <li key={e.move.id + e.at}>
-            <span className="text-ink">{clock(e.at)}</span> {e.move.label.toLowerCase()}
+            <span className="text-ink">{at(e.at)}</span> {e.move.label}
           </li>
         ))}
       </ol>
 
-      <p className="mt-5 text-sm leading-relaxed text-ink-2">
-        Root cause: a parser release at 01:12 changed how payloads are detected, so one gateway version&apos;s messages parsed to
-        nothing. Every pod stayed Ready and nothing errored, which is why the freshness SLO, not an error alert, caught it. With 3 of
-        40 sites stale the burn was about 15x, and a fast-burn page needs the whole last hour above 14.4x: that is why it fired an
-        hour after the release.
-      </p>
+      <p className="mt-5 text-sm leading-relaxed text-ink-2">{scenario.rootCause}</p>
 
       <div className="mt-6 flex flex-wrap gap-3">
         <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium hover:border-ink-3">

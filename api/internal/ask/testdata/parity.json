@@ -8,9 +8,9 @@
   },
   {
     "question": "What did the final-year project find?",
-    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 - now. Contributed a Go benchmark adapter to ARIES, the lab's open-source agent-serving framework. Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026). Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
+    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 - now, on the ARIES agent benchmarks. Contributed a Go benchmark adapter to ARIES, the lab's open-source framework for agent-serving research. Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026). Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
     "sources": [
-      "role-ntu-hyscale-lab"
+      "role-ntu-hyscale-lab-aries"
     ]
   },
   {

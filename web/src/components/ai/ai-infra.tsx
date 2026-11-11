@@ -9,6 +9,7 @@ import { CaseCard } from "@/components/work/case-card";
 import { caseViz } from "@/components/work/case-viz";
 import { ProductTag, productTone } from "@/components/site/product-tag";
 import { SectionHeading } from "@/components/site/section-heading";
+import { OnCallLink } from "@/components/oncall/oncall-link";
 import { Reveal } from "@/components/motion/reveal";
 import { SystemMap } from "@/components/ai/system-map";
 import { InfraStack } from "@/components/ai/infra-stack";
@@ -16,6 +17,7 @@ import { RequestTrace } from "@/components/ai/request-trace";
 import { Measures } from "@/components/ai/measures";
 import { useHashTab } from "@/lib/use-hash-tab";
 import { cn } from "@/lib/utils";
+import { onTabKeys } from "@/lib/tabs";
 
 const TABS = [
   { id: "map", label: "Follow a request" },
@@ -58,6 +60,7 @@ export function AiInfra() {
           }
           lead={`${aiIntro} Follow a request through it, see the AI infrastructure layer by layer, and switch on the lens to see which parts are mine.`}
         />
+        <OnCallLink drill="ai" />
 
         <Reveal className="mt-10">
           <div className="grid gap-3 md:grid-cols-2">
@@ -107,13 +110,18 @@ export function AiInfra() {
         {/* The views: what the case card's "follow a request" link and openAiTab() scroll to. */}
         <div id="ai-views" className="mt-12 scroll-mt-24">
           <Reveal>
-            <div role="tablist" aria-label="AI platform views" className="inline-flex flex-wrap gap-1 rounded-3xl border border-line bg-surface p-1 sm:rounded-full">
+            <div
+              role="tablist"
+              aria-label="AI platform views"
+              onKeyDown={(e) => onTabKeys(e, TABS.length, TAB_IDS.indexOf(tab), (k) => setTab(TABS[k].id))}
+              className="inline-flex flex-wrap gap-1 rounded-3xl border border-line bg-surface p-1 sm:rounded-full">
               {TABS.map((t) => (
                 <button
                   key={t.id}
                   role="tab"
                   id={`ai-tab-${t.id}`}
                   aria-selected={tab === t.id}
+                  tabIndex={tab === t.id ? 0 : -1}
                   aria-controls={`ai-panel-${t.id}`}
                   onClick={() => setTab(t.id)}
                   className={cn(

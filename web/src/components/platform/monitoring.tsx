@@ -7,6 +7,7 @@ import { SloBoard } from "@/components/platform/slo-board";
 import { Signals } from "@/components/platform/signals";
 import { Investigate } from "@/components/platform/investigate";
 import { cn } from "@/lib/utils";
+import { onTabKeys } from "@/lib/tabs";
 
 const VIEWS = [
   { id: "slo", label: "SLOs and error budgets" },
@@ -47,12 +48,17 @@ export function Monitoring() {
         still opens a ticket. Cause alerts and dashboards then say where to look.
       </p>
 
-      <div role="tablist" aria-label="Monitoring views" className="mt-6 inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1">
+      <div
+        role="tablist"
+        aria-label="Monitoring views"
+        onKeyDown={(e) => onTabKeys(e, VIEWS.length, VIEWS.findIndex((v) => v.id === view), (k) => setView(VIEWS[k].id))}
+        className="mt-6 inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1">
         {VIEWS.map((v) => (
           <button
             key={v.id}
             role="tab"
             aria-selected={view === v.id}
+            tabIndex={view === v.id ? 0 : -1}
             onClick={() => setView(v.id)}
             className={cn(
               "rounded-xl px-3.5 py-1.5 text-sm font-medium transition-colors",

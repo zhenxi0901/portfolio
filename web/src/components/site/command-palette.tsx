@@ -138,10 +138,18 @@ export function CommandPalette() {
     {
       id: "oncall",
       group: "Actions",
-      label: "Go on call: an incident drill",
-      keywords: ["on call", "incident", "drill", "pager", "simulation", "game"],
+      label: "Go on call: stale telemetry on the IoT platform",
+      keywords: ["on call", "incident", "drill", "pager", "simulation", "game", "iot", "telemetry", "kafka", "rollback"],
       icon: arrow,
-      action: () => goTo("/oncall"),
+      action: () => goTo("/oncall#oncall-iot"),
+    },
+    {
+      id: "oncall-ai",
+      group: "Actions",
+      label: "Go on call: slow answers on the AI agent platform",
+      keywords: ["on call", "incident", "drill", "pager", "simulation", "game", "ai", "llm", "rag", "reranker", "gpu", "latency", "trace"],
+      icon: arrow,
+      action: () => goTo("/oncall#oncall-ai"),
     },
     {
       id: "copy-email",

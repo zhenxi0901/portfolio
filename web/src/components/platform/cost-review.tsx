@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle, HourglassMedium, X } from "@phosphor-icons/react";
 import { costReview, type CostVisual } from "@/content/profile";
 import { cn } from "@/lib/utils";
+import { onTabKeys } from "@/lib/tabs";
 
 const n = (v: number) => v.toLocaleString("en-US");
 
@@ -26,7 +27,7 @@ export function CostReview() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <ol role="tablist" aria-label="Cost moves" className="flex min-w-0 gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+        <ol role="tablist" aria-label="Cost moves" onKeyDown={(e) => onTabKeys(e, levers.length, i, setI)} className="flex min-w-0 gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
           {levers.map((x, k) => (
             // presentation: a tablist must own its tabs directly.
             <li key={x.title} role="presentation" className="shrink-0">
@@ -36,6 +37,7 @@ export function CostReview() {
                 id={`cost-tab-${k}`}
                 aria-controls="cost-panel"
                 aria-selected={k === i}
+                tabIndex={k === i ? 0 : -1}
                 onClick={() => setI(k)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left text-sm transition-colors",

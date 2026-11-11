@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { SectionHeading } from "@/components/site/section-heading";
+import { OnCallLink } from "@/components/oncall/oncall-link";
 import { Reveal } from "@/components/motion/reveal";
 import { FlowExplorer } from "@/components/platform/flow-explorer";
 import { Monitoring } from "@/components/platform/monitoring";
@@ -10,6 +11,7 @@ import { CostReview } from "@/components/platform/cost-review";
 import { ProductTag } from "@/components/site/product-tag";
 import { useHashTab } from "@/lib/use-hash-tab";
 import { cn } from "@/lib/utils";
+import { onTabKeys } from "@/lib/tabs";
 
 const TABS = [
   { id: "paths", label: "How traffic flows" },
@@ -44,24 +46,20 @@ export function Platform() {
           title="Inside the IoT platform"
           lead="The building IoT platform I run on GKE: how traffic moves through it, what I alert on and why, and where the money went."
         />
-        <a
-          href="/oncall"
-          className="mt-6 inline-flex items-center gap-2 rounded-full border border-critical/50 px-4 py-2 text-sm font-medium transition-colors hover:border-critical"
-        >
-          <span className="relative flex size-2" aria-hidden>
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-critical opacity-60 motion-reduce:hidden" />
-            <span className="relative inline-flex size-2 rounded-full bg-critical" />
-          </span>
-          Try being on call: a simulated incident on this platform
-        </a>
+        <OnCallLink drill="iot" />
         <Reveal className="mt-10">
-          <div role="tablist" aria-label="Platform views" className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface p-1">
+          <div
+            role="tablist"
+            aria-label="Platform views"
+            onKeyDown={(e) => onTabKeys(e, TABS.length, TAB_IDS.indexOf(tab), (k) => setTab(TABS[k].id))}
+            className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface p-1">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 role="tab"
                 id={`tab-${t.id}`}
                 aria-selected={tab === t.id}
+                tabIndex={tab === t.id ? 0 : -1}
                 aria-controls={`panel-${t.id}`}
                 onClick={() => setTab(t.id)}
                 className={cn(

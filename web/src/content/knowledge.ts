@@ -14,6 +14,7 @@ import { aiOverview, journeys, measures, stack } from "@/content/ai-platform";
 import { budgetPolicy, burnRules, investigation, slos, sreTerms } from "@/content/slo";
 import { productOrder, products } from "@/content/products";
 import { postmortems } from "@/content/postmortems";
+import { scenarios } from "@/content/oncall";
 import { posts } from "@/content/writing";
 import { decisions } from "@/content/decisions";
 
@@ -293,6 +294,18 @@ export function buildKnowledge(): Fact[] {
     text:
       postmortems.map((p) => `${p.title}: ${p.summary} The lesson: ${p.lesson}`).join(" ") +
       " Each one has a timeline, the root cause, how it was detected and action items linked to the commits that fixed it.",
+  });
+
+  // Worded around drills and being on call, so questions about real incidents still reach the postmortems.
+  facts.push({
+    id: "oncall",
+    title: "On-call drills",
+    anchor: "postmortems",
+    lead: "At /oncall you can practise being on call: two simulated pages, one on each platform I run.",
+    text:
+      scenarios.map((s) => `${products[s.product].name}, paged at ${s.start}: ${s.page.title}.`).join(" ") +
+      " Each drill uses the platform's own services and dashboards; the objectives behind the pages are proposals or made up for practice, and so is what goes wrong. " +
+      "Every look and every action costs simulated minutes while the error budget burns, and at the end you get a debrief of your own response: the timeline, time to mitigate, budget spent and what went well.",
   });
 
   facts.push({
