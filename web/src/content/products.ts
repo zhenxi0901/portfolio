@@ -9,8 +9,9 @@ export type Product = {
   org: string;
   what: string;
   runs: string;
-  /** The product's own section of the home page. */
+  /** The product's own section of the home page, and its heading's short name. */
   anchor: string;
+  chapter: string;
   /**
    * Its case studies sit inside that section instead of in Work. The AI agent platform's do: in Work
    * they sat between the IoT platform's cases and the IoT platform's section, and read as part of it.
@@ -25,6 +26,7 @@ export const products: Record<ProductKey, Product> = {
     what: "Collects live data from building systems (sensors, HVAC, meters) and serves the dashboards and alarms facility teams use.",
     runs: "Kubernetes on GKE",
     anchor: "platform",
+    chapter: "Inside the IoT platform",
   },
   ai: {
     name: "AI agent platform",
@@ -32,6 +34,7 @@ export const products: Record<ProductKey, Product> = {
     what: "Two AI agents for facility teams: one answers from the IoT platform's live data, the other from company documents.",
     runs: "Agents and RAG on Cloud Run",
     anchor: "ai",
+    chapter: "The AI agent platform",
     casesInSection: true,
   },
   aries: {
@@ -40,6 +43,7 @@ export const products: Record<ProductKey, Product> = {
     what: "Making the lab's open-source agent-serving framework run long agent tasks, then measuring what serving them costs.",
     runs: "SGLang on an A100, Google Cloud VM",
     anchor: "research",
+    chapter: "The research",
   },
 };
 

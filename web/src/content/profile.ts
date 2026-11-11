@@ -285,13 +285,21 @@ export const experience: Role[] = [
     role: "Final-year research",
     period: "Aug 2026 - now",
     place: "Singapore",
-    points: [
-      "Contributed a Go benchmark adapter to ARIES, the lab's open-source agent-serving framework.",
-      "Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026).",
-      "Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
-      "Found and fixed a Docker race that dropped runs under load.",
+    points: [],
+    tags: [],
+    // All of it is the ARIES agent benchmarks, so the role wears that product's tag, as Primustech wears its two.
+    byProduct: [
+      {
+        product: "aries",
+        points: [
+          "Contributed a Go benchmark adapter to ARIES, the lab's open-source framework for agent-serving research.",
+          "Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026).",
+          "Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
+          "Found and fixed a Docker race that dropped runs under load.",
+        ],
+        tags: ["Go", "Docker", "Apptainer", "SGLang", "MCP", "NSCC HPC"],
+      },
     ],
-    tags: ["Go", "Docker", "Apptainer", "SGLang", "MCP", "NSCC HPC"],
   },
   {
     org: "NTU Multidisciplinary Design Project",
