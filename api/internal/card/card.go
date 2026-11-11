@@ -243,3 +243,61 @@ func truncate(s string, n int) string {
 	r := []rune(s)
 	return strings.TrimSpace(string(r[:n-1])) + "…"
 }
+
+// Terminal is the site's answer to curl: the same live numbers as the card, as text. ANSI colour
+// only; no cursor movement, so it reads the same piped into a file.
+func Terminal(d Data, base string) []byte {
+	const (
+		bold, dim, green, yellow, lime, reset = "\x1b[1m", "\x1b[2m", "\x1b[32m", "\x1b[33m", "\x1b[38;5;155m", "\x1b[0m"
+	)
+	var b bytes.Buffer
+	row := func(label, value string) { fmt.Fprintf(&b, "    %s%-10s%s %s\n", dim, label, reset, value) }
+
+	fmt.Fprintf(&b, "\n  %s%sLi ZhenXi%s  SRE, cloud and AI infrastructure\n", bold, lime, reset)
+	fmt.Fprintf(&b, "  %sOpen to 2027 roles. This page is a live service; you asked it with curl, so here it is as text.%s\n\n", dim, reset)
+
+	if d.Region == "local" {
+		row("running", fmt.Sprintf("commit %s, on a local copy", d.Commit))
+	} else {
+		row("running", fmt.Sprintf("commit %s on Cloud Run, %s", d.Commit, d.Region))
+	}
+	if d.SLOAvailable {
+		label := d.UptimeLabel
+		if label == "" {
+			label = "uptime, 30 days"
+		}
+		colour := green
+		if d.Releases == "frozen" {
+			colour = yellow
+		}
+		span := strings.TrimLeft(strings.TrimPrefix(label, "uptime"), ", ") // "30 days" or "since 19 Oct"
+		if !strings.HasPrefix(span, "since") {
+			span = "over " + span
+		}
+		row("uptime", fmt.Sprintf("%s%.2f%%%s %s, measured from outside", colour, slo.FloorPct(d.Availability, 2), reset, span))
+		row("budget", fmt.Sprintf("%.1f%% of the error budget left, releases %s", slo.FloorPct(max(d.BudgetRemaining, 0), 1), d.Releases))
+	} else {
+		row("uptime", "not measured on this copy")
+	}
+	if dl := d.Delivery; dl != nil {
+		line := fmt.Sprintf("%d deploys in %d days", dl.Deploys, dl.WindowDays)
+		if m := dl.LeadTimeMinutes.Median; m != nil {
+			line += ", lead time " + minutes(*m)
+		}
+		if r := dl.ChangeFailureRate; r != nil {
+			line += fmt.Sprintf(", change failure rate %.0f%%", math.Round(*r*100))
+		}
+		row("shipping", line)
+	}
+
+	fmt.Fprintf(&b, "\n  %sMore from here:%s\n", bold, reset)
+	for _, c := range [][2]string{
+		{"curl -s " + base + "/api/slo", "the SLO as JSON"},
+		{"curl -s " + base + "/llms.txt", "the whole site as Markdown, for agents"},
+		{"POST    " + base + "/mcp", "an MCP server: point your agent at it"},
+	} {
+		fmt.Fprintf(&b, "    %s  %s%s%s\n", c[0], dim, c[1], reset)
+	}
+	fmt.Fprintf(&b, "\n  In a browser: %s%s%s\n\n", lime, base, reset)
+	return b.Bytes()
+}

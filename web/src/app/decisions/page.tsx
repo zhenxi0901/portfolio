@@ -8,6 +8,7 @@ export const metadata = pageMetadata({
   description:
     "Architecture decision records for a portfolio run as a production service: Cloud Run over GKE, one Go binary, build once and check before traffic, an SLO measured from outside, and what each one costs.",
   path: "/decisions",
+  markdown: "decisions.md",
 });
 
 const day = (iso: string) =>

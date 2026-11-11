@@ -303,3 +303,28 @@ func toSet(xs []string) map[string]bool {
 	}
 	return m
 }
+
+// Search returns up to k whole facts, ranked exactly as Retrieve ranks them, for callers that
+// compose their own answer (the MCP tools).
+func (ix *Index) Search(question string, k int) []Fact {
+	q := tokenize(question)
+	scores := bm25(q, ix.docs)
+	for i, s := range bm25(q, ix.titleDocs) {
+		scores[i] += titleWeight * s
+	}
+	var order []int
+	for i := range ix.facts {
+		if scores[i] > 0 {
+			order = append(order, i)
+		}
+	}
+	slices.SortStableFunc(order, func(a, b int) int { return cmp.Compare(scores[b], scores[a]) })
+	if len(order) > k {
+		order = order[:k]
+	}
+	out := make([]Fact, len(order))
+	for i, j := range order {
+		out[i] = ix.facts[j]
+	}
+	return out
+}

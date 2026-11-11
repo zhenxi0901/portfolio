@@ -17,7 +17,7 @@ export async function generateMetadata(props: PageProps<"/postmortems/[slug]">) 
   const { slug } = await props.params;
   const pm = postmortems.find((p) => p.slug === slug);
   if (!pm) return {};
-  return pageMetadata({ title: `Postmortem: ${pm.title}`, description: pm.summary, path: `/postmortems/${pm.slug}` });
+  return pageMetadata({ title: `Postmortem: ${pm.title}`, description: pm.summary, path: `/postmortems/${pm.slug}`, markdown: `postmortems/${pm.slug}.md` });
 }
 
 const TAG: Record<TimelineTag, { label: string; dot: string }> = {

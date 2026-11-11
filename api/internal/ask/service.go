@@ -212,3 +212,15 @@ func (c *answerCache) put(k string, v response) {
 	}
 	c.items[k] = cacheItem{v: v, expires: time.Now().Add(c.ttl)}
 }
+
+// Facts returns every fact the service answers from.
+func (s *Service) Facts() []Fact { return s.facts }
+
+// Answer is the retrieval answer alone: no LLM, no cache, deterministic. The MCP tools use it, since
+// the calling agent has a model of its own.
+func (s *Service) Answer(ctx context.Context, question string) Result {
+	return s.index.Retrieve(ctx, question)
+}
+
+// Search returns the k facts most relevant to a query, whole.
+func (s *Service) Search(query string, k int) []Fact { return s.index.Search(query, k) }

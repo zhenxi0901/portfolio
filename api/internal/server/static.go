@@ -23,6 +23,7 @@ var contentTypes = map[string]string{
 	".txt":  "text/plain; charset=utf-8",
 	".svg":  "image/svg+xml",
 	".xml":  "text/xml; charset=utf-8",
+	".md":   "text/markdown; charset=utf-8",
 }
 
 // staticHandler serves the Next.js export: `/` -> index.html, `/about` -> about.html,

@@ -18,7 +18,7 @@ export async function generateMetadata(props: PageProps<"/work/[slug]">) {
   const { slug } = await props.params;
   const c = cases.find((x) => x.id === slug);
   if (!c) return {};
-  return pageMetadata({ title: `${c.title}: a case study`, description: c.summary, path: `/work/${c.id}` });
+  return pageMetadata({ title: `${c.title}: a case study`, description: c.summary, path: `/work/${c.id}`, markdown: `work/${c.id}.md` });
 }
 
 export default async function CasePage(props: PageProps<"/work/[slug]">) {
