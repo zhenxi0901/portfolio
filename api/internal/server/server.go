@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -22,6 +24,7 @@ import (
 	"github.com/zhenxi0901/portfolio/api/internal/card"
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
 	"github.com/zhenxi0901/portfolio/api/internal/gcp"
+	"github.com/zhenxi0901/portfolio/api/internal/mcp"
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
 	"github.com/zhenxi0901/portfolio/api/internal/ratelimit"
 	"github.com/zhenxi0901/portfolio/api/internal/slo"
@@ -104,6 +107,9 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 // Close flushes anything still buffered (spans waiting for export).
 func (s *Server) Close(ctx context.Context) error { return s.closeTraces(ctx) }
 
+// mcpPerMinute is how many MCP requests one client may send a minute (per instance).
+const mcpPerMinute = 60
+
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
@@ -171,8 +177,10 @@ func (s *Server) Handler() http.Handler {
 	})
 
 	// The site as tools for AI agents: a Model Context Protocol server (internal/mcp, mcptools.go).
-	mcpLimit := ratelimit.New(60, time.Minute)
-	mux.Handle("/mcp", s.limit("mcp", mcpLimit, s.traced("/mcp", s.mcpServer())))
+	// Not traced: one client at this limit would be ~10M spans a month, four times Cloud Trace's
+	// free allowance, for a route whose work is the same retrieval /api/ask already traces.
+	mcpLimit := ratelimit.New(mcpPerMinute, time.Minute)
+	mux.Handle("/mcp", s.limit("mcp", mcpLimit, s.mcpServer()))
 
 	mux.Handle("/", s.forTerminals(staticHandler(s.cfg.StaticDir)))
 
@@ -232,7 +240,13 @@ func (s *Server) limit(route string, l *ratelimit.Limiter, next http.Handler) ht
 		ok, retry := l.Allow(rateKey(clientIP(r, s.cfg.TrustProxy)))
 		if !ok {
 			s.metrics.RateLimited.WithLabelValues(route).Inc()
-			w.Header().Set("Retry-After", fmt.Sprintf("%.0f", retry.Seconds()+0.5))
+			// An MCP client expects JSON-RPC even here; anything else could read as a broken server.
+			if route == "mcp" {
+				mcp.TooManyRequests(w, mcpPerMinute, retry)
+				return
+			}
+			// Whole seconds, rounded up: %.0f of x+0.5 rounds half to even, so 12 s came out as 12, 13 s as 14.
+			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(retry.Seconds()))))
 			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "Too many requests. Please wait a minute."})
 			return
 		}
@@ -264,7 +278,7 @@ func (s *Server) cardData(ctx context.Context) card.Data {
 	return card.Data{
 		Commit: short(s.cfg.Commit), Region: s.cfg.Region,
 		SLOAvailable: rep.Available, Availability: rep.Availability, BudgetRemaining: rep.BudgetRemaining, Releases: rep.Releases,
-		SLOUpdated: rep.Updated, SLOStale: rep.Stale, UptimeLabel: rep.UptimeLabel(),
+		SLOUpdated: rep.Updated, SLOStale: rep.Stale, SLOReason: rep.Reason, UptimeLabel: rep.UptimeLabel(),
 		Delivery: s.delivery, Now: time.Now(),
 	}
 }
@@ -299,13 +313,40 @@ func (s *Server) handleTextCard(w http.ResponseWriter, r *http.Request) {
 }
 
 func isTerminal(r *http.Request) bool {
-	if strings.Contains(r.Header.Get("Accept"), "text/html") {
+	if acceptsHTML(r.Header.Values("Accept")) {
 		return false
 	}
 	ua := strings.ToLower(r.UserAgent())
 	for _, p := range []string{"curl/", "wget/", "httpie/"} {
 		if strings.HasPrefix(ua, p) {
 			return true
+		}
+	}
+	return false
+}
+
+// acceptsHTML reports whether an Accept header names text/html (in any case) with a quality above
+// zero. "text/html;q=0" is a client saying it does not want HTML, so it gets the text card; "*/*"
+// alone does not count, or curl's default would get the page it cannot render.
+func acceptsHTML(values []string) bool {
+	for _, v := range values {
+		for _, rng := range strings.Split(v, ",") {
+			mediaType, params, _ := strings.Cut(rng, ";")
+			if !strings.EqualFold(strings.TrimSpace(mediaType), "text/html") {
+				continue
+			}
+			q := 1.0
+			for _, p := range strings.Split(params, ";") {
+				k, val, _ := strings.Cut(strings.TrimSpace(p), "=")
+				if strings.EqualFold(strings.TrimSpace(k), "q") {
+					if f, err := strconv.ParseFloat(strings.TrimSpace(val), 64); err == nil {
+						q = f
+					}
+				}
+			}
+			if q > 0 {
+				return true
+			}
 		}
 	}
 	return false

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -149,21 +150,59 @@ func TestLoadsTheGeneratedDeliveryFile(t *testing.T) {
 	}
 }
 
+// plain drops the card's ANSI colour codes, so a test can read it as a person would.
+func plain(b []byte) string {
+	return regexp.MustCompile(`\x1b\[[0-9;]*m`).ReplaceAllString(string(b), "")
+}
+
 func TestTerminalCard(t *testing.T) {
 	d := Data{Commit: "9dfbfb6", Region: "asia-southeast1", SLOAvailable: true, Availability: 0.99996, BudgetRemaining: 0.97,
 		Releases: "open", UptimeLabel: "uptime since 19 Oct", Delivery: delivery(t), Now: now}
-	s := string(Terminal(d, "https://example.test"))
-	for _, want := range []string{"Li ZhenXi", "commit 9dfbfb6", "99.99%", "since 19 Oct, measured from outside", "97.0% of the error budget left, releases open",
-		"32 deploys in 30 days, lead time 4.4 min, change failure rate 0%", "https://example.test/mcp", "https://example.test/llms.txt"} {
+	s := plain(Terminal(d, "https://example.test"))
+	for _, want := range []string{"Li ZhenXi", "you asked from a terminal", "commit 9dfbfb6 on Cloud Run", "99.99% since 19 Oct, measured from outside",
+		"97.0% of the error budget left, releases open", "32 deploys in 30 days, lead time 4.4 min, change failure rate 0%",
+		"https://example.test/mcp", "https://example.test/llms.txt"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("terminal card lacks %q:\n%s", want, s)
 		}
 	}
+	if strings.Contains(s, "last good reading") {
+		t.Errorf("a fresh reading was labelled stale:\n%s", s)
+	}
 	d.UptimeLabel = "uptime, 30 days"
-	if s := string(Terminal(d, "https://example.test")); !strings.Contains(s, "over 30 days, measured from outside") {
+	if s := plain(Terminal(d, "https://example.test")); !strings.Contains(s, "over 30 days, measured from outside") {
 		t.Errorf("full-window label:\n%s", s)
 	}
-	if s := string(Terminal(Data{Commit: "dev", Region: "local"}, "http://localhost:8080")); !strings.Contains(s, "not measured on this copy") || strings.Contains(s, "Cloud Run") {
-		t.Errorf("unmeasured card:\n%s", s)
+}
+
+// The colours follow the SVG card's thresholds, and old or missing numbers say so.
+func TestTerminalCardStates(t *testing.T) {
+	const red, green, yellow = "\x1b[31m", "\x1b[32m", "\x1b[33m"
+	base := Data{Commit: "x", Region: "asia-southeast1", SLOAvailable: true, Releases: "open", Now: now}
+
+	met := base
+	met.Availability, met.BudgetRemaining = 0.9995, 0.8
+	if s := string(Terminal(met, "https://e.test")); !strings.Contains(s, green+"99.95%") || !strings.Contains(s, green+"80.0%") {
+		t.Errorf("objective met should be green:\n%q", s)
+	}
+	below := base
+	below.Availability, below.BudgetRemaining, below.Releases = 0.995, -0.4, "frozen"
+	if s := string(Terminal(below, "https://e.test")); !strings.Contains(s, yellow+"99.50%") || !strings.Contains(s, red+"0.0%") {
+		t.Errorf("below the objective should be yellow, a spent budget red:\n%q", s)
+	}
+
+	stale := met
+	stale.SLOStale, stale.SLOUpdated = true, now.Add(-6*time.Hour)
+	if s := plain(Terminal(stale, "https://e.test")); !strings.Contains(s, "last good reading 19 Oct 06:00 UTC") {
+		t.Errorf("stale numbers not labelled with their time:\n%s", s)
+	}
+
+	gone := Data{Commit: "x", Region: "asia-southeast1", SLOReason: "Measurements are unavailable right now.", Now: now}
+	if s := plain(Terminal(gone, "https://e.test")); !strings.Contains(s, "Measurements are unavailable right now.") || strings.Contains(s, "local copy") {
+		t.Errorf("live service without numbers:\n%s", s)
+	}
+	local := Data{Commit: "dev", Region: "local", Now: now}
+	if s := plain(Terminal(local, "http://localhost:8080")); !strings.Contains(s, "not measured on a local copy") || strings.Contains(s, "Cloud Run") {
+		t.Errorf("local copy:\n%s", s)
 	}
 }

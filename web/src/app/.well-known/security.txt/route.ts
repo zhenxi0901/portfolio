@@ -1,12 +1,13 @@
 import { profile } from "@/content/profile";
 import { SITE_URL } from "@/lib/site";
 
-// RFC 9116. Emitted as a static file at build time. Expires is a year from the build, and every
-// push rebuilds the site, so it never goes stale while the site is maintained.
+// RFC 9116. Emitted as a static file at build time. RFC 9116 recommends an Expires less than a
+// year away; 180 days from the build, and every push rebuilds the site, so it stays current while
+// the site is maintained and lapses if it is abandoned, which is the point of the field.
 export const dynamic = "force-static";
 
 export function GET() {
-  const expires = new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10) + "T00:00:00.000Z";
+  const expires = new Date(Date.now() + 180 * 864e5).toISOString().slice(0, 10) + "T00:00:00.000Z";
   const body = [
     `Contact: mailto:${profile.email}`,
     `Expires: ${expires}`,

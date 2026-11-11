@@ -64,6 +64,7 @@ type Data struct {
 	BudgetRemaining float64
 	SLOUpdated      time.Time // when the SLO numbers were read from Cloud Monitoring
 	SLOStale        bool      // the latest read failed; these are the last good numbers
+	SLOReason       string    // why there are no SLO numbers, when there are none
 	UptimeLabel     string    // "uptime, 30 days", or "uptime since 19 Oct" while the window fills
 	Releases        string    // "open", "frozen" or "unknown"
 	Delivery        *Delivery
@@ -248,36 +249,55 @@ func truncate(s string, n int) string {
 // only; no cursor movement, so it reads the same piped into a file.
 func Terminal(d Data, base string) []byte {
 	const (
-		bold, dim, green, yellow, lime, reset = "\x1b[1m", "\x1b[2m", "\x1b[32m", "\x1b[33m", "\x1b[38;5;155m", "\x1b[0m"
+		bold, dim, red, green, yellow, lime, reset = "\x1b[1m", "\x1b[2m", "\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[38;5;155m", "\x1b[0m"
 	)
+	// The same thresholds as the SVG card's tone(): good, worth a look, or bad.
+	shade := func(good, ok bool) string {
+		switch {
+		case good:
+			return green
+		case ok:
+			return yellow
+		}
+		return red
+	}
 	var b bytes.Buffer
 	row := func(label, value string) { fmt.Fprintf(&b, "    %s%-10s%s %s\n", dim, label, reset, value) }
+	local := d.Region == "local"
 
 	fmt.Fprintf(&b, "\n  %s%sLi ZhenXi%s  SRE, cloud and AI infrastructure\n", bold, lime, reset)
-	fmt.Fprintf(&b, "  %sOpen to 2027 roles. This page is a live service; you asked it with curl, so here it is as text.%s\n\n", dim, reset)
+	fmt.Fprintf(&b, "  %sOpen to 2027 roles. This page is a live service; you asked from a terminal, so here it is as text.%s\n\n", dim, reset)
 
-	if d.Region == "local" {
+	if local {
 		row("running", fmt.Sprintf("commit %s, on a local copy", d.Commit))
 	} else {
 		row("running", fmt.Sprintf("commit %s on Cloud Run, %s", d.Commit, d.Region))
 	}
-	if d.SLOAvailable {
+	switch {
+	case d.SLOAvailable:
 		label := d.UptimeLabel
 		if label == "" {
 			label = "uptime, 30 days"
-		}
-		colour := green
-		if d.Releases == "frozen" {
-			colour = yellow
 		}
 		span := strings.TrimLeft(strings.TrimPrefix(label, "uptime"), ", ") // "30 days" or "since 19 Oct"
 		if !strings.HasPrefix(span, "since") {
 			span = "over " + span
 		}
-		row("uptime", fmt.Sprintf("%s%.2f%%%s %s, measured from outside", colour, slo.FloorPct(d.Availability, 2), reset, span))
-		row("budget", fmt.Sprintf("%.1f%% of the error budget left, releases %s", slo.FloorPct(max(d.BudgetRemaining, 0), 1), d.Releases))
-	} else {
-		row("uptime", "not measured on this copy")
+		left := d.BudgetRemaining
+		row("uptime", fmt.Sprintf("%s%.2f%%%s %s, measured from outside", shade(d.Availability >= 0.999, d.Availability >= 0.99), slo.FloorPct(d.Availability, 2), reset, span))
+		row("budget", fmt.Sprintf("%s%.1f%%%s of the error budget left, releases %s", shade(left >= 0.5, left > 0), slo.FloorPct(max(left, 0), 1), reset, d.Releases))
+		// Numbers kept from before Cloud Monitoring stopped answering are old news; say how old.
+		if d.SLOStale && !d.SLOUpdated.IsZero() {
+			row("reading", fmt.Sprintf("%slast good reading %s%s; Cloud Monitoring is not answering", yellow, d.SLOUpdated.UTC().Format("2 Jan 15:04 UTC"), reset))
+		}
+	case local:
+		row("uptime", "not measured on a local copy")
+	default:
+		reason := d.SLOReason
+		if reason == "" {
+			reason = "Measurements are unavailable right now."
+		}
+		row("uptime", reason)
 	}
 	if dl := d.Delivery; dl != nil {
 		line := fmt.Sprintf("%d deploys in %d days", dl.Deploys, dl.WindowDays)

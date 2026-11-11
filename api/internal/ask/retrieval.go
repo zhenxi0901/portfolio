@@ -307,6 +307,7 @@ func toSet(xs []string) map[string]bool {
 // Search returns up to k whole facts, ranked exactly as Retrieve ranks them, for callers that
 // compose their own answer (the MCP tools).
 func (ix *Index) Search(question string, k int) []Fact {
+	k = max(k, 0) // a negative k would slice out of range below
 	q := tokenize(question)
 	scores := bm25(q, ix.docs)
 	for i, s := range bm25(q, ix.titleDocs) {

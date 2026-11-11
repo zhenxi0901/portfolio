@@ -24,7 +24,8 @@ import { posts } from "@/content/writing";
 import { goTo, openPlatformTab, scrollToId } from "@/lib/utils";
 import { startTour } from "@/components/site/tour";
 
-const words = (text: string) => text.toLowerCase().split(/[^a-z0-9%]+/).filter(Boolean);
+// Letters and digits in any script, so "ü" or "云" is a word too, not a separator.
+const words = (text: string) => text.toLowerCase().split(/[^\p{L}\p{N}%]+/u).filter(Boolean);
 
 /**
  * How well an item answers what was typed, from 0 (not at all) to 1. cmdk's own matching is fuzzy:
@@ -33,8 +34,10 @@ const words = (text: string) => text.toLowerCase().split(/[^a-z0-9%]+/).filter(B
  * its keywords.
  */
 export function rank(value: string, search: string, keywords: string[] = []): number {
+  // Nothing typed matches everything; something typed that has no words in it (a "?") matches nothing.
+  if (search.trim() === "") return 1;
   const query = words(search);
-  if (query.length === 0) return 1;
+  if (query.length === 0) return 0;
   const label = words(value);
   const extra = words(keywords.join(" "));
   const inLabel = (q: string) => label.some((w) => w.startsWith(q));
@@ -48,7 +51,8 @@ export function rank(value: string, search: string, keywords: string[] = []): nu
   return query.every((q) => inLabel(q) || extra.includes(q)) ? 0.6 : 0.5;
 }
 
-type Entry = { id: string; group: string; label: string; keywords?: string[]; icon: React.ReactNode; action: () => void };
+/** `now`: the action needs the click's user activation (a new tab, the clipboard), so it cannot wait a frame. */
+type Entry = { id: string; group: string; label: string; keywords?: string[]; icon: React.ReactNode; action: () => void; now?: boolean };
 
 const GROUPS = ["Sections", "Case studies", "Writing", "Postmortems", "How this site runs", "Actions"];
 
@@ -58,11 +62,12 @@ export function CommandPalette() {
   const { resolvedTheme, setTheme } = useTheme();
   const [search, setSearch] = useState("");
 
-  const run = (fn: () => void) => {
+  const run = (fn: () => void, now = false) => {
+    if (now) fn();
     setOpen(false);
     setSearch("");
-    // Let the dialog close before scrolling so focus returns cleanly.
-    requestAnimationFrame(fn);
+    // Otherwise let the dialog close before scrolling, so focus returns cleanly.
+    if (!now) requestAnimationFrame(fn);
   };
 
   const arrow = <ArrowRight size={16} />;
@@ -140,13 +145,19 @@ export function CommandPalette() {
     },
     {
       id: "copy-email",
+      now: true,
       group: "Actions",
       label: "Copy email address",
       keywords: ["contact", "mail"],
       icon: <Copy size={16} />,
       action: async () => {
-        await navigator.clipboard.writeText(profile.email);
-        toast.success("Email copied", { description: profile.email });
+        // The clipboard can refuse (permissions, an older Safari): then show the address to copy by hand.
+        try {
+          await navigator.clipboard.writeText(profile.email);
+          toast.success("Email copied", { description: profile.email });
+        } catch {
+          toast(profile.email, { description: "Copying was blocked; here it is to copy by hand." });
+        }
       },
     },
     {
@@ -157,8 +168,8 @@ export function CommandPalette() {
       icon: <MoonStars size={16} />,
       action: () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
     },
-    { id: "github", group: "Actions", label: "GitHub", keywords: ["code", "repositories", "source"], icon: <GithubLogo size={16} />, action: () => window.open(profile.github, "_blank") },
-    { id: "linkedin", group: "Actions", label: "LinkedIn", icon: <LinkedinLogo size={16} />, action: () => window.open(profile.linkedin, "_blank") },
+    { id: "github", now: true, group: "Actions", label: "GitHub", keywords: ["code", "repositories", "source"], icon: <GithubLogo size={16} />, action: () => window.open(profile.github, "_blank", "noopener,noreferrer") },
+    { id: "linkedin", now: true, group: "Actions", label: "LinkedIn", icon: <LinkedinLogo size={16} />, action: () => window.open(profile.linkedin, "_blank", "noopener,noreferrer") },
   ];
 
   // With something typed, the groups dissolve into one list, best match first. Ties keep the
@@ -176,7 +187,7 @@ export function CommandPalette() {
     <Command.Item
       key={e.id}
       value={e.id}
-      onSelect={() => run(e.action)}
+      onSelect={() => run(e.action, e.now)}
       className="flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-ink-2 data-[selected=true]:bg-surface-2 data-[selected=true]:text-ink"
     >
       <span className="text-ink-3">{e.icon}</span>
@@ -204,7 +215,7 @@ export function CommandPalette() {
         value={search}
         onValueChange={setSearch}
         placeholder="Where to? Try “research” or “copy email”"
-        className="h-14 w-full border-b border-line bg-transparent px-5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+        className="h-14 w-full border-b border-line bg-transparent px-5 text-base text-ink outline-none placeholder:text-ink-3 sm:text-[15px]"
       />
       <Command.List className="max-h-[50vh] overflow-y-auto p-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-ink-3">
         <Command.Empty className="px-4 py-8 text-center text-sm text-ink-3">Nothing matches that.</Command.Empty>

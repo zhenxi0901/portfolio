@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -109,6 +110,24 @@ func stringArg(args json.RawMessage, field string, minLen, maxLen int) (string, 
 	return v, nil
 }
 
+// limitArg reads the optional "limit": a whole number from 1 to 5. JSON Schema counts 5.0 as an
+// integer, so it is accepted; anything else is refused with what was actually sent.
+func limitArg(args json.RawMessage, def int) (int, error) {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(args, &m); err != nil {
+		return 0, errors.New("arguments must be a JSON object")
+	}
+	raw, ok := m["limit"]
+	if !ok || string(raw) == "null" {
+		return def, nil
+	}
+	var n float64
+	if err := json.Unmarshal(raw, &n); err != nil || n != math.Trunc(n) || n < 1 || n > 5 {
+		return 0, fmt.Errorf(`"limit" must be a whole number from 1 to 5; got %s`, raw)
+	}
+	return int(n), nil
+}
+
 func (s *Server) toolAsk(ctx context.Context, base string, args json.RawMessage) (mcp.Result, error) {
 	q, err := stringArg(args, "question", 3, 300)
 	if err != nil {
@@ -133,16 +152,9 @@ func (s *Server) toolSearch(_ context.Context, base string, args json.RawMessage
 	if err != nil {
 		return mcp.Result{}, err
 	}
-	var a struct {
-		Limit *int `json:"limit"`
-	}
-	_ = json.Unmarshal(args, &a)
-	limit := 3
-	if a.Limit != nil {
-		if *a.Limit < 1 || *a.Limit > 5 {
-			return mcp.Result{}, fmt.Errorf(`"limit" must be 1 to 5; got %d`, *a.Limit)
-		}
-		limit = *a.Limit
+	limit, err := limitArg(args, 3)
+	if err != nil {
+		return mcp.Result{}, err
 	}
 	facts := s.ask.Search(q, limit)
 	refs := make([]factRef, len(facts))
@@ -170,35 +182,53 @@ func (s *Server) toolTopics(_ context.Context, base string, _ json.RawMessage) (
 
 func (s *Server) toolStatus(ctx context.Context, base string, _ json.RawMessage) (mcp.Result, error) {
 	rep := s.slo.Report(ctx)
+	local := s.cfg.Region == "local"
 	out := map[string]any{
-		"commit": short(s.cfg.Commit), "region": s.cfg.Region, "revision": s.cfg.Revision,
+		"commit": short(s.cfg.Commit), "region": s.cfg.Region, "revision": s.cfg.Revision, "local": local,
 		"instance_started": s.started.UTC().Format(time.RFC3339), "instance_uptime_seconds": int(time.Since(s.started).Seconds()),
 		"status_page": base + "/status",
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "Commit %s is live on Cloud Run in %s; this instance has been up %s.", short(s.cfg.Commit), s.cfg.Region, time.Since(s.started).Round(time.Second))
-	if rep.Available {
-		sloOut := map[string]any{
-			"objective": slo.Target, "window_days": slo.WindowDays, "availability": rep.Availability,
-			"error_budget_remaining": rep.BudgetRemaining, "downtime_minutes": rep.DowntimeMinutes, "releases": rep.Releases, "stale": rep.Stale,
-		}
-		if rep.Since != nil {
-			sloOut["measured_since"] = rep.Since.Format(time.RFC3339)
-		}
-		out["slo"] = sloOut
-		// The window is 30 days; until it has filled, say when measuring began.
-		measured := ""
-		if since, ok := strings.CutPrefix(rep.UptimeLabel(), "uptime since "); ok {
-			measured = ", measured since " + since
-		}
-		fmt.Fprintf(&b, " Availability %.3f%% against a %.1f%% objective over %d days%s; %.1f%% of the error budget is left, and releases are %s.",
-			slo.FloorPct(rep.Availability, 3), slo.Target*100, slo.WindowDays, measured, slo.FloorPct(max(rep.BudgetRemaining, 0), 1), rep.Releases)
+	up := time.Since(s.started).Round(time.Second)
+	if local {
+		fmt.Fprintf(&b, "Commit %s is running on a local copy, not the live site; this process has been up %s.", short(s.cfg.Commit), up)
 	} else {
-		out["slo"] = map[string]any{"available": false, "reason": rep.Reason}
-		fmt.Fprintf(&b, " The SLO is not measured here: %s", rep.Reason)
+		fmt.Fprintf(&b, "Commit %s is live on Cloud Run in %s; this instance has been up %s.", short(s.cfg.Commit), s.cfg.Region, up)
 	}
+	text, data := sloSummary(rep)
+	out["slo"] = data
+	b.WriteString(text)
 	fmt.Fprintf(&b, " Status page: %s/status", base)
 	return mcp.Result{Text: b.String(), Structured: out}, nil
+}
+
+// sloSummary is the SLO part of get_status: one or two sentences, and the same as data. Numbers
+// kept from before Cloud Monitoring stopped answering are labelled with the time they were read.
+func sloSummary(rep slo.Report) (string, map[string]any) {
+	if !rep.Available {
+		return " No availability figures right now: " + rep.Reason, map[string]any{"available": false, "reason": rep.Reason}
+	}
+	var b strings.Builder
+	sloOut := map[string]any{
+		"objective": slo.Target, "window_days": slo.WindowDays, "availability": rep.Availability,
+		"error_budget_remaining": rep.BudgetRemaining, "downtime_minutes": rep.DowntimeMinutes, "releases": rep.Releases,
+		"stale": rep.Stale, "updated": rep.Updated.UTC().Format(time.RFC3339),
+	}
+	if rep.Since != nil {
+		sloOut["measured_since"] = rep.Since.Format(time.RFC3339)
+	}
+	// The window is 30 days; until it has filled, say when measuring began.
+	measured := ""
+	if since, ok := strings.CutPrefix(rep.UptimeLabel(), "uptime since "); ok {
+		measured = ", measured since " + since
+	}
+	fmt.Fprintf(&b, " Availability %.3f%% against a %.1f%% objective over %d days%s; %.1f%% of the error budget is left, and releases are %s.",
+		slo.FloorPct(rep.Availability, 3), slo.Target*100, slo.WindowDays, measured, slo.FloorPct(max(rep.BudgetRemaining, 0), 1), rep.Releases)
+	// A reading kept from before Cloud Monitoring stopped answering is old news; say how old.
+	if rep.Stale {
+		fmt.Fprintf(&b, " These are the last good numbers, read %s; Cloud Monitoring is not answering right now.", rep.Updated.UTC().Format("2 Jan 15:04 UTC"))
+	}
+	return b.String(), sloOut
 }
 
 func (s *Server) toolDelivery(_ context.Context, base string, _ json.RawMessage) (mcp.Result, error) {
@@ -215,7 +245,8 @@ func (s *Server) toolDelivery(_ context.Context, base string, _ json.RawMessage)
 	}
 	if r := d.ChangeFailureRate; r != nil {
 		out["change_failure_rate"] = *r
-		fmt.Fprintf(&b, " Change failure rate: %.0f%%.", *r*100)
+		// Half up, like the cards and the site (Go's %.0f alone rounds 12.5 to even).
+		fmt.Fprintf(&b, " Change failure rate: %.0f%%.", math.Round(*r*100))
 	}
 	if dr := d.Safeguards.LastDrill; dr != nil {
 		drill := map[string]any{"ended": dr.Ended.UTC().Format(time.RFC3339)}
@@ -227,9 +258,15 @@ func (s *Server) toolDelivery(_ context.Context, base string, _ json.RawMessage)
 		b.WriteString(".")
 		out["last_rollback_drill"] = drill
 	}
-	if h := d.Head; h != nil {
+	// The numbers name the commit they were computed for; they describe this build only when that
+	// is the commit running (a local or test build carries the committed snapshot).
+	if h := d.Head; h != nil && h.SHA == short(s.cfg.Commit) {
 		out["built_from"] = map[string]any{"commit": h.SHA, "title": h.Title}
+		b.WriteString(" Computed by the pipeline when it built this image.")
+	} else if h != nil {
+		out["computed_for"] = h.SHA
+		fmt.Fprintf(&b, " Computed for commit %s, not the one running, so they may be out of date.", h.SHA)
 	}
-	fmt.Fprintf(&b, " Computed by the pipeline when it built this image. Every release: %s/changelog", base)
+	fmt.Fprintf(&b, " Every release: %s/changelog", base)
 	return mcp.Result{Text: b.String(), Structured: out}, nil
 }

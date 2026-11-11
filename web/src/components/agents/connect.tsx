@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MCP_PROTOCOL, MCP_SERVER_NAME } from "@/content/agents";
 import { SITE_URL } from "@/lib/site";
+import { onTabKeys } from "@/lib/tabs";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/agents/copy-button";
 
@@ -48,7 +49,7 @@ export function Connect() {
         <CopyButton text={ENDPOINT} label="Copy URL" />
       </div>
 
-      <div role="tablist" aria-label="Ways to connect" className="mt-6 flex gap-2 overflow-x-auto pb-1">
+      <div role="tablist" aria-label="Ways to connect" onKeyDown={(e) => onTabKeys(e, WAYS.length, i, setI)} className="mt-6 flex gap-2 overflow-x-auto pb-1">
         {WAYS.map((w, k) => (
           <button
             key={w.key}
@@ -57,6 +58,7 @@ export function Connect() {
             id={`connect-tab-${w.key}`}
             aria-selected={k === i}
             aria-controls="connect-panel"
+            tabIndex={k === i ? 0 : -1}
             onClick={() => setI(k)}
             className={cn(
               "shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors",
@@ -73,7 +75,7 @@ export function Connect() {
         </pre>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <p className="max-w-[60ch] flex-1 basis-64 text-sm leading-relaxed text-ink-2">{way.note}</p>
-          <CopyButton text={way.code} label="Copy" />
+          <CopyButton key={way.key} text={way.code} label="Copy" describedBy={`connect-tab-${way.key}`} />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Pause, Play, X } from "@phosphor-icons/react";
-import { goTo, openPlatformTab, scrollToId } from "@/lib/utils";
+import { goTo, modalOpen, openPlatformTab, scrollToId } from "@/lib/utils";
 
 type Stop = { id: string; title: string; text: string; open?: () => void };
 
@@ -105,12 +105,15 @@ export function Tour() {
     if (!open) return;
     card.current?.focus({ preventScroll: true });
     // Esc closes the tour from anywhere on the page, not only from inside the card.
+    // But not while the palette or the terminal is on top: that Esc is theirs.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setI(null);
+      if (e.key === "Escape" && !modalOpen()) setI(null);
     };
-    window.addEventListener("keydown", onKey);
+    // In the capture phase, so this sees the key before a dialog closes itself: otherwise the
+    // dialog is already gone by the time it looks, and one Esc would close both.
+    window.addEventListener("keydown", onKey, true);
     return () => {
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
       if (opener.current?.isConnected) opener.current.focus({ preventScroll: true });
     };
   }, [open]);
@@ -119,6 +122,8 @@ export function Tour() {
   useEffect(() => {
     if (i === null || !playing) return;
     const t = setInterval(() => {
+      // The tour holds still while the palette or the terminal is open over it.
+      if (modalOpen()) return;
       elapsedRef.current += TICK_MS;
       if (elapsedRef.current >= STEP_MS) {
         if (i < STOPS.length - 1) {

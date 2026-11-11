@@ -8,6 +8,7 @@ import { posts } from "@/content/writing";
 import { parseAnsi } from "@/lib/ansi";
 import { api, ApiError, API_BASE } from "@/lib/api";
 import { mcpRequest } from "@/lib/mcp-client";
+import { WAIT_MS, isTimeout, withTimeout } from "@/lib/signal";
 import { SITE_URL } from "@/lib/site";
 
 /** A run of text. `href` makes it a link; `run` makes it a button that types that command. */
@@ -18,6 +19,8 @@ export type Line = Seg[];
 export type ShellEnv = {
   cwd: string;
   history: string[];
+  /** Aborts when the visitor presses Ctrl+C. */
+  signal: AbortSignal;
   theme: () => string;
   setCwd: (dir: string) => void;
   setTheme: (theme: "light" | "dark") => void;
@@ -39,6 +42,10 @@ const fail = (text: string): Line[] => [[t(text, ERR)]];
 const cmd = (command: string): Seg => ({ text: command, run: command, cls: ACCENT });
 const link = (text: string, href: string): Seg => ({ text, href });
 const row = (label: string, ...value: (Seg | string)[]): Line => line(t(label.padEnd(10), DIM), ...value);
+/** Spaces between a button and what follows, kept outside the button so its underline stops at the word. */
+const gap = (used: number, width: number): Seg => t(" ".repeat(Math.max(2, width - used)));
+/** The arguments that are not options: `ls -la work` lists work. */
+const operands = (args: string[]) => args.filter((a) => !a.startsWith("-"));
 
 // ── The "file system": directories of the site's pages ───────────────────────────────────────────
 
@@ -68,9 +75,11 @@ const stripMd = (name: string) => name.replace(/\.md$/, "");
 
 /** Resolves a path typed at the prompt against the current directory: "" is the home directory. */
 export function resolvePath(cwd: string, arg: string): string {
-  const absolute = arg.startsWith("/") || arg.startsWith("~");
+  // pwd prints /home/visitor/..., so that names home as well as "~" and "/" do.
+  const a = arg.replace(/^\/home\/visitor(?=\/|$)/, "~");
+  const absolute = a.startsWith("/") || a.startsWith("~");
   const parts = absolute ? [] : cwd.split("/").filter(Boolean);
-  for (const part of arg.replace(/^~/, "").split("/")) {
+  for (const part of a.replace(/^~/, "").split("/")) {
     if (part === "" || part === ".") continue;
     if (part === "..") parts.pop();
     else parts.push(part);
@@ -80,15 +89,25 @@ export function resolvePath(cwd: string, arg: string): string {
 
 type Found = { kind: "dir"; dir: string } | { kind: "file"; dir: string; name: string } | null;
 
+/**
+ * A key of one of these tables, typed by a visitor. Only the table's own keys count: a plain lookup
+ * also finds what every object inherits, so "constructor" was a command, a directory and a page.
+ */
+function own<T>(table: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined;
+}
+
 function find(path: string): Found {
-  if (path === "" || path in DIRS) return { kind: "dir", dir: path };
+  if (path === "" || own(DIRS, path)) return { kind: "dir", dir: path };
   const [head, ...rest] = path.split("/");
   if (rest.length === 0) return ROOT_FILES.some((f) => f.name === stripMd(head)) ? { kind: "file", dir: "", name: stripMd(head) } : null;
   const name = stripMd(rest.join("/"));
-  return DIRS[head]?.some((e) => e.name === name) ? { kind: "file", dir: head, name } : null;
+  return own(DIRS, head)?.some((e) => e.name === name) ? { kind: "file", dir: head, name } : null;
 }
 
 export const promptFor = (cwd: string) => `visitor@zhenxi:~${cwd ? "/" + cwd : ""}$`;
+/** The prompt on a phone, where every character of the input line counts. */
+export const shortPromptFor = (cwd: string) => `~${cwd ? "/" + cwd : ""}$`;
 
 // ── Formatting helpers ───────────────────────────────────────────────────────────────────────────
 
@@ -113,10 +132,17 @@ function wrap(text: string, width = 88): string[] {
 }
 
 function markdownLines(md: string): Line[] {
+  let code = false;
   return md
     .trimEnd()
     .split("\n")
     .flatMap((raw): Line[] => {
+      if (raw.startsWith("```")) {
+        code = !code;
+        return [[t(raw, DIM)]];
+      }
+      // Code keeps its indentation, and a "#" in it is a comment, not a heading.
+      if (code) return [[t(raw)]];
       if (raw.startsWith("#")) return [[t(raw, BOLD)]];
       if (raw.startsWith(">")) return wrap(raw).map((l) => [t(l, ACCENT)]);
       return wrap(raw).map((l) => [t(l)]);
@@ -124,14 +150,58 @@ function markdownLines(md: string): Line[] {
 }
 
 const MAX_LINES = 70;
+const MAX_CHARS = 6000;
+/** At most 70 lines and 6,000 characters, so a minified file cannot fill the screen with one line. */
 function capped(lines: Line[], more: string): Line[] {
-  if (lines.length <= MAX_LINES) return lines;
-  return [...lines.slice(0, MAX_LINES), dim(`… ${lines.length - MAX_LINES} more lines. ${more}`)];
+  const out: Line[] = [];
+  let chars = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i].map((s) => s.text).join("");
+    if (out.length === MAX_LINES || chars + text.length > MAX_CHARS) {
+      let rest = lines.length - i;
+      // A first line longer than the limit (a minified file) is shown cut, not dropped.
+      if (out.length === 0) {
+        out.push([t(text.slice(0, MAX_CHARS))]);
+        rest -= 1;
+      }
+      return [...out, dim(`… cut here${rest > 0 ? `, ${rest} more line${rest === 1 ? "" : "s"}` : ""}. ${more}`)];
+    }
+    out.push(lines[i]);
+    chars += text.length;
+  }
+  return out;
 }
 
-async function getText(path: string): Promise<{ status: number; type: string; body: string }> {
-  const res = await fetch(`${API_BASE}${path}`, { headers: { Accept: "text/plain, application/json, */*" } });
-  return { status: res.status, type: res.headers.get("content-type") ?? "", body: await res.text() };
+// ── Network ──────────────────────────────────────────────────────────────────────────────────────
+
+/** API routes come from API_BASE (another origin under `next dev`); the site's files from this page's. */
+const urlFor = (path: string) => (path.startsWith("/api/") || path === "/mcp" ? API_BASE : "") + path;
+const BINARY = /^(image|audio|video|font)\/|^application\/(octet-stream|wasm|pdf|zip|gzip)/;
+
+type Fetched = { status: number; type: string; body: string; bytes: number; binary: boolean };
+
+/**
+ * Fetches a file on this site. `sniff` is for curl, which can be pointed at anything: a binary
+ * type is counted, not printed. Commands that read a file they know is text (cat's Markdown,
+ * deploys' JSON) read it as text whatever a server in between labels it.
+ */
+async function getText(path: string, signal: AbortSignal, sniff = false): Promise<Fetched> {
+  const res = await fetch(urlFor(path), { headers: { Accept: "text/plain, application/json, */*" }, signal: withTimeout(signal) });
+  const type = res.headers.get("content-type") ?? "";
+  if (sniff && BINARY.test(type)) return { status: res.status, type, body: "", bytes: (await res.arrayBuffer()).byteLength, binary: true };
+  const body = await res.text();
+  return { status: res.status, type, body, bytes: body.length, binary: false };
+}
+
+// curl's options that take a value: that value is not the URL.
+const CURL_VALUE_FLAGS = new Set(["-H", "--header", "-X", "--request", "-d", "--data", "--data-raw", "-o", "--output", "-A", "--user-agent", "-e", "--referer", "-u", "--user", "-b", "--cookie", "-w", "--write-out", "-m", "--max-time"]);
+
+function curlTarget(args: string[]): string | undefined {
+  for (let i = 0; i < args.length; i++) {
+    if (CURL_VALUE_FLAGS.has(args[i])) i++;
+    else if (!args[i].startsWith("-")) return args[i];
+  }
+  return undefined;
 }
 
 // ── Commands ─────────────────────────────────────────────────────────────────────────────────────
@@ -151,7 +221,7 @@ const commands: Record<string, Command> = {
       line(t("Shell", BOLD)),
       ...["theme", "tour", "contact", "history", "clear", "exit"].map(helpRow),
       line(""),
-      dim("Tab completes, ↑ and ↓ walk the history, Esc closes. The green words are buttons."),
+      dim("Tab completes, ↑ and ↓ walk the history, Ctrl+C cancels, Esc closes. The green words are buttons."),
     ],
   },
   whoami: {
@@ -172,27 +242,28 @@ const commands: Record<string, Command> = {
     summary: "list a directory: work, writing, postmortems",
     usage: "ls [dir]",
     run: (args, env) => {
-      const path = resolvePath(env.cwd, args[0] ?? "");
-      const found = find(path);
-      if (!found) return fail(`ls: ${args[0]}: no such file or directory`);
+      const arg = operands(args)[0];
+      const found = find(resolvePath(env.cwd, arg ?? ""));
+      if (!found) return fail(`ls: ${arg}: no such file or directory`);
       if (found.kind === "file") return [line(`${found.name}.md`)];
       if (found.dir === "")
         return [
           ...Object.keys(DIRS).map((d) => line({ text: `${d}/`, run: `ls ${d}`, cls: ACCENT }, t(`  ${DIRS[d].length} entries`, DIM))),
           ...ROOT_FILES.map((f) => line({ text: `${f.name}.md`, run: `cat ~/${f.name}.md`, cls: ACCENT }, t(`  ${f.title}`, DIM))),
         ];
-      const width = Math.max(...DIRS[found.dir].map((e) => e.name.length)) + 5;
-      return DIRS[found.dir].map((e) => line({ text: `${e.name}.md`.padEnd(width), run: `cat ~/${found.dir}/${e.name}.md`, cls: ACCENT }, t(e.title, DIM)));
+      const entries = DIRS[found.dir];
+      const width = Math.max(...entries.map((e) => e.name.length)) + 5;
+      return entries.map((e) => line({ text: `${e.name}.md`, run: `cat ~/${found.dir}/${e.name}.md`, cls: ACCENT }, gap(e.name.length + 3, width), t(e.title, DIM)));
     },
   },
   cd: {
     summary: "change directory",
     usage: "cd [dir]",
     run: (args, env) => {
-      const path = resolvePath(env.cwd, args[0] ?? "~");
-      const found = find(path);
-      if (!found) return fail(`cd: ${args[0]}: no such directory`);
-      if (found.kind === "file") return fail(`cd: ${args[0]}: not a directory. Try: cat ${args[0]}`);
+      const arg = operands(args)[0];
+      const found = find(resolvePath(env.cwd, arg ?? "~"));
+      if (!found) return fail(`cd: ${arg}: no such directory`);
+      if (found.kind === "file") return fail(`cd: ${arg}: not a directory. Try: cat ${arg}`);
       env.setCwd(found.dir);
       return [];
     },
@@ -202,30 +273,33 @@ const commands: Record<string, Command> = {
     summary: "print a page as Markdown, e.g. cat work/gke.md",
     usage: "cat <file>",
     run: async (args, env) => {
-      if (!args[0]) return fail("cat: which file? Try: ls");
-      const found = find(resolvePath(env.cwd, args[0]));
-      if (!found) return fail(`cat: ${args[0]}: no such file. Try: ls`);
-      if (found.kind === "dir") return fail(`cat: ${args[0] || "~"}: is a directory. Try: ls ${found.dir}`);
+      const arg = operands(args)[0];
+      if (!arg) return fail("cat: which file? Try: ls");
+      const found = find(resolvePath(env.cwd, arg));
+      if (!found) return fail(`cat: ${arg}: no such file. Try: ls`);
+      if (found.kind === "dir") return fail(`cat: ${arg}: is a directory. Try: ls ${found.dir || "~"}`);
       if (found.dir === "" && found.name === "about") return commands.whoami.run([], env, "whoami");
       // The same Markdown copies that /llms.txt lists for AI agents.
       const path = `/md/${found.dir ? found.dir + "/" : ""}${found.name}.md`;
-      const res = await getText(path);
+      const res = await getText(path, env.signal);
       if (res.status !== 200) return fail(`cat: ${path}: HTTP ${res.status}`);
-      const page = found.dir ? `/${found.dir}/${found.name}` : `/${found.name}`;
-      return [...capped(markdownLines(res.body), `The page has the rest.`), line(""), line(t("The page, with its working model: ", DIM), cmd(`open ${page.slice(1)}`))];
+      const page = found.dir ? `${found.dir}/${found.name}` : found.name;
+      return [...capped(markdownLines(res.body), `The page has the rest.`), line(""), line(t("The page, with its working model: ", DIM), cmd(`open ${page}`))];
     },
   },
   open: {
     summary: "go to a page: status, agents, evidence, work/gke…",
     usage: "open <page>",
     run: (args, env) => {
-      const target = stripMd(args[0] ?? "");
+      const target = stripMd(operands(args)[0] ?? "");
       if (!target)
         return [line(t("Pages: ", DIM), ...Object.keys(PAGES).flatMap((p, i) => [...(i ? [t("  ")] : []), cmd(`open ${p}`)])), dim("Or any file: open work/gke")];
-      const page = PAGES[target.replace(/^\//, "")];
+      const key = target.replace(/^\//, "");
+      // "/", "~" and about.md all mean the home page: about.md is who the site is about.
+      const page = own(PAGES, key) ?? (key === "" || key === "~" || key === "about" ? "/" : undefined);
       const found = page ? null : find(resolvePath(env.cwd, target));
-      const path = page ?? (found?.kind === "file" && found.dir ? `/${found.dir}/${found.name}` : found?.kind === "file" && found.name === "decisions" ? "/decisions" : null);
-      if (!path) return fail(`open: ${args[0]}: no such page. Try: open`);
+      const path = page ?? (found?.kind === "file" ? (found.dir ? `/${found.dir}/${found.name}` : found.name === "about" ? "/" : `/${found.name}`) : null);
+      if (!path) return fail(`open: ${target}: no such page. Try: open`);
       env.navigate(path);
       return [dim(`opening ${path} …`)];
     },
@@ -236,7 +310,7 @@ const commands: Record<string, Command> = {
       const s = await api.status();
       return [
         row("commit", t(s.commit.slice(0, 7), ACCENT), t(`  ${s.version}`, DIM)),
-        row("where", `Cloud Run, ${s.region}`),
+        row("where", s.region === "local" ? "a local copy, not the live site" : `Cloud Run, ${s.region}`),
         row("instance", `up ${ago(s.uptime_seconds)}, ${s.requests_total.toLocaleString("en-GB")} requests served`),
         row("latency", `p50 ${s.latency_ms.p50.toFixed(2)} ms · p95 ${s.latency_ms.p95.toFixed(2)} ms · p99 ${s.latency_ms.p99.toFixed(2)} ms`),
         row("runtime", `${s.go_version}, ${s.goroutines} goroutines, ${s.heap_mb.toFixed(1)} MB heap`),
@@ -249,7 +323,7 @@ const commands: Record<string, Command> = {
     summary: "availability and error budget, measured from outside",
     run: async () => {
       const r = await api.slo();
-      if (!r.available) return [dim(`The SLO is not measured on this copy of the site: ${r.reason ?? "no reason given"}`)];
+      if (!r.available) return [dim(`No availability figures here: ${r.reason ?? "no reason given"}`)];
       // One block per day of the window: full when every check that day passed.
       const days: Seg[] = r.days.map((d) => (d.checks === 0 ? t("·", DIM) : d.passed === d.checks ? t("█", ACCENT) : t("▄", "text-p-ai")));
       return [
@@ -258,6 +332,7 @@ const commands: Record<string, Command> = {
         row("budget", `${pct(Math.max(r.budget_remaining, 0), 1)} left of ${r.budget_minutes.toFixed(1)} minutes; ${r.downtime_minutes.toFixed(1)} minutes spent`),
         row("releases", r.releases === "frozen" ? t("frozen: reliability fixes only", "text-p-ai") : (r.releases ?? "unknown")),
         row("by day", ...days),
+        ...(r.stale ? [row("reading", t(`last good reading ${r.updated.slice(0, 16).replace("T", " ")} UTC; Cloud Monitoring is not answering`, "text-p-ai"))] : []),
         line(""),
         dim("Google Cloud uptime checks request the site every minute from Singapore, Belgium and Oregon."),
       ];
@@ -265,10 +340,10 @@ const commands: Record<string, Command> = {
   },
   deploys: {
     summary: "how the site ships: DORA numbers from its own pipeline",
-    run: async () => {
-      const res = await getText("/delivery.json");
+    run: async (_, env) => {
+      const res = await getText("/delivery.json", env.signal);
       if (res.status !== 200) return fail(`deploys: /delivery.json: HTTP ${res.status}`);
-      const d = JSON.parse(res.body) as {
+      let d: {
         generated: string;
         windowDays: number;
         deploys: number;
@@ -277,6 +352,11 @@ const commands: Record<string, Command> = {
         safeguards: { lastDrill: { ended: string; restoreSeconds: number | null } | null };
         head: { sha: string; title: string } | null;
       };
+      try {
+        d = JSON.parse(res.body);
+      } catch {
+        return fail("deploys: /delivery.json came back, but not as JSON. Every release is listed at: open changelog");
+      }
       const drill = d.safeguards.lastDrill;
       return [
         row("deploys", `${d.deploys} in the ${d.windowDays} days to ${d.generated.slice(0, 10)}`),
@@ -305,28 +385,28 @@ const commands: Record<string, Command> = {
     },
   },
   mcp: {
-    summary: "talk to the site's MCP server: mcp tools, mcp call <tool>",
-    usage: "mcp tools | mcp call <tool> [text or key=value …]",
-    run: async (args) => {
+    summary: "talk to the site's MCP server",
+    usage: "mcp tools|call",
+    run: async (args, env) => {
       const [sub, name, ...rest] = args;
       if (sub === "tools") {
-        const x = await mcpRequest("tools/list");
+        const x = await mcpRequest("tools/list", {}, undefined, env.signal);
         const tools = x.json?.result?.tools ?? [];
-        if (!tools.length) return fail(`mcp: tools/list: HTTP ${x.status}`);
+        if (!tools.length) return fail(`mcp: tools/list: HTTP ${x.status}${x.json?.error ? `: ${x.json.error.message}` : ""}`);
         const width = Math.max(...tools.map((tool) => tool.name.length)) + 3;
         return [
-          ...tools.map((tool) => line({ text: tool.name.padEnd(width), cls: ACCENT, run: `mcp call ${tool.name}${exampleArgs(tool.name)}` }, t(tool.title ?? "", DIM))),
+          ...tools.map((tool) => line({ text: tool.name, cls: ACCENT, run: `mcp call ${tool.name}${exampleArgs(tool.name)}` }, gap(tool.name.length, width), t(tool.title ?? "", DIM))),
           line(""),
           dim(`POST /mcp · tools/list · HTTP ${x.status} · ${Math.round(x.ms)} ms. To use it from your own agent: open agents`),
         ];
       }
       if (sub === "call" && name) {
-        const x = await mcpRequest("tools/call", { name, arguments: toolArgs(name, rest) }, name);
+        const x = await mcpRequest("tools/call", { name, arguments: toolArgs(name, rest) }, name, env.signal);
         const text = x.json?.result?.content?.find((c) => c.type === "text")?.text;
         const problem = x.json?.error?.message;
-        const tone = x.json?.result?.isError || problem ? ERR : undefined;
+        const tone = x.json?.result?.isError || problem || x.status >= 400 ? ERR : undefined;
         return [
-          ...capped(wrap(problem ?? text ?? "An empty answer.").map((l) => [t(l, tone)]), "The console on the agents page shows everything."),
+          ...capped(wrap(problem ?? text ?? `No answer in the reply (HTTP ${x.status}).`).map((l) => [t(l, tone)]), "The console on the agents page shows everything."),
           line(""),
           dim(`POST /mcp · tools/call ${name} · HTTP ${x.status} · ${Math.round(x.ms)} ms`),
         ];
@@ -337,19 +417,28 @@ const commands: Record<string, Command> = {
   curl: {
     summary: "GET a path on this site, e.g. curl /api/slo",
     usage: "curl <path>",
-    run: async (args) => {
-      const target = args.find((a) => !a.startsWith("-"));
+    run: async (args, env) => {
+      const target = curlTarget(args);
       if (!target) return [line(t("Try: ", DIM), ...CURL_PATHS.slice(0, 5).flatMap((p, i) => [...(i ? [t("  ")] : []), cmd(`curl ${p}`)]))];
-      let path = target;
-      for (const origin of [SITE_URL, typeof window === "undefined" ? "" : window.location.origin]) if (origin && path.startsWith(origin)) path = path.slice(origin.length) || "/";
-      if (!path.startsWith("/")) return fail("curl: this terminal only reaches this site. The page's content security policy allows nothing else, on purpose.");
+      // Resolved as a browser would, so "//host/x" and full URLs are judged by where they really go.
+      const here = typeof window === "undefined" ? SITE_URL : window.location.origin;
+      let url: URL;
+      try {
+        url = new URL(/^(https?:)?\/\//.test(target) || target.startsWith("/") ? target : "/" + target, here);
+      } catch {
+        return fail(`curl: ${target}: not a URL`);
+      }
+      if (url.origin !== here && url.origin !== new URL(SITE_URL).origin)
+        return fail("curl: this terminal only reaches this site. The page's content security policy allows nothing else, on purpose.");
+      const path = url.pathname + url.search;
       // The server tells browsers and terminals apart by who asks; a browser cannot pretend, so
       // the home page's terminal answer is fetched from its own address.
-      const home = path === "/";
-      const res = await getText(home ? "/api/card.txt" : path);
+      const home = url.pathname === "/";
+      const res = await getText(home ? "/api/card.txt" : path, env.signal, true);
       const note = dim(`HTTP ${res.status} · ${res.type.split(";")[0] || "unknown type"}${home ? " · what a real curl gets for the home page" : ""}`);
       if (home && res.status === 200) return [...res.body.trimEnd().split("\n").map((l): Line => parseAnsi(l).map((r) => ({ text: r.text, cls: r.cls }))), line(""), note];
-      if (res.type.includes("html")) return [dim(`An HTML page of ${res.body.length.toLocaleString("en-GB")} characters. It reads better in the browser:`), line(cmd(`open ${path.slice(1) || "home"}`)), note];
+      if (res.binary) return [line(t(`Binary, ${res.bytes.toLocaleString("en-GB")} bytes. In the browser: `, DIM), link(path, path)), note];
+      if (res.type.includes("html")) return [dim(`An HTML page of ${res.body.length.toLocaleString("en-GB")} characters. It reads better in the browser:`), line(cmd(`open ${url.pathname.slice(1) || "home"}`)), note];
       let body = res.body;
       if (res.type.includes("json")) {
         try {
@@ -367,7 +456,7 @@ const commands: Record<string, Command> = {
       const s = await api.status();
       const logo = ["  ██╗     ███████╗ ", "  ██║     ╚══███╔╝ ", "  ██║       ███╔╝  ", "  ██║      ███╔╝   ", "  ███████╗███████╗ ", "  ╚══════╝╚══════╝ "];
       const info: [string, string][] = [
-        ["host", `Cloud Run, ${s.region}`],
+        ["host", s.region === "local" ? "a local copy" : `Cloud Run, ${s.region}`],
         ["kernel", `${s.go_version}, standard library net/http`],
         ["uptime", `${ago(s.uptime_seconds)} (this instance; it scales to zero)`],
         ["commit", s.commit.slice(0, 7)],
@@ -379,9 +468,11 @@ const commands: Record<string, Command> = {
   },
   theme: {
     summary: "light or dark",
-    usage: "theme [light|dark]",
+    usage: "theme light|dark",
     run: (args, env) => {
-      const next = args[0] === "light" || args[0] === "dark" ? args[0] : env.theme() === "dark" ? "light" : "dark";
+      const want = args[0];
+      if (want && want !== "light" && want !== "dark") return fail(`theme: ${want}: there is light and there is dark`);
+      const next: "light" | "dark" = want === "light" || want === "dark" ? want : env.theme() === "dark" ? "light" : "dark";
       env.setTheme(next);
       return [dim(`theme: ${next}`)];
     },
@@ -422,9 +513,11 @@ commands.man = { ...commands.help, hidden: true };
 commands.uptime = { ...commands.status, hidden: true };
 commands.quit = { ...commands.exit, hidden: true };
 
+const HELP_WIDTH = 18;
 function helpRow(name: string): Line {
   const c = commands[name];
-  return line({ text: (c.usage ?? name).padEnd(30), run: name, cls: ACCENT }, t(c.summary, DIM));
+  const label = c.usage ?? name;
+  return line({ text: label, run: name, cls: ACCENT }, gap(label.length, HELP_WIDTH), t(c.summary, DIM));
 }
 
 /** A tool's example arguments from the agents page, as they would be typed here. */
@@ -452,11 +545,19 @@ function toolArgs(tool: string, words: string[]): Record<string, string | number
 export async function runCommand(input: string, env: ShellEnv): Promise<Line[]> {
   const [name, ...args] = input.trim().split(/\s+/);
   if (!name) return [];
-  const command = commands[name.toLowerCase()];
+  const command = own(commands, name.toLowerCase());
   if (!command) return [line(t(`${name}: command not found. `, ERR), t("Try ", DIM), cmd("help"))];
+  // Ctrl+C answers at once, even while a request that cannot itself be cancelled is still out.
+  const cancelled = new Promise<never>((_, reject) => {
+    if (env.signal.aborted) reject(env.signal.reason);
+    else env.signal.addEventListener("abort", () => reject(env.signal.reason), { once: true });
+  });
+  cancelled.catch(() => {});
   try {
-    return await command.run(args, env, input);
+    return await Promise.race([Promise.resolve(command.run(args, env, input)), cancelled]);
   } catch (e) {
+    if (env.signal.aborted) return [dim("^C")];
+    if (isTimeout(e)) return fail(`${name}: no answer within ${WAIT_MS / 1000} s. The server may be waking up; try again.`);
     if (e instanceof ApiError && e.status === 429) return fail(`${name}: the server is rate limiting this browser (${e.message}). Give it a minute.`);
     if (e instanceof ApiError) return fail(`${name}: ${e.message}`);
     return fail(`${name}: the server did not answer. Check your connection, or see: open status`);
@@ -471,7 +572,7 @@ function pathCandidates(cwd: string, partial: string, withPages: boolean): strin
   const slash = partial.lastIndexOf("/");
   const base = slash >= 0 ? partial.slice(0, slash + 1) : "";
   const dir = resolvePath(cwd, base || ".");
-  const names = dir === "" ? [...Object.keys(DIRS).map((d) => d + "/"), ...ROOT_FILES.map((f) => f.name + ".md")] : (DIRS[dir] ?? []).map((e) => e.name + ".md");
+  const names = dir === "" ? [...Object.keys(DIRS).map((d) => d + "/"), ...ROOT_FILES.map((f) => f.name + ".md")] : (own(DIRS, dir) ?? []).map((e) => e.name + ".md");
   return [...names.map((n) => base + n), ...(withPages && !base ? Object.keys(PAGES) : [])];
 }
 
@@ -489,7 +590,7 @@ function candidates(words: string[], cwd: string): string[] {
 
 /** Completes the last word of the input. One match fills it in; several fill the common prefix and are listed. */
 export function complete(input: string, cwd: string): { value: string; options: string[] } {
-  const words = input.split(/\s+/);
+  const words = input.trimStart().split(/\s+/);
   const last = words[words.length - 1];
   const matches = candidates(words, cwd).filter((c) => c.startsWith(last));
   if (matches.length === 0) return { value: input, options: [] };

@@ -27,6 +27,12 @@ export function openAiTab(tab: "map" | "stack" | "trace" | "measure") {
   scrollToId("ai-views");
 }
 
+/**
+ * Whether the palette or the terminal is open. Both are Radix dialogs, which carry
+ * data-state="open"; the tour's own card is a dialog too, but not one of these.
+ */
+export const modalOpen = () => typeof document !== "undefined" && document.querySelector('[role="dialog"][data-state="open"]') !== null;
+
 /** Scroll to a section by id, honouring reduced motion. From another page, go to it on the home page. */
 export function scrollToId(id: string) {
   const el = document.getElementById(id);

@@ -42,8 +42,10 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		if !probe {
 			s.metrics.Window.Add(float64(elapsed.Microseconds()) / 1000)
 		}
+		// A machine route that fails is worth seeing, though: an MCP client that keeps getting 4xx
+		// would otherwise never show up in the logs.
 		level := slog.LevelInfo
-		if probe {
+		if probe && rec.code < 400 {
 			level = slog.LevelDebug
 		}
 		if rec.code >= 500 {
@@ -110,16 +112,19 @@ func securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// cors allows the listed origins (e.g. the site on GitHub Pages, or `next dev`) to call the API.
+// cors allows the listed origins (e.g. the site on GitHub Pages, or `next dev`) to call the API and
+// the MCP endpoint, whose requests carry their protocol in headers of their own. A preflight is
+// answered here, before any rate limit counts it.
 func cors(allowed []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		if origin != "" && slices.Contains(allowed, origin) && strings.HasPrefix(r.URL.Path, "/api/") {
+		crossable := strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/mcp"
+		if origin != "" && slices.Contains(allowed, origin) && crossable {
 			h := w.Header()
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Add("Vary", "Origin")
 			h.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			h.Set("Access-Control-Allow-Headers", "Content-Type")
+			h.Set("Access-Control-Allow-Headers", "Content-Type, MCP-Protocol-Version, Mcp-Method, Mcp-Name")
 			h.Set("Access-Control-Max-Age", "600")
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)

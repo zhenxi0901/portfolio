@@ -6,7 +6,7 @@ export type AnsiRun = { text: string; cls: string };
 
 const ESC = String.fromCharCode(27) + "[";
 // Both greens map to the accent ink: it holds its contrast on a light background, where --good does not.
-const COLOURS: Record<string, string> = { "32": "font-medium text-accent-ink", "33": "font-medium text-p-ai", "38;5;155": "text-accent-ink" };
+const COLOURS: Record<string, string> = { "31": "font-medium text-critical", "32": "font-medium text-accent-ink", "33": "font-medium text-p-ai", "38;5;155": "text-accent-ink" };
 
 export function parseAnsi(raw: string): AnsiRun[] {
   const runs: AnsiRun[] = [];

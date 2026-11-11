@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
 import { fyp } from "@/content/profile";
 import { postHref } from "@/content/writing";
+import { onTabKeys } from "@/lib/tabs";
 import { cn } from "@/lib/utils";
 
 // What the supercomputer does not allow, what broke because of it, and what the Apptainer backend
@@ -13,7 +14,7 @@ const LIMITS = [
     key: "root",
     limit: "No Docker, no root",
     broke: "ARIES started every part of a run as a Docker container, and an HPC cluster gives users neither Docker nor root.",
-    fix: "Each part runs as an Apptainer instance with a fake root and its own overlay. Images are unpacked once into plain directories owned by the user, because with a packed image underneath, installing a package as \"root\" fails on files owned by other IDs.",
+    fix: "The harness and the sandbox run as Apptainer instances, each with a fake root and its own overlay; the bridge runs as a process in the same namespace. Images are unpacked once into plain directories owned by the user, because with a packed image underneath, installing a package as \"root\" fails on files owned by other IDs.",
   },
   {
     key: "shared",
@@ -52,7 +53,12 @@ export function Rootless() {
       </figcaption>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-[13rem_1fr]">
-        <div role="tablist" aria-label="What the cluster does not allow" className="flex gap-2 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible">
+        <div
+          role="tablist"
+          aria-label="What the cluster does not allow"
+          onKeyDown={(e) => onTabKeys(e, LIMITS.length, i, setI)}
+          className="flex gap-2 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible"
+        >
           {LIMITS.map((l, k) => (
             <button
               key={l.key}
@@ -61,6 +67,7 @@ export function Rootless() {
               id={`rootless-tab-${k}`}
               aria-selected={k === i}
               aria-controls="rootless-panel"
+              tabIndex={k === i ? 0 : -1}
               onClick={() => setI(k)}
               className={cn(
                 "shrink-0 rounded-2xl border px-3.5 py-2.5 text-left text-sm transition-colors",
@@ -71,7 +78,7 @@ export function Rootless() {
             </button>
           ))}
         </div>
-        <div id="rootless-panel" role="tabpanel" aria-labelledby={`rootless-tab-${i}`} className="rounded-2xl bg-surface-2/70 p-4" aria-live="polite">
+        <div id="rootless-panel" role="tabpanel" aria-labelledby={`rootless-tab-${i}`} className="rounded-2xl bg-surface-2/70 p-4">
           <p className="font-mono text-[11px] text-ink-3">what broke</p>
           <p className="mt-1 text-sm leading-relaxed text-ink-2">{item.broke}</p>
           <p className="mt-4 font-mono text-[11px] text-ink-3">what it does instead</p>
