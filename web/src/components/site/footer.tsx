@@ -31,6 +31,11 @@ export function Footer() {
             </a>
           </li>
           <li>
+            <a className="hover:text-ink" href="/evidence">
+              Evidence
+            </a>
+          </li>
+          <li>
             <a className="hover:text-ink" href="/agents">
               For agents
             </a>

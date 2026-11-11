@@ -106,7 +106,7 @@ jobs:
           node scripts/lighthouse-check.mjs http://localhost:8080/ dark:http://localhost:8080/
           http://localhost:8080/work/ai-platform http://localhost:8080/writing/serving-llm-agents http://localhost:8080/oncall
           http://localhost:8080/postmortems/contact-form http://localhost:8080/status dark:http://localhost:8080/status
-          http://localhost:8080/changelog http://localhost:8080/decisions http://localhost:8080/agents
+          http://localhost:8080/changelog http://localhost:8080/decisions http://localhost:8080/agents http://localhost:8080/evidence
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: { name: lighthouse, path: lighthouse, retention-days: 7 }

@@ -78,6 +78,13 @@
   to { transform: translateX(calc(-50% - var(--gap, 3rem) / 2)); }
 }
 
+/* Pages are separate documents; where the browser can, cross-fade between them. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
 html {
   scroll-behavior: smooth;
   color-scheme: light;

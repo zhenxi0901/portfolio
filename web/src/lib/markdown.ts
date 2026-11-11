@@ -111,6 +111,7 @@ export function llmsTxt() {
     `## Postmortems\n\n${link("postmortems/")}`,
     `## How this site runs\n\n${list([
       `[Architecture decision records](${SITE_URL}/md/decisions.md): why it is built this way, and what each choice costs.`,
+      `[Evidence](${SITE_URL}/evidence): the site's main claims, sorted by whether they can be checked live, on public record, or are private.`,
       `[Status](${SITE_URL}/status): live state, availability against a 99.9% SLO, and the incident history.`,
       `[Changelog](${SITE_URL}/changelog): every release to production and the commits it shipped.`,
       `[Live SLO as JSON](${SITE_URL}/api/slo): availability and error budget from Google Cloud uptime checks.`,
