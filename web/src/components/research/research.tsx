@@ -22,7 +22,7 @@ export function Research() {
               <ProductTag p="aries" className="mb-5" />
               <SectionHeading
                 title="What does an AI agent actually cost to run?"
-                lead="My final-year project at NTU's HyScale Lab. I made ARIES, the lab's open-source agent-serving framework, run long tasks against live apps (mail, a shop, an LMS), then measured 320 runs on a hosted API and self-hosted SGLang on an A100. Since then: what MCP tool servers cost, and the whole stack running on a supercomputer without root."
+                lead="My final-year project at NTU's HyScale Lab. I got ARIES, the lab's open-source framework for agent-serving experiments, running long tasks against live apps (mail, a shop, an LMS), then measured 320 runs on a hosted API and self-hosted SGLang on an A100. Since then: what MCP tool servers cost, and the whole stack running on a supercomputer without root."
               />
               <Reveal delay={0.1}>
                 <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8">

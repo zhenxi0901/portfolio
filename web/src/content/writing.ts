@@ -41,7 +41,7 @@ export const posts: Post[] = [
       { kind: "h2", text: "Containers without a daemon, or root" },
       {
         kind: "p",
-        text: "ARIES runs each part of a run (the agent harness, the task sandbox, the bridge between them) as a container. The new backend starts each as an Apptainer instance with a fake root and an overlay of its own. Images are unpacked once into plain directories owned by the user. With a packed image as the lower layer, installing a package as \"root\" fails on files that belong to other IDs; unpacked, every file is the user's, so the fake root can change any of them.",
+        text: "ARIES runs each part of a run (the agent harness, the task sandbox, the bridge between them) as a container. The new backend runs the harness and the sandbox as Apptainer instances, each with a fake root and an overlay of its own, and the bridge as a process in the same namespace. Images are unpacked once into plain directories owned by the user. With a packed image as the lower layer, installing a package as \"root\" fails on files that belong to other IDs; unpacked, every file is the user's, so the fake root can change any of them.",
       },
       {
         kind: "p",
@@ -90,7 +90,7 @@ export const posts: Post[] = [
       },
       {
         kind: "p",
-        text: "The pull request took 18 reviews. One change from them I would keep anywhere: if a finished command's CPU cannot be recorded, the instance's later samples now fail instead of quietly undercounting. A benchmark that reports a wrong number is worse than one that reports none.",
+        text: "Two maintainers and two review bots went through the pull request. One change that came out of the review I would keep anywhere: if a finished command's CPU cannot be recorded, the instance's later samples now fail instead of quietly undercounting. A benchmark that reports a wrong number is worse than one that reports none.",
       },
     ],
     links: [
@@ -103,23 +103,23 @@ export const posts: Post[] = [
     slug: "serving-llm-agents",
     title: "What 320 agent runs taught me about serving LLM agents",
     summary:
-      "Tool calls were 2.7% of an agent's time, 96% of its input tokens came from the prefix cache, and the GPU sat idle most of the time it was held.",
+      "MCP tool calls were 2.7% of an agent's time, 96% of its input tokens came from the prefix cache, and the GPU sat idle most of the time it was held.",
     date: "19 Oct 2026",
     product: "aries",
     stats: [
-      { value: "2.7%", label: "of agent time spent inside tool calls" },
+      { value: "2.7%", label: "of agent time spent inside MCP tool calls" },
       { value: "96%", label: "of input tokens served from the prefix cache" },
       { value: "~7x", label: "more A100 time held than the agents used" },
     ],
     body: [
       {
         kind: "p",
-        text: "For my final-year project at NTU's HyScale Lab I made ARIES, the lab's open-source agent-serving framework, run long-horizon tasks from the Toolathlon benchmark: an agent works for many turns against live apps (mail, a shop, an LMS) running in its own sandbox. Then I measured 320 runs, on a hosted model API and on Qwen3-4B served with SGLang on an A100. The question was simple: what does an agent actually cost to run, and where does the time go?",
+        text: "For my final-year project at NTU's HyScale Lab I got ARIES, the lab's open-source framework for agent-serving experiments, running long-horizon tasks from the Toolathlon benchmark: an agent works for many turns against live apps (mail, a shop, an LMS) running in its own sandbox. Then I measured 320 runs, on a hosted model API and on Qwen3-4B served with SGLang on an A100. The question was simple: what does an agent actually cost to run, and where does the time go?",
       },
       { kind: "h2", text: "Tool calls are cheap. Setting up the world is not." },
       {
         kind: "p",
-        text: "Inside the agent phase, tool calls took only 2.7% of the time. The bigger surprise was outside the agent: 23% of each run's wall clock went to setting up the environment, against 2% for tasks that need a single service. A task that touches mail, a shop and an LMS has to bring all of them up and prepare them before the agent starts.",
+        text: "Inside the agent phase, calls to MCP tool servers took only 2.7% of the time: the servers answer fast. That is not the same as tools being free, since the model's turns and the commands the agent runs itself are in the other 97%. The bigger surprise was outside the agent: 23% of each run's wall clock went to setting up the environment, against 2% for tasks that need a single service. A task that touches mail, a shop and an LMS has to bring all of them up and prepare them before the agent starts.",
       },
       {
         kind: "callout",
@@ -128,7 +128,7 @@ export const posts: Post[] = [
       { kind: "h2", text: "Every turn resends the conversation, and the cache absorbs it" },
       {
         kind: "p",
-        text: "An agent's prompt grows every turn: the whole history goes back to the model each time. Across the 320 runs, 96% of input tokens were served from the prefix cache, on the hosted API and on self-hosted SGLang alike. So most of a long run's prompt is work the server has already done; what costs compute each turn is the part that is new, as long as the cache keeps hitting.",
+        text: "An agent's prompt grows every turn: the whole history goes back to the model each time. In the runs that measured it, 96% of input tokens were served from the prefix cache, on the hosted API and on self-hosted SGLang alike. So most of a long run's prompt is work the server has already done; what costs compute each turn is the part that is new, as long as the cache keeps hitting.",
       },
       {
         kind: "p",

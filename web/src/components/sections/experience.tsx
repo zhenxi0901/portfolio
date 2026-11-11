@@ -112,6 +112,13 @@ export function Experience() {
                               </div>
                             );
                           })}
+                          {role.points.length > 0 && (
+                            // Work for the same employer that belongs to neither product.
+                            <div role="group" aria-label="Outside both platforms">
+                              <p className="mb-4 font-mono text-xs text-ink-3">Also</p>
+                              <Points points={role.points} />
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div>

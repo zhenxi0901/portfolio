@@ -13,7 +13,7 @@ export function WallClockBar() {
     <figure className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
       <figcaption>
         <p className="font-semibold">Where a run&apos;s wall clock goes</p>
-        <p className="mt-0.5 text-sm text-ink-2">Inside the agent phase, tool calls are only 2.7% of the time</p>
+        <p className="mt-0.5 text-sm text-ink-2">Inside the agent phase, MCP tool calls are only 2.7% of the time</p>
       </figcaption>
       <div className="mt-5 flex h-9 w-full gap-[2px]" role="img" aria-label="Setup 23%, agent working 72%, grading 4%">
         {fyp.wallClock.map((part, i) => (
