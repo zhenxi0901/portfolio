@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle, Lightning, Siren, Wrench } from "@phosphor-icons/react";
 import { monitoringFacts, signals, type SignalSim } from "@/content/profile";
 import { cn } from "@/lib/utils";
+import { onTabKeys } from "@/lib/tabs";
 
 const POINTS = 48;
 const TICK_MS = 450;
@@ -119,12 +120,13 @@ export function Signals() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="min-w-0">
           <p className="mb-3 text-sm text-ink-3">Pick a way the platform fails:</p>
-          <div role="tablist" aria-label="Failure modes" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+          <div role="tablist" aria-label="Failure modes" onKeyDown={(e) => onTabKeys(e, signals.length, idx, choose)} className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
             {signals.map((s, k) => (
               <button
                 key={s.question}
                 role="tab"
                 aria-selected={k === idx}
+                tabIndex={k === idx ? 0 : -1}
                 onClick={() => choose(k)}
                 className={cn(
                   "shrink-0 rounded-2xl border px-4 py-2.5 text-left text-sm font-medium transition-colors",

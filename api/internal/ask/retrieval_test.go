@@ -31,6 +31,7 @@ func TestRetrieveRanksTheRightFact(t *testing.T) {
 		{"Have you written a postmortem?", "postmortems", "postmortem"},
 		{"What is this site's uptime?", "site", "99.9%"},
 		{"Any incidents or outages on this site?", "postmortems", "postmortem"},
+		{"Can I try being on call?", "oncall", "/oncall"},
 	}
 	fs := facts(t)
 	for _, c := range cases {

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotionSafe } from "@/lib/use-reduced-motion";
 import { flows } from "@/content/profile";
 import { cn } from "@/lib/utils";
+import { onTabKeys } from "@/lib/tabs";
 
 /** Pick a journey; a packet walks it hop by hop with what happens at each boundary. */
 export function FlowExplorer() {
@@ -14,12 +15,17 @@ export function FlowExplorer() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      <div role="tablist" aria-label="Traffic paths" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+      <div
+        role="tablist"
+        aria-label="Traffic paths"
+        onKeyDown={(e) => onTabKeys(e, flows.length, flows.findIndex((f) => f.id === active), (k) => setActive(flows[k].id))}
+        className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
         {flows.map((f) => (
           <button
             key={f.id}
             role="tab"
             aria-selected={active === f.id}
+            tabIndex={active === f.id ? 0 : -1}
             onClick={() => setActive(f.id)}
             className={cn(
               "shrink-0 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors",

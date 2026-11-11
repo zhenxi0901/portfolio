@@ -8,6 +8,7 @@ import { journeys, mapNodes, type MapNode, type NodeId, type Step } from "@/cont
 import { products } from "@/content/products";
 import { ProductTag, productTone } from "@/components/site/product-tag";
 import { cn } from "@/lib/utils";
+import { onTabKeys } from "@/lib/tabs";
 
 const H = 44;
 const STEP_MS = 2600;
@@ -127,12 +128,17 @@ export function SystemMap() {
     <div ref={rootRef} className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
       {/* min-w-0: without it the scrolling tab row sets the column's width and widens the page on phones. */}
       <div className="flex min-w-0 flex-col gap-4">
-        <div role="tablist" aria-label="Journeys through the AI products" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+        <div
+          role="tablist"
+          aria-label="Journeys through the AI products"
+          onKeyDown={(e) => onTabKeys(e, journeys.length, journeys.findIndex((j) => j.id === jid), (k) => choose(journeys[k].id))}
+          className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
           {journeys.map((j) => (
             <button
               key={j.id}
               role="tab"
               aria-selected={jid === j.id}
+              tabIndex={jid === j.id ? 0 : -1}
               onClick={() => choose(j.id)}
               className={cn(
                 "flex shrink-0 items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors",
