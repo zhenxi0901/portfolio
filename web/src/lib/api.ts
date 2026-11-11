@@ -62,7 +62,9 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), init?.timeoutMs ?? 8000);
+  const ms = init?.timeoutMs ?? 8000;
+  // A TimeoutError that names the wait, so messages can say how long it really was (4 s for status).
+  const timer = setTimeout(() => controller.abort(new DOMException(`No answer within ${ms / 1000} s`, "TimeoutError")), ms);
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,

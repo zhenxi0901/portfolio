@@ -8,7 +8,7 @@ import { posts } from "@/content/writing";
 import { parseAnsi } from "@/lib/ansi";
 import { api, ApiError, API_BASE } from "@/lib/api";
 import { mcpRequest } from "@/lib/mcp-client";
-import { WAIT_MS, isTimeout, withTimeout } from "@/lib/signal";
+import { isTimeout, noAnswer, withTimeout } from "@/lib/signal";
 import { SITE_URL } from "@/lib/site";
 
 /** A run of text. `href` makes it a link; `run` makes it a button that types that command. */
@@ -41,7 +41,8 @@ const dim = (text: string): Line => [t(text, DIM)];
 const fail = (text: string): Line[] => [[t(text, ERR)]];
 const cmd = (command: string): Seg => ({ text: command, run: command, cls: ACCENT });
 const link = (text: string, href: string): Seg => ({ text, href });
-const row = (label: string, ...value: (Seg | string)[]): Line => line(t(label.padEnd(10), DIM), ...value);
+// One space wider than the longest label ("built from"), so a label never runs into its value.
+const row = (label: string, ...value: (Seg | string)[]): Line => line(t(label.padEnd(11), DIM), ...value);
 /** Spaces between a button and what follows, kept outside the button so its underline stops at the word. */
 const gap = (used: number, width: number): Seg => t(" ".repeat(Math.max(2, width - used)));
 /** The arguments that are not options: `ls -la work` lists work. */
@@ -188,13 +189,19 @@ type Fetched = { status: number; type: string; body: string; bytes: number; bina
 async function getText(path: string, signal: AbortSignal, sniff = false): Promise<Fetched> {
   const res = await fetch(urlFor(path), { headers: { Accept: "text/plain, application/json, */*" }, signal: withTimeout(signal) });
   const type = res.headers.get("content-type") ?? "";
-  if (sniff && BINARY.test(type)) return { status: res.status, type, body: "", bytes: (await res.arrayBuffer()).byteLength, binary: true };
+  // SVG is an image type but text, and prints like any other.
+  if (sniff && BINARY.test(type) && !type.includes("svg")) return { status: res.status, type, body: "", bytes: (await res.arrayBuffer()).byteLength, binary: true };
   const body = await res.text();
   return { status: res.status, type, body, bytes: body.length, binary: false };
 }
 
 // curl's options that take a value: that value is not the URL.
 const CURL_VALUE_FLAGS = new Set(["-H", "--header", "-X", "--request", "-d", "--data", "--data-raw", "-o", "--output", "-A", "--user-agent", "-e", "--referer", "-u", "--user", "-b", "--cookie", "-w", "--write-out", "-m", "--max-time"]);
+
+// "example.com/x" is a host, as in a real curl, not a path on this site; "llms.txt" is still a file.
+const BARE_HOST = /^[a-z0-9-]+([.][a-z0-9-]+)+(:[0-9]+)?$/i;
+const SITE_FILE = /[.](txt|json|md|xml|svg|png|jpe?g|webp|ico|html?|js|css|webmanifest)$/i;
+const isBareHost = (arg: string) => !arg.startsWith("/") && BARE_HOST.test(arg.split("/")[0]) && !SITE_FILE.test(arg.split("/")[0]);
 
 function curlTarget(args: string[]): string | undefined {
   for (let i = 0; i < args.length; i++) {
@@ -418,7 +425,8 @@ const commands: Record<string, Command> = {
     summary: "GET a path on this site, e.g. curl /api/slo",
     usage: "curl <path>",
     run: async (args, env) => {
-      const target = curlTarget(args);
+      const arg = curlTarget(args);
+      const target = arg && isBareHost(arg) ? `//${arg}` : arg;
       if (!target) return [line(t("Try: ", DIM), ...CURL_PATHS.slice(0, 5).flatMap((p, i) => [...(i ? [t("  ")] : []), cmd(`curl ${p}`)]))];
       // Resolved as a browser would, so "//host/x" and full URLs are judged by where they really go.
       const here = typeof window === "undefined" ? SITE_URL : window.location.origin;
@@ -438,6 +446,9 @@ const commands: Record<string, Command> = {
       const note = dim(`HTTP ${res.status} · ${res.type.split(";")[0] || "unknown type"}${home ? " · what a real curl gets for the home page" : ""}`);
       if (home && res.status === 200) return [...res.body.trimEnd().split("\n").map((l): Line => parseAnsi(l).map((r) => ({ text: r.text, cls: r.cls }))), line(""), note];
       if (res.binary) return [line(t(`Binary, ${res.bytes.toLocaleString("en-GB")} bytes. In the browser: `, DIM), link(path, path)), note];
+      // An error page is not a page worth opening.
+      if (res.type.includes("html") && res.status >= 400)
+        return [line(t(res.status === 404 ? `Nothing at ${path}. ` : `${path}: an error page. `, ERR), t("See what is here: ", DIM), cmd("ls")), note];
       if (res.type.includes("html")) return [dim(`An HTML page of ${res.body.length.toLocaleString("en-GB")} characters. It reads better in the browser:`), line(cmd(`open ${url.pathname.slice(1) || "home"}`)), note];
       let body = res.body;
       if (res.type.includes("json")) {
@@ -557,7 +568,7 @@ export async function runCommand(input: string, env: ShellEnv): Promise<Line[]> 
     return await Promise.race([Promise.resolve(command.run(args, env, input)), cancelled]);
   } catch (e) {
     if (env.signal.aborted) return [dim("^C")];
-    if (isTimeout(e)) return fail(`${name}: no answer within ${WAIT_MS / 1000} s. The server may be waking up; try again.`);
+    if (isTimeout(e)) return fail(`${name}: ${noAnswer(e)}. The server may be waking up; try again.`);
     if (e instanceof ApiError && e.status === 429) return fail(`${name}: the server is rate limiting this browser (${e.message}). Give it a minute.`);
     if (e instanceof ApiError) return fail(`${name}: ${e.message}`);
     return fail(`${name}: the server did not answer. Check your connection, or see: open status`);

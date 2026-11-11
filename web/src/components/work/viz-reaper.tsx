@@ -119,18 +119,17 @@ export function ReaperViz() {
         <canvas ref={canvas} className="block" />
       </div>
       <div className="mt-auto flex flex-wrap items-center gap-3">
+        {/* One button that turns from Run into Reset and back, so keyboard focus stays on it. */}
         {phase === "done" ? (
-          <>
-            <Button size="sm" variant="secondary" onClick={reset}>
-              <ArrowCounterClockwise /> Reset
-            </Button>
-            <p className="text-sm font-medium">Kafka metrics: 10,386 to 2,891 samples per scrape.</p>
-          </>
+          <Button size="sm" variant="secondary" onClick={reset}>
+            <ArrowCounterClockwise /> Reset
+          </Button>
         ) : (
-          <Button size="sm" onClick={reap} disabled={phase === "running"}>
+          <Button size="sm" onClick={() => phase !== "running" && reap()} aria-disabled={phase === "running" || undefined}>
             <Broom weight="fill" /> Run the reaper
           </Button>
         )}
+        {phase === "done" && <p className="text-sm font-medium">Kafka metrics: 10,386 to 2,891 samples per scrape.</p>}
       </div>
       <button
         type="button"

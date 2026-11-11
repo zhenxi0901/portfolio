@@ -4,8 +4,8 @@ import { useState } from "react";
 import { ArrowClockwise, CircleNotch, Play } from "@phosphor-icons/react";
 import { api, ApiError } from "@/lib/api";
 import { mcpRequest } from "@/lib/mcp-client";
-import { isTimeout, WAIT_MS } from "@/lib/signal";
-import type { LiveCheck as Kind } from "@/content/evidence";
+import { isTimeout, noAnswer } from "@/lib/signal";
+import { checkName, type LiveCheck as Kind } from "@/content/evidence";
 
 // Rounded down, like every other availability figure on the site.
 const pct = (x: number, digits: number) => `${(Math.floor(x * 100 * 10 ** digits + 1e-6) / 10 ** digits).toFixed(digits)}%`;
@@ -40,7 +40,10 @@ const checks: Record<Kind, () => Promise<string>> = {
 
 function explain(e: unknown): string {
   if (e instanceof RateLimited || (e instanceof ApiError && e.status === 429)) return "The server is rate limiting this browser. Wait a minute and check again.";
-  if (isTimeout(e)) return `No answer within ${WAIT_MS / 1000} s; the server may be waking up. Try again, or see the status page.`;
+  if (isTimeout(e)) {
+    const said = noAnswer(e);
+    return `${said[0].toUpperCase()}${said.slice(1)}; the server may be waking up. Try again, or see the status page.`;
+  }
   return "The server did not answer. That is evidence too: try again, or see the status page.";
 }
 
@@ -67,6 +70,8 @@ export function LiveCheck({ kind, describedBy }: { kind: Kind; describedBy?: str
       <button
         type="button"
         onClick={run}
+        // The visible words first, then what is checked: the page has a button like this per claim.
+        aria-label={`${s.phase === "done" ? "Check again" : "Check it now"}: ${checkName[kind]}`}
         aria-describedby={describedBy}
         aria-disabled={s.phase === "busy"}
         className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-[13px] font-medium text-on-accent transition-[transform,filter] hover:brightness-95 active:scale-[0.97] aria-disabled:opacity-60"

@@ -17,5 +17,20 @@ export function withTimeout(signal: AbortSignal | undefined, ms = WAIT_MS): Abor
   return ctl.signal;
 }
 
+/**
+ * How many seconds a request waited before it gave up, read from its timeout's own message, so a
+ * message can say "within 4 s" when that was the wait. Null when the error does not say.
+ */
+export function waitedSeconds(e: unknown): number | null {
+  const m = e instanceof DOMException ? /within ([0-9.]+) s/.exec(e.message) : null;
+  return m ? Number(m[1]) : null;
+}
+
+/** "no answer within 4 s", or "no answer in time" when the wait is unknown. */
+export const noAnswer = (e: unknown) => {
+  const s = waitedSeconds(e);
+  return s === null ? "no answer in time" : `no answer within ${s} s`;
+};
+
 /** Whether an error is a request giving up on its own (a timeout), as opposed to being cancelled. */
 export const isTimeout = (e: unknown) => e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");

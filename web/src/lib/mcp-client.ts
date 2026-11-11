@@ -16,6 +16,7 @@ export type McpExchange = { headers: Record<string, string>; body: unknown; stat
 const META = { "io.modelcontextprotocol/protocolVersion": MCP_PROTOCOL, "io.modelcontextprotocol/clientCapabilities": {} };
 
 let seq = 0;
+const NEWLINE = String.fromCharCode(10);
 
 /** Header values must be printable ASCII; the transport's Base64 sentinel carries anything else. */
 function headerValue(v: string): string {
@@ -46,7 +47,20 @@ export async function mcpRequest(method: string, params: Record<string, unknown>
   if (name) headers["Mcp-Name"] = headerValue(name);
   const t0 = performance.now();
   const res = await fetch(`${API_BASE}/mcp`, { method: "POST", headers, body: JSON.stringify(body), signal: withTimeout(signal) });
+  const text = await res.text().catch(() => "");
   const ms = performance.now() - t0;
-  const json = normalise(await res.json().catch(() => null), res.status);
+  let raw: unknown = null;
+  try {
+    raw = text ? JSON.parse(text) : null;
+  } catch {
+    raw = null;
+  }
+  let json = normalise(raw, res.status);
+  // Not JSON at all, like a plain-text 429 from something in front of the server: an error named
+  // by its status and the first line of what came back.
+  if (!json && !res.ok) {
+    const first = text.trim().split(NEWLINE)[0].trim().slice(0, 200);
+    json = { error: { code: res.status, message: first || `HTTP ${res.status}` } };
+  }
   return { headers, body, status: res.status, ms, json };
 }

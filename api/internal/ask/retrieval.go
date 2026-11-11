@@ -14,6 +14,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Keep in sync with web/src/lib/retrieval.ts: same tokenizer, aliases, BM25 and sentence pick.
@@ -152,6 +153,17 @@ func Retrieve(question string, facts []Fact) Result {
 
 var tracer = otel.Tracer("portfolio/ask")
 
+// startSpan starts a phase's span only inside a request that is being traced. Without a recording
+// parent (the MCP endpoint is deliberately untraced) each phase would be a root trace of its own,
+// three per question, which is the cost the untraced endpoint exists to avoid.
+func startSpan(ctx context.Context, name string) trace.Span {
+	if !trace.SpanFromContext(ctx).IsRecording() {
+		return trace.SpanFromContext(context.Background()) // a no-op span
+	}
+	_, s := tracer.Start(ctx, name)
+	return s
+}
+
 // Index holds the facts already tokenized. The first traces showed tokenizing every fact on every
 // question was about 63% of an answer's time; the facts never change while the server runs.
 type Index struct {
@@ -174,12 +186,12 @@ func NewIndex(facts []Fact) *Index {
 // Retrieve answers one question, with a span for each phase: tokenize, rank and compose.
 func (ix *Index) Retrieve(ctx context.Context, question string) Result {
 	facts, docs, titleDocs := ix.facts, ix.docs, ix.titleDocs
-	_, tok := tracer.Start(ctx, "retrieve.tokenize")
+	tok := startSpan(ctx, "retrieve.tokenize")
 	q := tokenize(question)
 	tok.SetAttributes(attribute.Int("query.tokens", len(q)))
 	tok.End()
 
-	_, rank := tracer.Start(ctx, "retrieve.rank")
+	rank := startSpan(ctx, "retrieve.rank")
 	rank.SetAttributes(attribute.Int("facts", len(facts)))
 	scores := bm25(q, docs)
 	for i, s := range bm25(q, titleDocs) {
@@ -213,7 +225,7 @@ func (ix *Index) Retrieve(ctx context.Context, question string) Result {
 		return Result{Answer: noMatch}
 	}
 
-	_, compose := tracer.Start(ctx, "retrieve.compose")
+	compose := startSpan(ctx, "retrieve.compose")
 	defer compose.End()
 
 	qs := toSet(q)

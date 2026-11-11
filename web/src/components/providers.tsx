@@ -17,6 +17,8 @@ function TerminalUnavailable() {
     if (!open) return;
     setOpen(false);
     toast.error("The terminal could not load.", {
+      // One toast, however often the key is pressed: the same id replaces rather than stacks.
+      id: "terminal-unavailable",
       description: "You may be offline, or the site was updated since this page loaded.",
       action: { label: "Reload", onClick: () => window.location.reload() },
     });

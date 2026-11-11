@@ -21,6 +21,6 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     eyebrowColor: ogTone[p],
     title: c.title,
     summary: c.summary,
-    stats: c.numbers,
+    stats: c.numbers.map((n) => ({ value: n.value, label: n.short ?? n.label })),
   });
 }
