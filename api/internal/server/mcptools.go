@@ -186,8 +186,13 @@ func (s *Server) toolStatus(ctx context.Context, base string, _ json.RawMessage)
 			sloOut["measured_since"] = rep.Since.Format(time.RFC3339)
 		}
 		out["slo"] = sloOut
-		fmt.Fprintf(&b, " Availability %.3f%% against a %.1f%% objective over %d days (%s); %.1f%% of the error budget is left, and releases are %s.",
-			slo.FloorPct(rep.Availability, 3), slo.Target*100, slo.WindowDays, rep.UptimeLabel(), slo.FloorPct(max(rep.BudgetRemaining, 0), 1), rep.Releases)
+		// The window is 30 days; until it has filled, say when measuring began.
+		measured := ""
+		if since, ok := strings.CutPrefix(rep.UptimeLabel(), "uptime since "); ok {
+			measured = ", measured since " + since
+		}
+		fmt.Fprintf(&b, " Availability %.3f%% against a %.1f%% objective over %d days%s; %.1f%% of the error budget is left, and releases are %s.",
+			slo.FloorPct(rep.Availability, 3), slo.Target*100, slo.WindowDays, measured, slo.FloorPct(max(rep.BudgetRemaining, 0), 1), rep.Releases)
 	} else {
 		out["slo"] = map[string]any{"available": false, "reason": rep.Reason}
 		fmt.Fprintf(&b, " The SLO is not measured here: %s", rep.Reason)

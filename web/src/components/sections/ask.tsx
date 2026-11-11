@@ -150,6 +150,13 @@ export function Ask() {
             </AnimatePresence>
           </div>
         </div>
+        <p className="mt-4 text-sm text-ink-3">
+          Prefer your own assistant? This site is also an MCP server:{" "}
+          <a href="/agents" className="text-ink-2 underline decoration-accent-ink decoration-2 underline-offset-4 hover:text-ink">
+            point Claude, Cursor or any agent at it
+          </a>
+          .
+        </p>
       </div>
     </section>
   );

@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -409,6 +411,26 @@ func TestHomePageForTerminals(t *testing.T) {
 	resp.Body.Close()
 	if !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
 		t.Errorf("curl /knowledge.json: %s", resp.Header.Get("Content-Type"))
+	}
+}
+
+// The /agents page and llms.txt name the tools from web/src/content/agents.ts; the server defines
+// them. A tool added or renamed on one side only fails here.
+func TestAgentsPageNamesTheSameTools(t *testing.T) {
+	src, err := os.ReadFile("../../../web/src/content/agents.ts")
+	must(t, err)
+	var page []string
+	for _, m := range regexp.MustCompile(`\{ name: "([a-z_]+)"`).FindAllStringSubmatch(string(src), -1) {
+		page = append(page, m[1])
+	}
+	ts, _ := newTestServer(t)
+	_, out := rpc(t, ts.URL, `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`, nil)
+	var server []string
+	for _, tool := range out["result"].(map[string]any)["tools"].([]any) {
+		server = append(server, tool.(map[string]any)["name"].(string))
+	}
+	if !slices.Equal(page, server) || len(server) == 0 {
+		t.Errorf("tools differ:\n  page:   %v\n  server: %v", page, server)
 	}
 }
 

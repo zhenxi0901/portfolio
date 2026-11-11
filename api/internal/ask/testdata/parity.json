@@ -145,15 +145,15 @@
     "answer": "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
     "sources": [
       "site",
-      "decisions"
+      "agents"
     ]
   },
   {
     "question": "Have you written any blog posts?",
-    "answer": "Things I have written up at length: \"Running an agent benchmark on a supercomputer, without root\". \"What 320 agent runs taught me about serving LLM agents\". \"Finding a metrics bill in 914 orphaned Kafka topics\".",
+    "answer": "An AI agent can use this site directly: it is a Model Context Protocol (MCP) server. POST /mcp is an MCP server over Streamable HTTP with five read-only tools: ask, search_facts, list_topics, get_status and get_delivery. Add the URL to Claude Code, Cursor or any MCP client and the agent can answer questions about my work from the site's own facts and read its live SLO and delivery numbers. It speaks the stateless 2026-07-28 revision of the protocol and still answers the initialize handshake of older clients, written in Go against the standard library.",
     "sources": [
-      "writing",
-      "slos"
+      "agents",
+      "writing"
     ]
   },
   {

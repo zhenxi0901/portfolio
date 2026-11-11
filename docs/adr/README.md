@@ -15,3 +15,4 @@ Why this site is built the way it is: each record gives the context, the decisio
 | 7 | [The error budget gates releases, in code](0007-error-budget-gates-releases.md) | 2026-10-19 | Accepted |
 | 8 | [Page with scheduled checks, not Cloud Monitoring alert policies](0008-scheduled-checks-not-alert-policies.md) | 2026-10-19 | Accepted |
 | 9 | [No long-lived credentials anywhere](0009-no-long-lived-credentials.md) | 2026-10-01 | Accepted |
+| 10 | [An MCP server with no sessions and no model](0010-mcp-without-sessions-or-a-model.md) | 2026-11-11 | Accepted |
