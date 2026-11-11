@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { ArrowClockwise, CircleNotch, Play } from "@phosphor-icons/react";
-import { api, API_BASE } from "@/lib/api";
-import { MCP_PROTOCOL } from "@/content/agents";
+import { api } from "@/lib/api";
+import { mcpRequest } from "@/lib/mcp-client";
 import type { LiveCheck as Kind } from "@/content/evidence";
 
 // Rounded down, like every other availability figure on the site.
@@ -23,21 +23,10 @@ const checks: Record<Kind, () => Promise<string>> = {
     return `Commit ${r.commit.slice(0, 7)} is running in ${r.region}; this instance has been up ${since(r.uptime_seconds)}.`;
   },
   mcp: async () => {
-    const method = "tools/list";
-    const res = await fetch(`${API_BASE}/mcp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "MCP-Protocol-Version": MCP_PROTOCOL, "Mcp-Method": method },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method,
-        params: { _meta: { "io.modelcontextprotocol/protocolVersion": MCP_PROTOCOL, "io.modelcontextprotocol/clientCapabilities": {} } },
-      }),
-    });
-    const json = (await res.json()) as { result?: { tools?: { name: string }[] } };
-    const names = json.result?.tools?.map((t) => t.name) ?? [];
-    if (!res.ok || names.length === 0) throw new Error(`HTTP ${res.status}`);
-    return `HTTP ${res.status}. ${names.length} tools: ${names.join(", ")}.`;
+    const x = await mcpRequest("tools/list");
+    const names = x.json?.result?.tools?.map((t) => t.name) ?? [];
+    if (x.status !== 200 || names.length === 0) throw new Error(`HTTP ${x.status}`);
+    return `HTTP ${x.status}. ${names.length} tools: ${names.join(", ")}.`;
   },
 };
 
