@@ -108,6 +108,13 @@ export function CommandPalette() {
           >
             Architecture decisions
           </Item>
+          <Item
+            keywords={["agents", "mcp", "model context protocol", "claude", "cursor", "llms.txt", "curl", "ai", "tools"]}
+            icon={<Article size={16} />}
+            onSelect={() => run(() => goTo("/agents"))}
+          >
+            For agents: this site as an MCP server
+          </Item>
         </Command.Group>
         <Command.Group heading="Actions">
           <Item keywords={["tour", "overview", "highlights", "recruiter", "quick"]} icon={<ArrowRight size={16} />} onSelect={() => run(startTour)}>

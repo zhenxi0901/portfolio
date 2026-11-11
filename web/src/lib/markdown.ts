@@ -6,6 +6,7 @@ import { posts, type Post } from "@/content/writing";
 import { postmortems, type Postmortem } from "@/content/postmortems";
 import { decisions } from "@/content/decisions";
 import { buildKnowledge } from "@/content/knowledge";
+import { agentTools } from "@/content/agents";
 import { SITE_URL } from "@/lib/site";
 
 const list = (items: string[]) => items.map((t) => `- ${t}`).join("\n");
@@ -104,7 +105,7 @@ export function llmsTxt() {
     `# ${profile.name}`,
     `> ${profile.role}. ${profile.intro} ${profile.availability}; based in ${profile.location}. This site is itself a small production service: a Go API on Cloud Run with its own SLO, signed releases and public postmortems.`,
     `Currently: ${now.join("; ")}. ${education.degree} at ${education.school}, ${education.period}. Contact: ${profile.email}.`,
-    `Everything below is also available to an AI agent as tools: this site is a Model Context Protocol server at ${SITE_URL}/mcp (POST, Streamable HTTP, no authentication, read-only). Tools: ask, search_facts, list_topics, get_status, get_delivery.`,
+    `Everything below is also available to an AI agent as tools: this site is a Model Context Protocol server at ${SITE_URL}/mcp (POST, Streamable HTTP, no authentication, read-only). Tools: ${agentTools.map((t) => t.name).join(", ")}. How to connect: ${SITE_URL}/agents`,
     `## Work\n\n${link("work/")}`,
     `## Writing\n\n${link("writing/")}`,
     `## Postmortems\n\n${link("postmortems/")}`,

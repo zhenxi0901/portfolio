@@ -31,6 +31,11 @@ export function Footer() {
             </a>
           </li>
           <li>
+            <a className="hover:text-ink" href="/agents">
+              For agents
+            </a>
+          </li>
+          <li>
             <a className="hover:text-ink" href={profile.github} target="_blank" rel="noreferrer">
               GitHub
             </a>

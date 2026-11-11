@@ -242,6 +242,20 @@ export function buildKnowledge(): Fact[] {
   });
 
   facts.push({
+    id: "agents",
+    title: "This site as an MCP server",
+    anchor: "ask",
+    lead: "An AI agent can use this site directly: it is a Model Context Protocol (MCP) server.",
+    text:
+      "POST /mcp is an MCP server over Streamable HTTP with five read-only tools: ask, search_facts, list_topics, get_status and get_delivery. " +
+      "Add the URL to Claude Code, Cursor or any MCP client and the agent can answer questions about my work from the site's own facts and read its live SLO and delivery numbers. " +
+      "It needs no key, keeps no session and runs no model: retrieval only, so the calling agent brings its own LLM. " +
+      "It speaks the stateless 2026-07-28 revision of the protocol and still answers the initialize handshake of older clients, written in Go against the standard library. " +
+      "For crawlers there is /llms.txt, /llms-full.txt and a Markdown copy of every page under /md/; from a terminal, curl on the home page returns a text card with the live commit and uptime. " +
+      "The /agents page explains how to connect and has a console that sends real requests.",
+  });
+
+  facts.push({
     id: "releases",
     title: "How this site releases",
     anchor: "status",
