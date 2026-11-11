@@ -2,6 +2,7 @@
 // them (llmstxt.org) and each one is served under /md/. Built from the same content files as the
 // pages, so they cannot drift apart.
 import { cases, experience, education, profile, type CaseStudy } from "@/content/profile";
+import { productOrder, products } from "@/content/products";
 import { posts, type Post } from "@/content/writing";
 import { postmortems, type Postmortem } from "@/content/postmortems";
 import { decisions } from "@/content/decisions";
@@ -16,7 +17,7 @@ const abs = (href: string) => (href.startsWith("/") ? SITE_URL + href : href);
 export function caseMd(c: CaseStudy) {
   return [
     `# ${c.title}`,
-    `${c.org}, ${c.year}. Case study by ${profile.name}. Page: ${SITE_URL}/work/${c.id}`,
+    `${c.products.map((p) => products[p].name).join(", ")} (${c.org}), ${c.year}. Case study by ${profile.name}. Page: ${SITE_URL}/work/${c.id}`,
     `> ${c.summary}`,
     stats(c.numbers),
     `## The problem\n\n${c.problem}`,
@@ -106,7 +107,11 @@ export function llmsTxt() {
     `> ${profile.role}. ${profile.intro} ${profile.availability}; based in ${profile.location}. This site is itself a small production service: a Go API on Cloud Run with its own SLO, signed releases and public postmortems.`,
     `Currently: ${now.join("; ")}. ${education.degree} at ${education.school}, ${education.period}. Contact: ${profile.email}.`,
     `Everything below is also available to an AI agent as tools: this site is a Model Context Protocol server at ${SITE_URL}/mcp (POST, Streamable HTTP, no authentication, read-only). Tools: ${agentTools.map((t) => t.name).join(", ")}. How to connect: ${SITE_URL}/agents`,
-    `## Work\n\n${link("work/")}`,
+    // One list per product, as on the home page.
+    ...productOrder
+      .map((p) => ({ p, studies: cases.filter((c) => c.products[0] === p) }))
+      .filter((g) => g.studies.length > 0)
+      .map((g) => `## Work: ${products[g.p].name}\n\n${list(g.studies.map((c) => `[${c.title}](${SITE_URL}/md/work/${c.id}.md): ${c.summary}`))}`),
     `## Writing\n\n${link("writing/")}`,
     `## Postmortems\n\n${link("postmortems/")}`,
     `## How this site runs\n\n${list([
