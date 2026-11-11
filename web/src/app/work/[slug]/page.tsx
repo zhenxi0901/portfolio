@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { cases } from "@/content/profile";
+import { products } from "@/content/products";
 import { ArticleShell, Part, Prose, StatRow } from "@/components/article/article-shell";
 import { caseViz } from "@/components/work/case-viz";
 import { ProductTag } from "@/components/site/product-tag";
@@ -31,7 +32,8 @@ export default async function CasePage(props: PageProps<"/work/[slug]">) {
   const next = cases[(i + 1) % cases.length];
 
   return (
-    <ArticleShell back={{ href: `/#case-${c.id}`, label: "All work" }}>
+    // Back to the card on the home page, which sits with its product: in Work, or in the product's own section.
+    <ArticleShell back={{ href: `/#case-${c.id}`, label: products[c.products[0]].name }}>
       <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
         {c.products.map((p) => (
           <ProductTag key={p} p={p} />

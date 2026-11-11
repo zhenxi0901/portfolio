@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion";
 import { flows } from "@/content/profile";
 import { cn } from "@/lib/utils";
 
 /** Pick a journey; a packet walks it hop by hop with what happens at each boundary. */
 export function FlowExplorer() {
   const [active, setActive] = useState(flows[0].id);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const flow = flows.find((f) => f.id === active)!;
 
   return (

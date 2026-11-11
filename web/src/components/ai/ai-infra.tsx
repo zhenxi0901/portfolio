@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { FileMagnifyingGlass, Robot } from "@phosphor-icons/react";
 import { agents, aiStats, aiIntro } from "@/content/ai-platform";
+import { cases } from "@/content/profile";
+import { CaseCard } from "@/components/work/case-card";
+import { caseViz } from "@/components/work/case-viz";
 import { ProductTag, productTone } from "@/components/site/product-tag";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Reveal } from "@/components/motion/reveal";
@@ -25,10 +28,22 @@ const TAB_IDS = TABS.map((t) => t.id);
 
 const AGENT_ICON = { operator: Robot, documents: FileMagnifyingGlass } as const;
 
+// This platform's case studies live in its own section, not in Work (see products.ts).
+const aiCases = cases.filter((c) => c.products[0] === "ai");
+
 export function AiInfra() {
   const [tab, setTab] = useState<Tab>("map");
   // Other pages link straight to a tab: /#ai-trace.
   useHashTab("ai", TAB_IDS, setTab);
+  // And this page opens one with openAiTab() (lib/utils.ts), for example from the case card below.
+  useEffect(() => {
+    const open = (e: Event) => {
+      const id = (e as CustomEvent<Tab>).detail;
+      if (TAB_IDS.includes(id)) setTab(id);
+    };
+    window.addEventListener("ai-tab", open);
+    return () => window.removeEventListener("ai-tab", open);
+  }, []);
   const tone = productTone.ai;
 
   return (
@@ -68,7 +83,7 @@ export function AiInfra() {
         </Reveal>
 
         <Reveal className="mt-10">
-          <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+          <dl className="grid max-w-3xl gap-x-8 gap-y-6 sm:grid-cols-2">
             {aiStats.map((s) => (
               <div key={s.label} className="border-l border-line-strong pl-4">
                 <dt className="text-3xl font-semibold tracking-[-0.04em]">{s.value}</dt>
@@ -78,41 +93,54 @@ export function AiInfra() {
           </dl>
         </Reveal>
 
-        <Reveal className="mt-12">
-          <div role="tablist" aria-label="AI platform views" className="inline-flex flex-wrap gap-1 rounded-3xl border border-line bg-surface p-1 sm:rounded-full">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                role="tab"
-                id={`ai-tab-${t.id}`}
-                aria-selected={tab === t.id}
-                aria-controls={`ai-panel-${t.id}`}
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "relative rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                  tab === t.id ? "text-on-accent" : "text-ink-2 hover:text-ink",
-                )}
-              >
-                {tab === t.id && (
-                  <motion.span
-                    layoutId="ai-tab"
-                    className="absolute inset-0 rounded-full bg-accent"
-                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                  />
-                )}
-                <span className="relative">{t.label}</span>
-              </button>
-            ))}
+        {aiCases.map((study) => {
+          const Viz = caseViz[study.id];
+          return (
+            <div key={study.id} className="mt-12">
+              <CaseCard study={study} tone="tint" wide level={3}>
+                {Viz && <Viz />}
+              </CaseCard>
+            </div>
+          );
+        })}
+
+        {/* The views: what the case card's "follow a request" link and openAiTab() scroll to. */}
+        <div id="ai-views" className="mt-12 scroll-mt-24">
+          <Reveal>
+            <div role="tablist" aria-label="AI platform views" className="inline-flex flex-wrap gap-1 rounded-3xl border border-line bg-surface p-1 sm:rounded-full">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  role="tab"
+                  id={`ai-tab-${t.id}`}
+                  aria-selected={tab === t.id}
+                  aria-controls={`ai-panel-${t.id}`}
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "relative rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    tab === t.id ? "text-on-accent" : "text-ink-2 hover:text-ink",
+                  )}
+                >
+                  {tab === t.id && (
+                    <motion.span
+                      layoutId="ai-tab"
+                      className="absolute inset-0 rounded-full bg-accent"
+                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </Reveal>
+
+          <div id={`ai-panel-${tab}`} role="tabpanel" aria-labelledby={`ai-tab-${tab}`} className="mt-8">
+            {tab === "map" && <SystemMap />}
+            {tab === "stack" && <InfraStack />}
+            {tab === "trace" && <RequestTrace />}
+            {tab === "measure" && <Measures />}
           </div>
-        </Reveal>
-
-        <div id={`ai-panel-${tab}`} role="tabpanel" aria-labelledby={`ai-tab-${tab}`} className="mt-8">
-          {tab === "map" && <SystemMap />}
-          {tab === "stack" && <InfraStack />}
-          {tab === "trace" && <RequestTrace />}
-          {tab === "measure" && <Measures />}
         </div>
-
       </div>
     </section>
   );

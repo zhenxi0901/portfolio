@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, LayoutGroup, motion, useInView, useReducedMotion } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion, useInView } from "motion/react";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion";
 import { Segmented } from "@/components/work/segmented";
 
 type Mode = "before" | "after";
@@ -47,8 +48,13 @@ function layout(replicas: number, nodeCount: number) {
 }
 
 export function GkeViz() {
-  const [mode, setMode] = useState<Mode>("before");
+  const [chosen, setMode] = useState<Mode>("before");
   const [touched, setTouched] = useState(false);
+  // With reduced motion the migration does not play, so the card starts on its result instead: it
+  // is sized for the cluster, and "Before" alone would leave most of it empty. "Before" is one
+  // click away. (Hydration-safe: the server and the first client render both show "Before".)
+  const reduce = useReducedMotionSafe();
+  const mode: Mode = reduce && !touched ? "after" : chosen;
   const [traffic, setTraffic] = useState(1);
   const replicas = replicasFor(traffic);
   const [nodeCount, setNodeCount] = useState(MIN_NODES);
@@ -70,7 +76,6 @@ export function GkeViz() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [events.length, onScreen, mode]);
-  const reduce = useReducedMotion();
 
   // Play the migration once when the card is first seen; after that the toggle is the visitor's.
   useEffect(() => {

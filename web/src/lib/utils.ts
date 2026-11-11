@@ -20,6 +20,13 @@ export function openPlatformTab(tab: "paths" | "signals" | "cost") {
   scrollToId("platform");
 }
 
+/** Open a tab of the AI agent platform section and scroll to its views; from another page, via its deep link. */
+export function openAiTab(tab: "map" | "stack" | "trace" | "measure") {
+  if (!document.getElementById("ai-views")) return goTo(`/#ai-${tab}`);
+  window.dispatchEvent(new CustomEvent("ai-tab", { detail: tab }));
+  scrollToId("ai-views");
+}
+
 /** Scroll to a section by id, honouring reduced motion. From another page, go to it on the home page. */
 export function scrollToId(id: string) {
   const el = document.getElementById(id);

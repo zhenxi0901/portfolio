@@ -11,7 +11,12 @@ import { cn } from "@/lib/utils";
 
 type Tone = "plain" | "dots" | "tint" | "raised";
 
-/** Where each card sits in its product's 12-column grid. A card with no entry takes half a row. */
+/**
+ * Where each card sits in its product's 12-column grid. A card with no entry takes half a row.
+ * The GKE card spans two rows on purpose: its model plays the migration from one VM to a whole
+ * cluster when first seen, and the room beside the two short cards lets it grow without pushing
+ * the rest of the page down while someone reads. Give it a row of its own and it jumps by ~550 px.
+ */
 const placement: Record<string, { span: string; tone?: Tone; wide?: boolean }> = {
   gke: { span: "lg:col-span-7 lg:row-span-2", tone: "dots" },
   pipeline: { span: "lg:col-span-5", tone: "raised" },
@@ -19,20 +24,19 @@ const placement: Record<string, { span: string; tone?: Tone; wide?: boolean }> =
   observability: { span: "lg:col-span-5", tone: "raised" },
   control: { span: "lg:col-span-7", tone: "dots" },
   "two-step": { span: "lg:col-span-12", wide: true },
-  "ai-platform": { span: "lg:col-span-12", tone: "tint", wide: true },
 };
 
-/** Each product's deeper section further down the page. */
+/** Each product's own section further down the page. */
 const deeper: Partial<Record<ProductKey, string>> = {
   iot: "Inside the platform: traffic, SLOs, cost",
-  ai: "The platform up close: follow a request",
 };
 
 // One group per product, in the order the legend lists them. A case belongs to its first product.
-const groups = productOrder.map((p) => ({ p, studies: cases.filter((c) => c.products[0] === p) })).filter((g) => g.studies.length > 0);
-
-const numerals = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
-const count = (n: number) => numerals[n] ?? String(n);
+// A product whose cases sit in its own section (products.ts) has no group here.
+const groups = productOrder
+  .filter((p) => !products[p].casesInSection)
+  .map((p) => ({ p, studies: cases.filter((c) => c.products[0] === p) }))
+  .filter((g) => g.studies.length > 0);
 
 export function Work() {
   return (
@@ -43,7 +47,7 @@ export function Work() {
             Production work you can <span className="text-accent-ink">play with</span>.
           </>
         }
-        lead={`${count(cases.length)} things I shipped at Primustech, grouped by the product each one belongs to. Each card is a small working model of the real system. Press the buttons.`}
+        lead="Things I shipped at Primustech, each a small working model of the real system. Press the buttons."
       />
       <ProductLegend />
 

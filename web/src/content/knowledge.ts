@@ -54,13 +54,18 @@ export function buildKnowledge(): Fact[] {
   }
 
   for (const r of experience) {
-    facts.push({
-      id: `role-${r.org.toLowerCase().replace(/[^a-z]+/g, "-")}`,
-      title: `${r.role} at ${r.org}`,
-      anchor: "experience",
-      lead: `${r.role} at ${r.org}, ${r.period}.`,
-      text: `${r.points.join(" ")} Based in ${r.place}. Tools used: ${r.tags.join(", ")}.`,
-    });
+    const id = `role-${r.org.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+    // A role on two products is two facts, so a question about either finds its own half.
+    for (const part of r.byProduct ?? [{ product: null, points: r.points, tags: r.tags }]) {
+      const on = part.product ? products[part.product].name : null;
+      facts.push({
+        id: part.product ? `${id}-${part.product}` : id,
+        title: on ? `${r.role} at ${r.org}: ${on}` : `${r.role} at ${r.org}`,
+        anchor: "experience",
+        lead: on ? `${r.role} at ${r.org}, ${r.period}, on the ${on}.` : `${r.role} at ${r.org}, ${r.period}.`,
+        text: `${part.points.join(" ")} Based in ${r.place}. Tools used: ${part.tags.join(", ")}.`,
+      });
+    }
   }
 
   for (const f of flows) {

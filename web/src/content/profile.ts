@@ -231,13 +231,19 @@ export const cases: CaseStudy[] = [
   },
 ];
 
+/** What a role did for one product. */
+export type RoleProduct = { product: ProductKey; points: string[]; tags: string[] };
+
 export type Role = {
   org: string;
   role: string;
   period: string;
   place: string;
+  /** For a role on one product, or none. */
   points: string[];
   tags: string[];
+  /** For a role that spans products: what it did on each, in the order of productOrder. */
+  byProduct?: RoleProduct[];
 };
 
 export const experience: Role[] = [
@@ -246,15 +252,33 @@ export const experience: Role[] = [
     role: "DevOps Engineer Intern",
     period: "May 2026 - now",
     place: "Singapore",
-    points: [
-      "Own the Cloud Build CI/CD pipeline for an IoT platform on GKE: 169 merged PRs so far.",
-      "Migrated the platform from one VM to GKE microservices with Terraform.",
-      "Wrote the safety pattern for remote control of air-conditioning and built its guards: deliberate arming, manual override, rate caps and readback from the plant.",
-      "Hardened the live cluster in reversible steps: cache authentication, a rehearsed network-policy cutover, and a register of single points of failure with measured recovery times.",
-      "Commissioned equipment control at a customer site against a Modbus bench simulator, and built a read-only Modbus collector for 718 energy-meter channels.",
-      "Deployed, operated and benchmarked the company's LLM services on Cloud Run.",
+    points: [],
+    tags: [],
+    // One internship on two products, so the work is listed per product, as the Work section is.
+    byProduct: [
+      {
+        product: "iot",
+        points: [
+          "Own the platform's Cloud Build CI/CD pipeline: 169 merged PRs so far.",
+          "Migrated it from one VM to GKE microservices with Terraform.",
+          "Cut its cloud spend by about 15% across monitoring, database and compute.",
+          "Wrote the safety pattern for remote control of air-conditioning and built its guards: deliberate arming, manual override, rate caps and readback from the plant.",
+          "Hardened the live cluster in reversible steps: cache authentication, a rehearsed network-policy cutover, and a register of single points of failure with measured recovery times.",
+          "Commissioned equipment control at a customer site against a Modbus bench simulator, and built a read-only Modbus collector for 718 energy-meter channels.",
+        ],
+        tags: ["GKE", "Terraform", "Cloud Build", "Kafka", "MQTT", "Modbus", "Grafana"],
+      },
+      {
+        product: "ai",
+        points: [
+          "Deployed and operated the agent and RAG services on Cloud Run, with models on Vertex AI.",
+          "Set up per-environment CI/CD, IAM, Secret Manager and shared-VPC networking for dev, staging and production.",
+          "Benchmarked the stack: load and latency tests of the agent API, token cost per request, and models compared on latency and cost.",
+          "Built a demo building for the agents to query: 50 storeys, 2,014 BMS devices.",
+        ],
+        tags: ["Cloud Run", "Vertex AI", "Cloud Build", "Secret Manager", "IAM"],
+      },
     ],
-    tags: ["GKE", "Terraform", "Cloud Build", "Cloud Run", "MQTT", "Modbus", "Grafana"],
   },
   {
     org: "NTU HyScale Lab",
