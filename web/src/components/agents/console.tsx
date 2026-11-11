@@ -1,33 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, CircleNotch } from "@phosphor-icons/react";
-import { API_BASE } from "@/lib/api";
-import { agentTools, MCP_PROTOCOL } from "@/content/agents";
+import { agentTools } from "@/content/agents";
+import { mcpRequest, type McpExchange as Exchange, type McpField as Field, type McpTool as LiveTool } from "@/lib/mcp-client";
 import { cn } from "@/lib/utils";
-
-type Field = { type?: string; description?: string; minimum?: number; maximum?: number; maxLength?: number };
-type Schema = { properties?: Record<string, Field>; required?: string[] };
-type LiveTool = { name: string; title?: string; description?: string; inputSchema?: Schema };
-type Reply = {
-  result?: { tools?: LiveTool[]; content?: { type: string; text?: string }[]; isError?: boolean };
-  error?: { code: number; message: string };
-};
-type Exchange = { headers: Record<string, string>; body: unknown; status: number; ms: number; json: Reply | null };
-
-const META = { "io.modelcontextprotocol/protocolVersion": MCP_PROTOCOL, "io.modelcontextprotocol/clientCapabilities": {} };
-
-/** One JSON-RPC request to the site's MCP server, in the stateless form: no handshake, no session. */
-async function rpc(id: number, method: string, params: Record<string, unknown>, name?: string): Promise<Exchange> {
-  const body = { jsonrpc: "2.0", id, method, params: { ...params, _meta: META } };
-  const headers: Record<string, string> = { "Content-Type": "application/json", "MCP-Protocol-Version": MCP_PROTOCOL, "Mcp-Method": method };
-  if (name) headers["Mcp-Name"] = name;
-  const t0 = performance.now();
-  const res = await fetch(`${API_BASE}/mcp`, { method: "POST", headers, body: JSON.stringify(body) });
-  const ms = performance.now() - t0;
-  const json = (await res.json().catch(() => null)) as Reply | null;
-  return { headers, body, status: res.status, ms, json };
-}
 
 function startArgs(name: string): Record<string, string> {
   const example = agentTools.find((t) => t.name === name)?.example ?? {};
@@ -45,11 +22,10 @@ export function Console() {
   const [busy, setBusy] = useState(false);
   const [exchange, setExchange] = useState<Exchange | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
-  const seq = useRef(0);
 
   useEffect(() => {
     let alive = true;
-    rpc(++seq.current, "tools/list", {})
+    mcpRequest("tools/list")
       .then((x) => {
         if (!alive) return;
         const tools = x.json?.result?.tools;
@@ -87,7 +63,7 @@ export function Console() {
       if (v !== "") typed[key] = isNumber(field) ? Number(v) : v;
     }
     try {
-      setExchange(await rpc(++seq.current, "tools/call", { name: tool.name, arguments: typed }, tool.name));
+      setExchange(await mcpRequest("tools/call", { name: tool.name, arguments: typed }, tool.name));
     } catch {
       setExchange(null);
       setFailed("The request did not reach the server. Check your connection and try again.");

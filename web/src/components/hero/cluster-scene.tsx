@@ -336,7 +336,8 @@ export default function ClusterScene() {
   return (
     <div
       ref={wrap}
-      className="relative aspect-square w-full touch-pan-y select-none"
+      // Its own stacking context: the labels sort themselves by depth with z-index, and must stay under dialogs.
+      className="relative isolate aspect-square w-full touch-pan-y select-none"
       onPointerDown={(e) => {
         pointer.current = { x: e.clientX, y: e.clientY, down: true };
       }}

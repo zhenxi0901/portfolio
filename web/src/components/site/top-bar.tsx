@@ -1,13 +1,14 @@
 "use client";
 
-import { Command } from "@phosphor-icons/react";
+import { Command, TerminalWindow } from "@phosphor-icons/react";
 import { profile } from "@/content/profile";
-import { usePalette } from "@/components/providers";
+import { usePalette, useTerminal } from "@/components/providers";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 
 /** On the home page the name jumps to the top; on other pages (`home`) it goes back home. */
 export function TopBar({ home = false }: { home?: boolean }) {
   const { setOpen } = usePalette();
+  const terminal = useTerminal();
   return (
     <header data-print-hide className="fixed inset-x-0 top-0 z-30">
       <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-4 sm:px-8">
@@ -34,6 +35,16 @@ export function TopBar({ home = false }: { home?: boolean }) {
             <Command size={15} />
             <span className="hidden sm:inline">Jump anywhere</span>
             <kbd className="rounded-md border border-line px-1.5 font-mono text-[11px] text-ink-3">/</kbd>
+          </button>
+          <button
+            type="button"
+            onClick={() => terminal.setOpen(true)}
+            aria-label="Open the terminal"
+            aria-keyshortcuts="`"
+            title="Terminal: a shell over this site's API (`)"
+            className="inline-flex size-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <TerminalWindow size={18} />
           </button>
           <ThemeToggle />
         </div>

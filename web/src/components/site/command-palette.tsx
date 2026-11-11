@@ -9,11 +9,12 @@ import {
   GithubLogo,
   LinkedinLogo,
   MoonStars,
+  TerminalWindow,
   Warning,
 } from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { usePalette } from "@/components/providers";
+import { usePalette, useTerminal } from "@/components/providers";
 import { sections } from "@/components/site/nav-items";
 import { cases, profile } from "@/content/profile";
 import { postmortems } from "@/content/postmortems";
@@ -21,8 +22,29 @@ import { posts } from "@/content/writing";
 import { goTo, openPlatformTab, scrollToId } from "@/lib/utils";
 import { startTour } from "@/components/site/tour";
 
+const words = (text: string) => text.toLowerCase().split(/[^a-z0-9%]+/).filter(Boolean);
+
+/**
+ * How well an item answers what was typed. cmdk's default is fuzzy: "terminal" matched
+ * "Postmortems" letter by letter, and "changelog" chose a case study that starts with "Chang".
+ * Here every typed word must start a word of the item, and the item's own name beats its keywords.
+ */
+export function rank(value: string, search: string, keywords: string[] = []): number {
+  const query = words(search);
+  if (query.length === 0) return 1;
+  const label = words(value);
+  const extra = words(keywords.join(" "));
+  const inLabel = (q: string) => label.some((w) => w.startsWith(q));
+  if (!query.every((q) => inLabel(q) || extra.some((w) => w.startsWith(q)))) return 0;
+  if (label.join(" ").startsWith(query.join(" "))) return 1;
+  if (label.some((w) => query.includes(w))) return 0.9;
+  if (query.every(inLabel)) return 0.8;
+  return extra.some((w) => query.includes(w)) ? 0.6 : 0.5;
+}
+
 export function CommandPalette() {
   const { open, setOpen } = usePalette();
+  const terminal = useTerminal();
   const { resolvedTheme, setTheme } = useTheme();
 
   const run = (fn: () => void) => {
@@ -36,6 +58,7 @@ export function CommandPalette() {
       open={open}
       onOpenChange={setOpen}
       label="Jump anywhere"
+      filter={rank}
       overlayClassName="fixed inset-0 z-40 bg-bg/60 backdrop-blur-sm"
       contentClassName="fixed left-1/2 top-[18vh] z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 overflow-hidden rounded-3xl border border-line bg-surface shadow-soft"
     >
@@ -124,6 +147,13 @@ export function CommandPalette() {
           </Item>
         </Command.Group>
         <Command.Group heading="Actions">
+          <Item
+            keywords={["terminal", "shell", "cli", "console", "bash", "command line", "curl", "hacker"]}
+            icon={<TerminalWindow size={16} />}
+            onSelect={() => run(() => terminal.setOpen(true))}
+          >
+            Open the terminal: a shell over this site&apos;s API
+          </Item>
           <Item keywords={["tour", "overview", "highlights", "recruiter", "quick"]} icon={<ArrowRight size={16} />} onSelect={() => run(startTour)}>
             Take the 60-second tour
           </Item>

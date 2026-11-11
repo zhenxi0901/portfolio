@@ -3,6 +3,7 @@ import { ArticleShell, Bullets, Part, StatRow } from "@/components/article/artic
 import { Connect } from "@/components/agents/connect";
 import { Console } from "@/components/agents/console";
 import { TerminalCard } from "@/components/agents/terminal-card";
+import { OpenTerminal } from "@/components/site/open-terminal";
 import { agentTools, MCP_PROTOCOL } from "@/content/agents";
 import { REPO_BLOB } from "@/content/decisions";
 import { markdownPages } from "@/lib/markdown";
@@ -91,6 +92,10 @@ export default function AgentsPage() {
           shipping. A browser, or anything that asks for HTML, gets the page.
         </p>
         <TerminalCard />
+        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <OpenTerminal label="Or use the terminal on this site" />
+          <p className="text-sm text-ink-3">The same API from a shell in the page: status, slo, ask, mcp, curl.</p>
+        </div>
       </Part>
 
       <Part title="For crawlers and readers" aside="the same content as plain text">
