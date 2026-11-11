@@ -4,7 +4,19 @@
 
 export type ProductKey = "iot" | "ai" | "aries";
 
-export type Product = { name: string; org: string; what: string; runs: string; anchor: string };
+export type Product = {
+  name: string;
+  org: string;
+  what: string;
+  runs: string;
+  /** The product's own section of the home page. */
+  anchor: string;
+  /**
+   * Its case studies sit inside that section instead of in Work. The AI agent platform's do: in Work
+   * they sat between the IoT platform's cases and the IoT platform's section, and read as part of it.
+   */
+  casesInSection?: boolean;
+};
 
 export const products: Record<ProductKey, Product> = {
   iot: {
@@ -20,6 +32,7 @@ export const products: Record<ProductKey, Product> = {
     what: "Two AI agents for facility teams: one answers from the IoT platform's live data, the other from company documents.",
     runs: "Agents and RAG on Cloud Run",
     anchor: "ai",
+    casesInSection: true,
   },
   aries: {
     name: "ARIES agent benchmarks",

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion";
 import { ArrowLeft, ArrowRight, ArrowCounterClockwise, Pause, Play } from "@phosphor-icons/react";
 import { journeys, mapNodes, type MapNode, type NodeId, type Step } from "@/content/ai-platform";
 import { products } from "@/content/products";
@@ -56,7 +57,7 @@ const CAPTIONS = [
  * "What I own" dims everything that is the platform rather than my work.
  */
 export function SystemMap() {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const [jid, setJid] = useState(journeys[0].id);
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);

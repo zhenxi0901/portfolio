@@ -7,9 +7,10 @@ import { Reveal } from "@/components/motion/reveal";
 import { ProductTag } from "@/components/site/product-tag";
 
 /**
- * One case study with its working model. The cards sit under their product's heading (an h3), so
- * the title is an h4. `wide` is for a card that has a row to itself: on large screens the text
- * goes on the left and the model on the right, instead of the model stretching across the row.
+ * One case study with its working model. `level` is the title's heading level: h4 under a product's
+ * heading in Work, h3 directly under a section's h2. `wide` is for a card that has a row to itself:
+ * on large screens the text goes on the left and the model on the right, instead of the model
+ * stretching across the row.
  */
 export function CaseCard({
   study,
@@ -17,13 +18,16 @@ export function CaseCard({
   className,
   tone = "plain",
   wide = false,
+  level = 4,
 }: {
   study: CaseStudy;
   children: React.ReactNode;
   className?: string;
   tone?: "plain" | "dots" | "tint" | "raised";
   wide?: boolean;
+  level?: 3 | 4;
 }) {
+  const Title = level === 3 ? "h3" : "h4";
   return (
     <Reveal className={cn("h-full", className)}>
       <article
@@ -46,7 +50,7 @@ export function CaseCard({
               {study.org}, {study.year}
             </span>
           </div>
-          <h4 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.03em] sm:text-[1.7rem]">{study.title}</h4>
+          <Title className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.03em] sm:text-[1.7rem]">{study.title}</Title>
           <p className="mt-2 max-w-[48ch] text-[15px] leading-relaxed text-ink-2">{study.summary}</p>
         </header>
 

@@ -1,10 +1,15 @@
 "use client";
 
 import { ArrowRight } from "@phosphor-icons/react";
-import { productOrder, products } from "@/content/products";
+import { cases } from "@/content/profile";
+import { productOrder, products, type ProductKey as Key } from "@/content/products";
 import { productIcon, productTone } from "@/components/site/product-tag";
 import { Reveal } from "@/components/motion/reveal";
 import { cn, scrollToId } from "@/lib/utils";
+
+/** Where a product's part of the page starts: its case studies in Work if they are there, else its own section. */
+export const productStart = (p: Key) =>
+  !products[p].casesInSection && cases.some((c) => c.products[0] === p) ? `work-${p}` : products[p].anchor;
 
 /** The three products, so every tag on the cards below (and on the map) means something. */
 export function ProductKey() {
@@ -19,7 +24,7 @@ export function ProductKey() {
             <li key={p}>
               <button
                 type="button"
-                onClick={() => scrollToId(products[p].anchor)}
+                onClick={() => scrollToId(productStart(p))}
                 className={cn(
                   "group flex h-full w-full gap-3.5 rounded-2xl border bg-surface p-4 text-left transition-colors hover:bg-surface-2/60",
                   tone.border,

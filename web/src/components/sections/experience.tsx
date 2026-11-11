@@ -2,9 +2,37 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus } from "@phosphor-icons/react";
-import { education, experience } from "@/content/profile";
+import { ArrowRight, Plus } from "@phosphor-icons/react";
+import { cases, education, experience } from "@/content/profile";
+import { products } from "@/content/products";
 import { SectionHeading } from "@/components/site/section-heading";
+import { ProductTag } from "@/components/site/product-tag";
+import { productStart } from "@/components/work/product-key";
+import { scrollToId } from "@/lib/utils";
+
+function Points({ points }: { points: string[] }) {
+  return (
+    <ul className="grid max-w-3xl gap-3">
+      {points.map((p) => (
+        <li key={p} className="text-[15px] leading-relaxed text-ink-2 sm:text-base">
+          {p}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Tags({ tags }: { tags: string[] }) {
+  return (
+    <ul className="mt-5 flex flex-wrap gap-2" aria-label="Tools">
+      {tags.map((t) => (
+        <li key={t} className="rounded-full border border-line px-3 py-1 font-mono text-xs text-ink-2">
+          {t}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function Experience() {
   const [open, setOpen] = useState<number | null>(0);
@@ -28,6 +56,14 @@ export function Experience() {
                     {role.org}
                   </span>
                   <span className="mt-1 block text-sm text-ink-2">{role.role}</span>
+                  {/* Closed, the tags say the role spans products; open, each block below is labelled. */}
+                  {role.byProduct && !isOpen && (
+                    <span className="mt-2.5 flex flex-wrap gap-1.5">
+                      {role.byProduct.map((part) => (
+                        <ProductTag key={part.product} p={part.product} />
+                      ))}
+                    </span>
+                  )}
                 </span>
                 <span className="flex items-center">
                   <motion.span
@@ -49,22 +85,40 @@ export function Experience() {
                   >
                     <div className="grid gap-4 pb-7 sm:grid-cols-[9rem_1fr] sm:gap-6">
                       <p className="text-sm text-ink-3">{role.place}</p>
-                      <div>
-                        <ul className="grid max-w-3xl gap-3">
-                          {role.points.map((p) => (
-                            <li key={p} className="text-[15px] leading-relaxed text-ink-2 sm:text-base">
-                              {p}
-                            </li>
-                          ))}
-                        </ul>
-                        <ul className="mt-5 flex flex-wrap gap-2" aria-label="Tools">
-                          {role.tags.map((t) => (
-                            <li key={t} className="rounded-full border border-line px-3 py-1 font-mono text-xs text-ink-2">
-                              {t}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      {role.byProduct ? (
+                        // One block per product, each with its own points, tools and a way to its case studies.
+                        <div className="grid gap-9">
+                          {role.byProduct.map((part) => {
+                            const studies = cases.filter((c) => c.products[0] === part.product);
+                            // One case study: straight to its card. Several: to where they start.
+                            const target = studies.length === 1 ? `case-${studies[0].id}` : productStart(part.product);
+                            return (
+                              <div key={part.product} role="group" aria-label={products[part.product].name}>
+                                <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                  <ProductTag p={part.product} />
+                                  {studies.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => scrollToId(target)}
+                                      className="group inline-flex items-center gap-1 text-sm text-ink-3 transition-colors hover:text-ink"
+                                    >
+                                      {studies.length === 1 ? "Its case study" : `Its ${studies.length} case studies`}
+                                      <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+                                    </button>
+                                  )}
+                                </div>
+                                <Points points={part.points} />
+                                <Tags tags={part.tags} />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div>
+                          <Points points={role.points} />
+                          <Tags tags={role.tags} />
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}

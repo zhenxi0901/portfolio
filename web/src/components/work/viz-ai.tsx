@@ -1,8 +1,9 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion";
 import { ArrowRight } from "@phosphor-icons/react";
-import { scrollToId } from "@/lib/utils";
+import { openAiTab } from "@/lib/utils";
 import { Reveal } from "@/components/motion/reveal";
 
 const STEPS = [
@@ -15,7 +16,7 @@ const STEPS = [
 
 /** The request path through the AI products, with a packet riding it. */
 export function AiViz() {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   return (
     <div className="flex h-full flex-col gap-5">
       <div className="relative">
@@ -46,7 +47,7 @@ export function AiViz() {
       </ul>
       <button
         type="button"
-        onClick={() => scrollToId("ai")}
+        onClick={() => openAiTab("map")}
         className="mt-auto inline-flex w-fit items-center gap-1.5 text-sm font-medium text-ink underline decoration-accent-ink decoration-2 underline-offset-4"
       >
         Follow a request through the whole platform <ArrowRight size={14} />
