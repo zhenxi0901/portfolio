@@ -10,7 +10,7 @@ const STOPS: Stop[] = [
   {
     id: "work",
     title: "Production work you can play with",
-    text: "Five things I shipped at Primustech, each a small working model of the real system. Every card opens a full case study.",
+    text: "Seven things I shipped at Primustech, each a small working model of the real system. Every card opens a full case study.",
   },
   {
     id: "platform",

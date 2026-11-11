@@ -7,7 +7,7 @@ import { ProductTag } from "@/components/site/product-tag";
 import { Reveal } from "@/components/motion/reveal";
 import { pageMetadata } from "@/lib/page-metadata";
 
-// Static export: only these five cases exist; anything else is the 404 page.
+// Static export: only the cases in profile.ts exist; anything else is the 404 page.
 export const dynamicParams = false;
 
 export function generateStaticParams() {

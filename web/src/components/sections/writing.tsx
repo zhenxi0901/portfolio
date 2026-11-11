@@ -20,7 +20,7 @@ export function Writing() {
         title="Writing"
         lead="Longer notes on what the measurements showed. The numbers are the same ones the rest of this site uses."
       />
-      <ul className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <ul className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {posts.map((post, i) => (
           <Reveal key={post.slug} as="li" delay={i * 0.06} className="h-full">
             <a

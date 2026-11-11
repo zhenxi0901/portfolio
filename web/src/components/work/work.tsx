@@ -5,7 +5,15 @@ import { caseViz } from "@/components/work/case-viz";
 import { ProductKey } from "@/components/work/product-key";
 
 const byId = Object.fromEntries(cases.map((c) => [c.id, c]));
-const { gke: GkeViz, pipeline: PipelineViz, reaper: ReaperViz, observability: AlertsViz, "ai-platform": AiViz } = caseViz;
+const {
+  gke: GkeViz,
+  pipeline: PipelineViz,
+  reaper: ReaperViz,
+  observability: AlertsViz,
+  control: ControlViz,
+  "two-step": TwoStepViz,
+  "ai-platform": AiViz,
+} = caseViz;
 
 export function Work() {
   return (
@@ -16,10 +24,10 @@ export function Work() {
             Production work you can <span className="text-accent-ink">play with</span>.
           </>
         }
-        lead="Five things I shipped at Primustech, on its two products. Each card is a small working model of the real system. Press the buttons."
+        lead="Seven things I shipped at Primustech, on its two products. Each card is a small working model of the real system. Press the buttons."
       />
       <ProductKey />
-      <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto]">
+      <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-12 ">
         <CaseCard study={byId.gke} tone="dots" className="lg:col-span-7 lg:row-span-2">
           <GkeViz />
         </CaseCard>
@@ -32,7 +40,13 @@ export function Work() {
         <CaseCard study={byId.observability} tone="raised" className="lg:col-span-5">
           <AlertsViz />
         </CaseCard>
-        <CaseCard study={byId["ai-platform"]} tone="tint" className="lg:col-span-7">
+        <CaseCard study={byId.control} tone="dots" className="lg:col-span-7">
+          <ControlViz />
+        </CaseCard>
+        <CaseCard study={byId["two-step"]} className="lg:col-span-6">
+          <TwoStepViz />
+        </CaseCard>
+        <CaseCard study={byId["ai-platform"]} tone="tint" className="lg:col-span-6">
           <AiViz />
         </CaseCard>
       </div>

@@ -33,6 +33,16 @@ export function buildKnowledge(): Fact[] {
     text: `I'm ${profile.name}, based in ${profile.location}, and I'm ${profile.availability.toLowerCase()} in SRE, DevOps, cloud and AI infrastructure. ${profile.intro} Email me at ${profile.email}.`,
   });
 
+  facts.push({
+    id: "numbers",
+    title: "Numbers I can back up",
+    anchor: "top",
+    lead: "The numbers behind my work, each from a pull-request history or a measurement:",
+    text:
+      `I have merged 169 pull requests into Primustech's production IoT platform, 4 into ARIES, the open-source agent-serving framework, and 21 into a robot-car project. ` +
+      `I cut cloud spend by about 15%, benchmarked 320 LLM agent runs, and measured a 3.02x throughput from running four isolated agent tasks at once.`,
+  });
+
   for (const c of cases) {
     facts.push({
       id: `case-${c.id}`,
@@ -170,6 +180,31 @@ export function buildKnowledge(): Fact[] {
   });
 
   facts.push({
+    id: "apptainer",
+    title: "ARIES on a supercomputer without root",
+    anchor: "research",
+    lead: "I added an Apptainer backend to ARIES so the whole agent stack runs on an HPC cluster, where users have neither Docker nor root.",
+    text:
+      `Merged into ARIES on ${fyp.apptainer.merged}: ${fyp.apptainer.lines.toLocaleString("en-US")} lines across ${fyp.apptainer.files} files. ` +
+      `On NSCC's ASPIRE 2A supercomputer, the agent, its sandbox and Qwen3-4B served by SGLang ran in one batch job on the same A100 node. ` +
+      `Each part is an Apptainer (Singularity) instance with a fake root; the run has its own user and network namespace through slirp4netns, ` +
+      `so other users of a shared node cannot reach it; and because the cluster has no cgroup per container, CPU and memory are measured from /proc. ` +
+      `One hang traced to a fake-root daemon per command, fixed with one per instance. Portable agent plugins (skills and MCP servers) are in review next.`,
+  });
+
+  facts.push({
+    id: "mcp-profiling",
+    title: "What MCP tool servers cost an agent",
+    anchor: "research",
+    lead: "I profiled MCP tool servers across 48 instrumented agent runs.",
+    text:
+      `Model calls are ${fyp.agentTime.parts[0].all}% of the agent's time; MCP calls are 8.6% overall, 13% in tasks whose servers reach the internet and 3.4% in tasks backed by applications. ` +
+      `Local MCP servers answer in 2 to 15 ms, application servers in 6 to 191 ms, and servers that reach the internet in 0.2 to 1.4 s at the median with long tails. ` +
+      `Starting a server lazily at its first call costs about 1.2 s per server, about as much as all the MCP waiting, and snapshotting an idle application takes about 1.5 s to restore, so neither saving pays on this workload. ` +
+      `The expensive server is the Playwright browser: 437 MiB and 56 CPU-seconds a run.`,
+  });
+
+  facts.push({
     id: "pvchat",
     title: publication.title,
     anchor: "research",
@@ -243,7 +278,7 @@ export function buildKnowledge(): Fact[] {
     anchor: "writing",
     lead: "Things I have written up at length:",
     // Titles only: the summaries' numbers already belong to other facts and would compete with them.
-    text: posts.map((p) => `"${p.title}".`).join(" ") + " Both are in the Writing section, with the measurements behind them.",
+    text: posts.map((p) => `"${p.title}".`).join(" ") + " All are in the Writing section, with the measurements behind them.",
   });
 
   return facts;
