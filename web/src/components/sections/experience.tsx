@@ -96,16 +96,15 @@ export function Experience() {
                               <div key={part.product} role="group" aria-label={products[part.product].name}>
                                 <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
                                   <ProductTag p={part.product} />
-                                  {studies.length > 0 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => scrollToId(target)}
-                                      className="group inline-flex items-center gap-1 text-sm text-ink-3 transition-colors hover:text-ink"
-                                    >
-                                      {studies.length === 1 ? "Its case study" : `Its ${studies.length} case studies`}
-                                      <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
-                                    </button>
-                                  )}
+                                  {/* To its case studies, or, for work with none (the research), to its section. */}
+                                  <button
+                                    type="button"
+                                    onClick={() => scrollToId(studies.length ? target : products[part.product].anchor)}
+                                    className="group inline-flex items-center gap-1 text-sm text-ink-3 transition-colors hover:text-ink"
+                                  >
+                                    {studies.length === 0 ? products[part.product].chapter : studies.length === 1 ? "Its case study" : `Its ${studies.length} case studies`}
+                                    <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+                                  </button>
                                 </div>
                                 <Points points={part.points} />
                                 <Tags tags={part.tags} />
