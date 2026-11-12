@@ -21,14 +21,16 @@ export const metadata = { alternates: { canonical: "/" } };
 export default function Home() {
   return (
     <>
+      {/* First, so an old /#section link moves on before the rest of the page loads. */}
+      <LegacyAnchors />
       <a
-        href="#chapters"
+        href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
       >
         Skip to content
       </a>
       <TopBar />
-      <main>
+      <main id="main">
         <Hero />
         <Now />
         <Chapters />
@@ -39,7 +41,6 @@ export default function Home() {
       <Footer />
       <Dock />
       <Tour />
-      <LegacyAnchors />
     </>
   );
 }

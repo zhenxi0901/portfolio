@@ -9,7 +9,7 @@ export type Product = {
   org: string;
   what: string;
   runs: string;
-  /** The product's own section of the home page, and its heading's short name. */
+  /** The id of the product's own section (on its chapter page, lib/sections), and its heading's short name. */
   anchor: string;
   chapter: string;
   /**

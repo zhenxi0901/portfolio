@@ -107,7 +107,16 @@ export function llmsTxt() {
     `> ${profile.role}. ${profile.intro} ${profile.availability}; based in ${profile.location}. This site is itself a small production service: a Go API on Cloud Run with its own SLO, signed releases and public postmortems.`,
     `Currently: ${now.join("; ")}. ${education.degree} at ${education.school}, ${education.period}. Contact: ${profile.email}.`,
     `Everything below is also available to an AI agent as tools: this site is a Model Context Protocol server at ${SITE_URL}/mcp (POST, Streamable HTTP, no authentication, read-only). Tools: ${agentTools.map((t) => t.name).join(", ")}. How to connect: ${SITE_URL}/agents`,
-    // One list per product, as on the home page.
+    // The site's pages since it was split into chapters (decision 11), for an agent sending someone to one.
+    `## Chapters\n\n${list([
+      `[Building IoT platform](${SITE_URL}/iot): ${products.iot.what} Its case studies as working models, then its traffic, SLOs and cost.`,
+      `[AI agent platform](${SITE_URL}/ai): ${products.ai.what}`,
+      `[Research](${SITE_URL}/research): ${products.aries.what}`,
+      `[Writing](${SITE_URL}/writing): posts, and postmortems of what broke while I built and ran this site.`,
+      `[About](${SITE_URL}/about): where I have worked, the tools I use, and a console that answers questions about my work.`,
+      `[On-call drills](${SITE_URL}/oncall): two simulated incidents, one on each platform, with a postmortem of your own response.`,
+    ])}`,
+    // One list per product, as in the chapters.
     ...productOrder
       .map((p) => ({ p, studies: cases.filter((c) => c.products[0] === p) }))
       .filter((g) => g.studies.length > 0)

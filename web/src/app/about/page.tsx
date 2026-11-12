@@ -7,8 +7,8 @@ import { education, now, profile } from "@/content/profile";
 import { pageMetadata } from "@/lib/page-metadata";
 
 export const metadata = pageMetadata({
-  title: "About",
-  description: `${profile.intro} Where I have worked, what I work with, and a console that answers questions about it from this site's own facts.`,
+  title: "About me: experience and the tools I use",
+  description: "Where I have worked, from a building's control room to Kubernetes, the tools I use, and a console that answers questions about my work.",
   path: "/about",
 });
 

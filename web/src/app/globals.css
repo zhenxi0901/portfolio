@@ -88,6 +88,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Focus and anchors land clear of the fixed top bar (64 px) and the dock at the bottom (72 px). */
+  scroll-padding-top: 5rem;
+  scroll-padding-bottom: 6rem;
   color-scheme: light;
 }
 html.dark { color-scheme: dark; }

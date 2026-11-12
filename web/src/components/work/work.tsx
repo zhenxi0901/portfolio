@@ -39,11 +39,11 @@ const groups = productOrder
   .filter((g) => g.studies.length > 0);
 
 /**
- * In a chapter (/iot) the chapter's own title has already said what this is, so the section drops
- * its big heading and the key to the products, and each product's group heading is the section's.
- * The one-page version (/v1) keeps both.
+ * `chapter` is the product whose chapter this is (/iot): only its cards show, and since the
+ * chapter's title has said what this is, the big heading and the key to the products go and the
+ * group heading becomes the section's. The one-page version (/v1) shows every group, with both.
  */
-export function Work({ chapter = false }: { chapter?: boolean } = {}) {
+export function Work({ chapter }: { chapter?: ProductKey } = {}) {
   return (
     <section id="work" className={cn("mx-auto max-w-[1320px] scroll-mt-20 px-4 sm:px-8", chapter ? "pb-20 pt-14 sm:pb-28 sm:pt-16" : "py-24 sm:py-32")}>
       {!chapter && (
@@ -60,7 +60,7 @@ export function Work({ chapter = false }: { chapter?: boolean } = {}) {
         </>
       )}
 
-      {groups.map(({ p, studies }) => {
+      {(chapter ? groups.filter((g) => g.p === chapter) : groups).map(({ p, studies }) => {
         const GroupTitle = chapter ? "h2" : "h3";
         const Icon = productIcon[p];
         const tone = productTone[p];

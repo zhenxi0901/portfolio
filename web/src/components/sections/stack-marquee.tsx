@@ -60,7 +60,7 @@ export function StackMarquee() {
     </ul>
   );
   return (
-    <section aria-label="Tools I use" className="border-y border-line bg-surface py-10">
+    <section id="stack" aria-label="Tools I use" className="scroll-mt-20 border-y border-line bg-surface py-10">
       <div
         className="group flex overflow-hidden [--duration:45s] [--gap:3.5rem] [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]"
       >

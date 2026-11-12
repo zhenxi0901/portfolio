@@ -1,6 +1,7 @@
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { TopBar } from "@/components/site/top-bar";
 import { Footer } from "@/components/site/footer";
+import { Dock } from "@/components/site/dock";
 
 /** Frame for the standalone pages (case studies, postmortems): top bar that goes home, one column. */
 export function ArticleShell({
@@ -15,6 +16,12 @@ export function ArticleShell({
 }) {
   return (
     <>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
+      >
+        Skip to content
+      </a>
       <TopBar home />
       {/* Not "top": that id is the home page hero, which the palette and other links use to go home. */}
       <main id="main" className={`mx-auto ${wide ? "max-w-[1180px]" : "max-w-[880px]"} px-4 pb-24 pt-28 sm:px-8 sm:pt-36`}>
@@ -24,6 +31,8 @@ export function ArticleShell({
         {children}
       </main>
       <Footer />
+      {/* The way on to the chapters on a phone, where the top bar has no room for them. */}
+      <Dock />
     </>
   );
 }

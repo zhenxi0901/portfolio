@@ -38,7 +38,7 @@ export const decisions: Decision[] = [
       "Revisions and traffic tags are what make releasing with no traffic, and rolling back in seconds, cheap (ADR 3).",
     ],
     bad: [
-      "Cold starts. The status section says when a visitor woke the server up; the uptime checks keep an instance warm most of the time.",
+      "Cold starts. The visit trace on the status page shows when a visitor woke the server up; the uptime checks keep an instance warm most of the time.",
       "No CPU once the response is written, so work cannot be left running afterwards. The contact form learned this the hard way: see its postmortem.",
       "Memory is per instance, so rate limits and caches are per instance too. At three instances that is an acceptable approximation.",
     ],
@@ -117,7 +117,7 @@ export const decisions: Decision[] = [
     ],
     decision: [
       "SLI: the share of Cloud Monitoring uptime checks, run every minute from Singapore, Belgium and Oregon, that get a 2xx from /api/health within 10 seconds. SLO: 99.9% over 30 days, a budget of 43.2 minutes.",
-      "The API reads the results back from Cloud Monitoring and the status section shows availability, downtime and budget left.",
+      "The API reads the results back from Cloud Monitoring and the status page shows availability, downtime and budget left.",
     ],
     good: [
       "It measures what a visitor gets, through the same front door, from three continents.",

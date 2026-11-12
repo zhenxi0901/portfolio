@@ -5,7 +5,7 @@ import { pageMetadata } from "@/lib/page-metadata";
 export const metadata = pageMetadata({
   title: "You're on call: incident drills",
   description:
-    "Two simulated incidents, one on a building IoT platform and one on an AI agent platform, built from their real designs. Investigate, stop the error budget burning, and get your own postmortem.",
+    "Two simulated incidents, one on a building IoT platform and one on an AI agent platform. Investigate, stop the error budget burning, and get your own postmortem.",
   path: "/oncall",
 });
 

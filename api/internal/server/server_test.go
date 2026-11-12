@@ -441,8 +441,16 @@ func TestFactURL(t *testing.T) {
 	if got := factURL("https://x.test", ask.Fact{ID: "case-reaper", Anchor: "case-reaper"}); got != "https://x.test/work/reaper" {
 		t.Errorf("case fact: %s", got)
 	}
-	if got := factURL("https://x.test", ask.Fact{ID: "fyp", Anchor: "research"}); got != "https://x.test/#research" {
+	// Facts carry the page their section is on (knowledge.json, from web/src/lib/sections.ts).
+	if got := factURL("https://x.test", ask.Fact{ID: "fyp", Anchor: "research", Href: "/research#research"}); got != "https://x.test/research#research" {
 		t.Errorf("section fact: %s", got)
+	}
+	if got := factURL("https://x.test", ask.Fact{ID: "decisions", Anchor: "status", Href: "/decisions"}); got != "https://x.test/decisions" {
+		t.Errorf("page fact: %s", got)
+	}
+	// An older knowledge.json without hrefs: the home page sends the anchor on to its page.
+	if got := factURL("https://x.test", ask.Fact{ID: "fyp", Anchor: "research"}); got != "https://x.test/#research" {
+		t.Errorf("fact without an href: %s", got)
 	}
 }
 

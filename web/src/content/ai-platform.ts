@@ -116,7 +116,7 @@ export const journeys: Journey[] = [
         node: "iot",
         title: "Live readings",
         text: "The data-engineer agent pulls occupancy, temperature, air quality and water readings over GraphQL, from the building IoT platform.",
-        mine: "The IoT platform is the GKE system I run, shown in the section above.",
+        mine: "The IoT platform is the GKE system I run; it has a chapter of its own.",
       },
       {
         node: "operator",

@@ -12,6 +12,8 @@ export type Post = {
   slug: string;
   title: string;
   summary: string;
+  /** For search results, when the summary is too long for one (about 160 characters). */
+  description?: string;
   date: string;
   /** Which part of the work it comes from, for the tag and the card colour. */
   product: "iot" | "aries";
@@ -26,6 +28,8 @@ export const posts: Post[] = [
     title: "Running an agent benchmark on a supercomputer, without root",
     summary:
       "ARIES started every part of a run with Docker. A supercomputer gives users neither Docker nor root, so I added an Apptainer backend: 6,678 lines, a way to measure containers that have no cgroup, and one hang that looked like the agent's fault.",
+    description:
+      "A supercomputer gives users neither Docker nor root, so I gave the ARIES agent benchmark an Apptainer backend: 6,678 lines, and one hang that wasn't the agent's.",
     date: "11 Nov 2026",
     product: "aries",
     stats: [
@@ -95,7 +99,7 @@ export const posts: Post[] = [
     ],
     links: [
       { label: "The pull request: an Apptainer deployment backend for ARIES", href: "https://github.com/hyscale-lab/ARIES/pull/92" },
-      { label: "The research section, with the charts", href: "/research" },
+      { label: "The research chapter, with the charts", href: "/research" },
       { label: "What 320 agent runs taught me about serving LLM agents", href: "/writing/serving-llm-agents" },
     ],
   },
@@ -159,7 +163,7 @@ export const posts: Post[] = [
       },
     ],
     links: [
-      { label: "The research section, with the charts", href: "/research" },
+      { label: "The research chapter, with the charts", href: "/research" },
       { label: "ARIES on GitHub", href: "https://github.com/hyscale-lab/ARIES" },
       { label: "The Toolathlon adapter pull request", href: "https://github.com/hyscale-lab/ARIES/pull/55" },
     ],

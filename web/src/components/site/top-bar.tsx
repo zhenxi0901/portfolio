@@ -6,12 +6,15 @@ import { usePalette, useTerminal } from "@/components/providers";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import { pages } from "@/components/site/nav-items";
 import { usePathname } from "next/navigation";
+import { chapterOf } from "@/lib/sections";
 
 /** On the home page the name jumps to the top; on other pages (`home`) it goes back home. */
 export function TopBar({ home = false }: { home?: boolean }) {
   const { setOpen } = usePalette();
   const terminal = useTerminal();
   const path = usePathname();
+  // A case study or a post belongs to a chapter: the menu marks that chapter too.
+  const chapter = chapterOf(path);
   return (
     <header data-print-hide className="fixed inset-x-0 top-0 z-30">
       <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-4 sm:px-8">
@@ -32,8 +35,8 @@ export function TopBar({ home = false }: { home?: boolean }) {
             <a
               key={p.href}
               href={p.href}
-              aria-current={path === p.href ? "page" : undefined}
-              className="rounded-full px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink aria-[current=page]:bg-surface-2 aria-[current=page]:font-medium aria-[current=page]:text-ink"
+              aria-current={chapter === p.href ? (path === p.href ? "page" : "true") : undefined}
+              className="rounded-full px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink aria-[current=page]:bg-surface-2 aria-[current=page]:font-medium aria-[current=page]:text-ink aria-[current=true]:bg-surface-2 aria-[current=true]:text-ink"
             >
               {p.label}
             </a>

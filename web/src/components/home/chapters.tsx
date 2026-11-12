@@ -1,20 +1,12 @@
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
-import { cases, stats } from "@/content/profile";
-import { productOrder, products, type ProductKey } from "@/content/products";
+import { cases } from "@/content/profile";
+import { productOrder, products } from "@/content/products";
+import { chapterHeadline as headline } from "@/content/headlines";
 import { productIcon, productTone } from "@/components/site/product-tag";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { productPage } from "@/lib/sections";
 import { cn } from "@/lib/utils";
-
-// One number per chapter, each one the site already states (and /evidence sources).
-const stat = (value: number) => stats.find((s) => s.value === value)!;
-const ai = cases.find((c) => c.id === "ai-platform")!.numbers[1];
-const headline: Record<ProductKey, { value: string; label: string }> = {
-  iot: { value: String(stat(169).value), label: stat(169).label },
-  ai: { value: ai.value, label: ai.label },
-  aries: { value: String(stat(320).value), label: stat(320).label },
-};
 
 /**
  * The three things I work on, one card each, and each card is the door to its chapter: the home

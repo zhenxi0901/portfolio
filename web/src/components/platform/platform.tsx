@@ -23,7 +23,7 @@ const TAB_IDS = TABS.map((t) => t.id);
 
 /**
  * Opened from elsewhere on the page with: window.dispatchEvent(new CustomEvent("platform-tab", { detail: "cost" })),
- * and from other pages with a link to /#platform-cost.
+ * and from other pages with a link to /iot#platform-cost.
  */
 export function Platform() {
   const [tab, setTab] = useState<Tab>("paths");

@@ -1,5 +1,6 @@
 import { ArrowUpRight, Rss } from "@phosphor-icons/react/dist/ssr";
 import { ArticleShell, Part } from "@/components/article/article-shell";
+import { LiveInstance } from "@/components/status/live-instance";
 import { LiveState } from "@/components/status/live-state";
 import { SloPanel } from "@/components/sections/slo-panel";
 import { DeliveryPanel } from "@/components/sections/delivery-panel";
@@ -48,10 +49,11 @@ export default function StatusPage() {
         Status
       </h1>
       <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
-        The Go server that sent you this page reports on itself: its live state and its SLO, how it ships, the trace of your own
-        visit, how it is watched, and every incident so far.
+        The Go server that sent you this page reports on itself: its live state, the latency of its last requests and its SLO,
+        how it ships, the trace of your own visit, how it is watched, and every incident so far.
       </p>
       <LiveState />
+      <LiveInstance commit={false} />
       <SloPanel />
       <DeliveryPanel />
       <VisitTrace />

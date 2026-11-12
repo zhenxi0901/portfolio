@@ -6,7 +6,7 @@ import { ArrowUp, Lightning, Sparkle, Database, WarningCircle } from "@phosphor-
 import { api, type AskResult } from "@/lib/api";
 import { retrieve } from "@/lib/retrieval";
 import type { Fact } from "@/content/knowledge";
-import { scrollToId } from "@/lib/utils";
+import { followHref } from "@/lib/utils";
 import { SectionHeading } from "@/components/site/section-heading";
 import { AnswerTrace } from "@/components/sections/answer-trace";
 
@@ -17,7 +17,7 @@ const SUGGESTIONS = [
   "What happens when a build has a critical CVE?",
 ];
 
-type Answer = AskResult & { question: string; offline?: boolean; anchors: Record<string, string> };
+type Answer = AskResult & { question: string; offline?: boolean; links: Record<string, string> };
 
 let knowledge: Promise<Fact[]> | null = null;
 function loadKnowledge() {
@@ -49,10 +49,10 @@ export function Ask() {
     setError(null);
     setQ(text);
     const facts = await loadKnowledge().catch(() => [] as Fact[]);
-    const anchors = Object.fromEntries(facts.map((f) => [f.id, f.anchor]));
+    const links = Object.fromEntries(facts.map((f) => [f.id, f.href ?? `/#${f.anchor}`]));
     try {
       const res = await api.ask(text);
-      setAnswer({ ...res, question: text, anchors });
+      setAnswer({ ...res, question: text, links });
     } catch (e) {
       const status = (e as { status?: number }).status;
       if (status === 429 || status === 400) {
@@ -69,7 +69,7 @@ export function Ask() {
           cached: false,
           question: text,
           offline: true,
-          anchors,
+          links,
         });
       }
     } finally {
@@ -82,7 +82,7 @@ export function Ask() {
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
         <SectionHeading
           title="Ask about my experience"
-          lead="A small retrieval service over everything on this page, with an optional LLM on top. It answers only from these facts, shows its sources, and shows its own OpenTelemetry trace."
+          lead="A small retrieval service over everything on this site, with an optional LLM on top. It answers only from these facts, shows its sources, and shows its own OpenTelemetry trace."
         />
         <div className="mt-12 overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
           <form
@@ -184,16 +184,24 @@ function AnswerView({ a }: { a: Answer }) {
       {a.sources.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-2">
           <span className="text-xs text-ink-3">Sources</span>
-          {a.sources.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => scrollToId(a.anchors[s.id] ?? "top")}
-              className="rounded-full border border-line px-3 py-1 text-xs text-ink-2 transition-colors hover:border-accent-ink hover:text-ink"
-            >
-              {s.title}
-            </button>
-          ))}
+          {/* Real links, so a source opens in a new tab like any other; a plain click scrolls smoothly when it is on this page. */}
+          {a.sources.map((s) => {
+            const href = a.links[s.id] ?? "/";
+            return (
+              <a
+                key={s.id}
+                href={href}
+                onClick={(e) => {
+                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  followHref(href);
+                }}
+                className="rounded-full border border-line px-3 py-1 text-xs text-ink-2 transition-colors hover:border-accent-ink hover:text-ink"
+              >
+                {s.title}
+              </a>
+            );
+          })}
         </div>
       )}
       <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-4 font-mono text-[11px] text-ink-3">

@@ -104,7 +104,11 @@ func SVG(d Data, darkTheme bool) []byte {
 	}
 
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" role="img" aria-labelledby="t d">`+"\n", W, H, W, H)
-	fmt.Fprintf(&b, "<title id=\"t\">%s</title>\n<desc id=\"d\">%s</desc>\n", html.EscapeString("Li ZhenXi's portfolio, live"), html.EscapeString(summary(d)))
+	title := "Li ZhenXi's portfolio, live"
+	if d.Region == "local" {
+		title = "Li ZhenXi's portfolio, a local copy"
+	}
+	fmt.Fprintf(&b, "<title id=\"t\">%s</title>\n<desc id=\"d\">%s</desc>\n", html.EscapeString(title), html.EscapeString(summary(d)))
 	fmt.Fprintf(&b, `<rect x="0.5" y="0.5" width="%d" height="%d" rx="14" fill="%s" stroke="%s"/>`+"\n", W-1, H-1, p.bg, p.border)
 
 	// Header: who, where, and the state the server reports about itself.
@@ -202,7 +206,12 @@ func summary(d Data) string {
 		s = fmt.Sprintf("Commit %s, on a local copy, not the live site.", d.Commit)
 	}
 	if d.SLOAvailable {
-		s += fmt.Sprintf(" Uptime over 30 days %.2f%%, error budget left %.1f%%.", slo.FloorPct(d.Availability, 2), slo.FloorPct(max(d.BudgetRemaining, 0), 1))
+		// The same window the card's label names: "uptime since 19 Oct" until 30 days are measured.
+		label := d.UptimeLabel
+		if label == "" {
+			label = "uptime, 30 days"
+		}
+		s += fmt.Sprintf(" %s%s: %.2f%%, error budget left %.1f%%.", strings.ToUpper(label[:1]), label[1:], slo.FloorPct(d.Availability, 2), slo.FloorPct(max(d.BudgetRemaining, 0), 1))
 	}
 	if d.Delivery != nil {
 		s += fmt.Sprintf(" %d deploys in %d days.", d.Delivery.Deploys, d.Delivery.WindowDays)
