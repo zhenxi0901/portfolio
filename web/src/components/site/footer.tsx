@@ -41,6 +41,16 @@ export function Footer() {
             </a>
           </li>
           <li>
+            <a className="hover:text-ink" href="/oncall">
+              On call
+            </a>
+          </li>
+          <li>
+            <a className="hover:text-ink" href="/v1" title="The site as one long page, as it was until November 2026">
+              Version 1
+            </a>
+          </li>
+          <li>
             <a className="hover:text-ink" href={profile.github} target="_blank" rel="noreferrer">
               GitHub
             </a>

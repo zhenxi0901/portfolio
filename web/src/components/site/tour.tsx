@@ -2,43 +2,32 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Pause, Play, X } from "@phosphor-icons/react";
-import { goTo, modalOpen, openAiTab, openPlatformTab, scrollToId } from "@/lib/utils";
+import { goTo, modalOpen, scrollToId } from "@/lib/utils";
 
 type Stop = { id: string; title: string; text: string; open?: () => void };
 
+// The tour walks the home page, which since the split into chapters (decision 11) is short enough
+// to see in a minute; every stop is on it, so the tour never leaves the page.
 const STOPS: Stop[] = [
   {
-    id: "work",
-    title: "Production work you can play with",
-    text: "Things I shipped on the building IoT platform at Primustech, each a small working model of the real system. Every card opens a full case study.",
+    id: "now",
+    title: "What I am doing now",
+    text: "Final-year research at NTU and DevOps at Primustech, dated, with this site's live uptime beside it.",
   },
   {
-    id: "platform",
-    title: "SLOs and error budgets",
-    text: "The IoT platform's objectives on a Grafana-style board, with a replayable incident and the alerts behind it.",
-    open: () => openPlatformTab("signals"),
+    id: "chapters",
+    title: "Three systems, a chapter each",
+    text: "Two platforms I run in production and my final-year research. Each card opens its chapter, with working models of what I built.",
   },
   {
-    id: "ai",
-    title: "The AI agent platform",
-    text: "Follow a request through agents, RAG and models on Cloud Run, and switch on the lens to see which parts are mine.",
-    // The map itself, not the heading: the platform's case study sits between the two.
-    open: () => openAiTab("map"),
+    id: "explore",
+    title: "This site runs like production",
+    text: "An SLO, a deploy pipeline with rollbacks, postmortems, an MCP server, and incident drills you can play.",
   },
   {
-    id: "research",
-    title: "What an AI agent costs to run",
-    text: "My final-year project: 320 long agent runs measured on a hosted API and on an A100.",
-  },
-  {
-    id: "status",
-    title: "This page is a production service",
-    text: "Live latency, the site's own SLO measured by uptime checks, and its DORA metrics from its own deploys.",
-  },
-  {
-    id: "postmortems",
-    title: "When things broke",
-    text: "Blameless postmortems from running this site: timelines, root causes and action items linked to commits.",
+    id: "latest",
+    title: "Writing",
+    text: "Posts on serving LLM agents and finding a metrics bill, and blameless postmortems of what broke here.",
   },
   {
     id: "contact",
@@ -52,7 +41,7 @@ const TICK_MS = 100;
 
 /** Opens the tour from anywhere: a button, the command palette, or /?tour from another page. */
 export function startTour() {
-  if (!document.getElementById("work")) return goTo("/?tour");
+  if (!document.getElementById("chapters")) return goTo("/?tour");
   window.dispatchEvent(new Event("tour-start"));
 }
 

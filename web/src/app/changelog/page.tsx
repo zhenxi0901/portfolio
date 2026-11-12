@@ -63,7 +63,7 @@ export default function ChangelogPage() {
   const days = [...new Set(entries.map((e) => dayKey(e.at)))];
 
   return (
-    <ArticleShell back={{ href: "/#status", label: "How this site runs" }}>
+    <ArticleShell back={{ href: "/status", label: "How this site runs" }}>
       <p className="mt-8 font-mono text-xs text-ink-3">Written by the pipeline · Singapore time</p>
       <h1 className="mt-4 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">Changelog</h1>
       <p className="mt-6 max-w-[62ch] text-lg leading-relaxed text-ink-2">

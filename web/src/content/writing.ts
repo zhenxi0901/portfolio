@@ -95,7 +95,7 @@ export const posts: Post[] = [
     ],
     links: [
       { label: "The pull request: an Apptainer deployment backend for ARIES", href: "https://github.com/hyscale-lab/ARIES/pull/92" },
-      { label: "The research section, with the charts", href: "/#research" },
+      { label: "The research section, with the charts", href: "/research" },
       { label: "What 320 agent runs taught me about serving LLM agents", href: "/writing/serving-llm-agents" },
     ],
   },
@@ -159,7 +159,7 @@ export const posts: Post[] = [
       },
     ],
     links: [
-      { label: "The research section, with the charts", href: "/#research" },
+      { label: "The research section, with the charts", href: "/research" },
       { label: "ARIES on GitHub", href: "https://github.com/hyscale-lab/ARIES" },
       { label: "The Toolathlon adapter pull request", href: "https://github.com/hyscale-lab/ARIES/pull/55" },
     ],
@@ -233,7 +233,7 @@ export const posts: Post[] = [
       },
     ],
     links: [
-      { label: "The cost review, one move at a time", href: "/#platform-cost" },
+      { label: "The cost review, one move at a time", href: "/iot#platform-cost" },
       { label: "The case study", href: "/work/reaper" },
     ],
   },

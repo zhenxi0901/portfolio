@@ -7,6 +7,7 @@ import { VisitTrace } from "@/components/sections/visit-trace";
 import { SloPanel } from "@/components/sections/slo-panel";
 import { DeliveryPanel } from "@/components/sections/delivery-panel";
 import { SectionHeading } from "@/components/site/section-heading";
+import { decisions } from "@/content/decisions";
 
 const FLOW = ["Your browser", "Cloud Run: Go server", "Static site + /api", "/metrics for Prometheus"];
 
@@ -150,7 +151,7 @@ export function Status() {
         {[
           { href: "/status", title: "Status page", text: "Live state, 30 days of availability, how it is watched, incident history and a feed." },
           { href: "/changelog", title: "Changelog", text: "Every release to production and the commits it shipped, written by the pipeline." },
-          { href: "/decisions", title: "Decisions", text: "Why it is built this way: ten architecture decision records and what each one costs." },
+          { href: "/decisions", title: "Decisions", text: `Why it is built this way: ${decisions.length} architecture decision records and what each one costs.` },
           { href: "/agents", title: "For agents", text: "The site as an MCP server: point your own AI agent at it, or curl it." },
         ].map((l) => (
           <a key={l.href} href={l.href} className="group rounded-3xl border border-line bg-surface p-5 transition-colors hover:border-ink-3">

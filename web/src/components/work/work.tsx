@@ -38,24 +38,34 @@ const groups = productOrder
   .map((p) => ({ p, studies: cases.filter((c) => c.products[0] === p) }))
   .filter((g) => g.studies.length > 0);
 
-export function Work() {
+/**
+ * In a chapter (/iot) the chapter's own title has already said what this is, so the section drops
+ * its big heading and the key to the products, and each product's group heading is the section's.
+ * The one-page version (/v1) keeps both.
+ */
+export function Work({ chapter = false }: { chapter?: boolean } = {}) {
   return (
-    <section id="work" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
-      <SectionHeading
-        title={
-          <>
-            Production work you can <span className="text-accent-ink">play with</span>.
-          </>
-        }
-        lead="Things I shipped at Primustech, each a small working model of the real system. Press the buttons."
-      />
-      <ProductLegend />
+    <section id="work" className={cn("mx-auto max-w-[1320px] scroll-mt-20 px-4 sm:px-8", chapter ? "pb-20 pt-14 sm:pb-28 sm:pt-16" : "py-24 sm:py-32")}>
+      {!chapter && (
+        <>
+          <SectionHeading
+            title={
+              <>
+                Production work you can <span className="text-accent-ink">play with</span>.
+              </>
+            }
+            lead="Things I shipped at Primustech, each a small working model of the real system. Press the buttons."
+          />
+          <ProductLegend />
+        </>
+      )}
 
       {groups.map(({ p, studies }) => {
+        const GroupTitle = chapter ? "h2" : "h3";
         const Icon = productIcon[p];
         const tone = productTone[p];
         return (
-          <div key={p} id={`work-${p}`} className="mt-16 scroll-mt-24" role="group" aria-labelledby={`work-${p}-title`}>
+          <div key={p} id={`work-${p}`} className={cn(!chapter && "mt-16", "scroll-mt-24")} role="group" aria-labelledby={`work-${p}-title`}>
             <Reveal>
               <div className={cn("flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b pb-4", tone.border)}>
                 <div className="flex items-center gap-3.5">
@@ -66,9 +76,9 @@ export function Work() {
                     <p className="font-mono text-[11px] text-ink-3">
                       {products[p].org} · {products[p].runs}
                     </p>
-                    <h3 id={`work-${p}-title`} className="text-2xl font-semibold tracking-[-0.03em] sm:text-[1.7rem]">
-                      {products[p].name}
-                    </h3>
+                    <GroupTitle id={`work-${p}-title`} className="text-2xl font-semibold tracking-[-0.03em] sm:text-[1.7rem]">
+                      {chapter ? "What I shipped, as working models" : products[p].name}
+                    </GroupTitle>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
@@ -90,7 +100,7 @@ export function Work() {
                 const { span, tone: cardTone, wide } = placement[study.id] ?? { span: "lg:col-span-6" };
                 const Viz = caseViz[study.id];
                 return (
-                  <CaseCard key={study.id} study={study} tone={cardTone} wide={wide} className={span}>
+                  <CaseCard key={study.id} study={study} tone={cardTone} wide={wide} level={chapter ? 3 : 4} className={span}>
                     {Viz && <Viz />}
                   </CaseCard>
                 );

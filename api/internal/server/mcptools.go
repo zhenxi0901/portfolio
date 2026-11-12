@@ -79,10 +79,14 @@ func (s *Server) mcpServer() *mcp.Server {
 	return srv
 }
 
-// factURL is where a fact lives on the site: a case study's own page, or a section of the home page.
+// factURL is where a fact lives on the site: a case study's own page, or its section on the page
+// that section is on. Facts carry that link since the home page was split into chapters.
 func factURL(base string, f ask.Fact) string {
 	if id, ok := strings.CutPrefix(f.ID, "case-"); ok {
 		return base + "/work/" + id
+	}
+	if f.Href != "" {
+		return base + f.Href
 	}
 	return base + "/#" + f.Anchor
 }

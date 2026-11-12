@@ -2,7 +2,10 @@ import { ArrowUpRight, Rss } from "@phosphor-icons/react/dist/ssr";
 import { ArticleShell, Part } from "@/components/article/article-shell";
 import { LiveState } from "@/components/status/live-state";
 import { SloPanel } from "@/components/sections/slo-panel";
+import { DeliveryPanel } from "@/components/sections/delivery-panel";
+import { VisitTrace } from "@/components/sections/visit-trace";
 import { incidents } from "@/content/status";
+import { decisions } from "@/content/decisions";
 import { pageMetadata } from "@/lib/page-metadata";
 import { SITE_URL } from "@/lib/site";
 
@@ -25,18 +28,33 @@ const watches = [
   { what: "Supply chain", how: "OpenSSF Scorecard and CodeQL on every push to main; Dependabot each month.", href: `${REPO}/security` },
 ];
 
+const more = [
+  { href: "/changelog", title: "Changelog", text: "Every release to production and the commits it shipped, written by the pipeline." },
+  { href: "/decisions", title: "Decisions", text: `Why it is built this way: ${decisions.length} architecture decision records and what each one costs.` },
+  { href: "/evidence", title: "Evidence", text: "Where each number on the site comes from, and which ones you can check yourself." },
+  { href: "/agents", title: "For agents", text: "The site as an MCP server: point your own AI agent at it, or curl it." },
+];
+
 export default function StatusPage() {
   return (
-    <ArticleShell back={{ href: "/#status", label: "How this site runs" }}>
+    <ArticleShell back={{ href: "/", label: "Home" }} wide>
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-xs text-ink-3">{new URL(SITE_URL).host} · Cloud Run, asia-southeast1</p>
         <a href="/status/feed.xml" className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink">
           <Rss size={14} aria-hidden /> Subscribe to incidents
         </a>
       </div>
-      <h1 className="mt-4 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">Status</h1>
+      <h1 id="status" className="mt-4 scroll-mt-28 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">
+        Status
+      </h1>
+      <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
+        The Go server that sent you this page reports on itself: its live state and its SLO, how it ships, the trace of your own
+        visit, how it is watched, and every incident so far.
+      </p>
       <LiveState />
       <SloPanel />
+      <DeliveryPanel />
+      <VisitTrace />
 
       <Part title="How it is watched">
         <ul className="divide-y divide-line rounded-3xl border border-line bg-surface">
@@ -83,6 +101,19 @@ export default function StatusPage() {
           </a>
           .
         </p>
+      </Part>
+
+      <Part title="More on how it runs">
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {more.map((l) => (
+            <li key={l.href}>
+              <a href={l.href} className="group block h-full rounded-3xl border border-line bg-surface p-5 transition-colors hover:border-ink-3">
+                <span className="font-semibold group-hover:underline group-hover:underline-offset-4">{l.title}</span>
+                <span className="mt-1 block text-[15px] leading-relaxed text-ink-2">{l.text}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
       </Part>
     </ArticleShell>
   );

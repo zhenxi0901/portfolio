@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+import { usePathname } from "next/navigation";
 import {
   motion,
   useMotionValue,
@@ -12,32 +13,30 @@ import {
 import {
   Brain,
   Buildings,
-  Broadcast,
-  ChatCircleDots,
-  Briefcase,
   EnvelopeSimple,
   Flask,
   GithubLogo,
   House,
+  IdentificationCard,
   LinkedinLogo,
-  SquaresFour,
+  PencilSimpleLine,
   type Icon,
 } from "@phosphor-icons/react";
 import { profile } from "@/content/profile";
 import { scrollToId } from "@/lib/utils";
 
-type Item = { label: string; icon: Icon; id?: string; href?: string };
+/** `section` makes an item a jump to a part of a page rather than to a page. */
+type Item = { label: string; icon: Icon; href: string; section?: string };
 
+// The chapters, one per page since the home page was split (decision 11), and the way to get in touch.
 const items: Item[] = [
-  { label: "Home", icon: House, id: "top" },
-  { label: "Work", icon: SquaresFour, id: "work" },
-  { label: "IoT platform", icon: Buildings, id: "platform" },
-  { label: "AI agent platform", icon: Brain, id: "ai" },
-  { label: "Research", icon: Flask, id: "research" },
-  { label: "Experience", icon: Briefcase, id: "experience" },
-  { label: "Ask me", icon: ChatCircleDots, id: "ask" },
-  { label: "Live status", icon: Broadcast, id: "status" },
-  { label: "Contact", icon: EnvelopeSimple, id: "contact" },
+  { label: "Home", icon: House, href: "/" },
+  { label: "IoT platform", icon: Buildings, href: "/iot" },
+  { label: "AI agent platform", icon: Brain, href: "/ai" },
+  { label: "Research", icon: Flask, href: "/research" },
+  { label: "Writing", icon: PencilSimpleLine, href: "/writing" },
+  { label: "About", icon: IdentificationCard, href: "/about" },
+  { label: "Contact", icon: EnvelopeSimple, href: "/#contact", section: "contact" },
 ];
 
 const links: Item[] = [
@@ -48,23 +47,19 @@ const links: Item[] = [
 /** macOS-style dock: icons grow as the pointer gets close, labels appear on hover. */
 export function Dock() {
   const mouseX = useMotionValue(Infinity);
-  const active = useActiveSection(items.map((i) => i.id!));
+  const path = usePathname();
 
   return (
-    <nav
-      data-print-hide
-      aria-label="Sections"
-      className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-4"
-    >
+    <nav data-print-hide aria-label="Pages" className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
       <motion.div
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}
         className="flex h-14 items-end gap-1 rounded-full border border-line bg-surface/85 px-2 pb-2 shadow-soft backdrop-blur-md sm:gap-1.5 sm:px-2.5"
       >
         {items.map((item) => (
-          <DockIcon key={item.label} item={item} mouseX={mouseX} active={active === item.id} />
+          <DockIcon key={item.label} item={item} mouseX={mouseX} current={!item.section && item.href === path} />
         ))}
-        {/* On phones the dock keeps only the sections; these links live in the footer and ⌘K too. */}
+        {/* On phones the dock keeps only the pages; these links live in the footer and ⌘K too. */}
         <span className="mx-1 mb-1.5 hidden h-7 w-px self-end bg-line-strong sm:block" aria-hidden />
         <div className="hidden items-end gap-1.5 sm:flex">
           {links.map((item) => (
@@ -76,7 +71,7 @@ export function Dock() {
   );
 }
 
-function DockIcon({ item, mouseX, active }: { item: Item; mouseX: MotionValue<number>; active?: boolean }) {
+function DockIcon({ item, mouseX, current }: { item: Item; mouseX: MotionValue<number>; current?: boolean }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const reduce = useReducedMotion();
   const distance = useTransform(mouseX, (x) => {
@@ -85,48 +80,32 @@ function DockIcon({ item, mouseX, active }: { item: Item; mouseX: MotionValue<nu
   });
   const sizeRaw = useTransform(distance, [-120, 0, 120], [38, reduce ? 38 : 58, 38]);
   const size = useSpring(sizeRaw, { mass: 0.1, stiffness: 170, damping: 14 });
-  const external = item.href && !item.href.startsWith("/");
+  const external = !item.href.startsWith("/");
   const Icon = item.icon;
 
   return (
     <motion.a
       ref={ref}
-      href={item.href ?? `#${item.id}`}
+      href={item.href}
       onClick={(e) => {
-        if (item.id) {
+        // A jump scrolls smoothly where the section is on this page, and goes to its page otherwise.
+        if (item.section) {
           e.preventDefault();
-          scrollToId(item.id);
+          scrollToId(item.section);
         }
       }}
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer" : undefined}
       aria-label={item.label}
-      aria-current={active ? "true" : undefined}
+      aria-current={current ? "page" : undefined}
       style={{ width: size, height: size }}
-      // Phones get smaller icons so all sections fit; !important beats the inline hover size.
-      className="group relative grid place-items-center rounded-full bg-surface-2 text-ink-2 transition-colors hover:text-ink aria-[current=true]:bg-accent aria-[current=true]:text-on-accent max-sm:size-[31px]!"
+      // Phones get smaller icons so all of them fit; !important beats the inline hover size.
+      className="group relative grid place-items-center rounded-full bg-surface-2 text-ink-2 transition-colors hover:text-ink aria-[current=page]:bg-accent aria-[current=page]:text-on-accent max-sm:size-[31px]!"
     >
-      <Icon className="size-[45%]" weight={active ? "fill" : "regular"} />
+      <Icon className="size-[45%]" weight={current ? "fill" : "regular"} />
       <span className="pointer-events-none absolute -top-9 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink opacity-0 shadow-soft transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
         {item.label}
       </span>
     </motion.a>
   );
-}
-
-function useActiveSection(ids: string[]) {
-  const [active, setActive] = useState(ids[0]);
-  useEffect(() => {
-    const els = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]) setActive(visible[0].target.id);
-      },
-      { rootMargin: "-35% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [ids]);
-  return active;
 }

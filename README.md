@@ -7,16 +7,19 @@ back end, the pipeline and the monitoring are the work.
 
 [![ci](https://github.com/zhenxi0901/portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/zhenxi0901/portfolio/actions/workflows/ci.yml)
 [![deploy](https://github.com/zhenxi0901/portfolio/actions/workflows/deploy.yml/badge.svg)](https://github.com/zhenxi0901/portfolio/actions/workflows/deploy.yml)
-[![Uptime from Google Cloud uptime checks](https://img.shields.io/endpoint?url=https%3A%2F%2Fportfolio-emsghin2iq-as.a.run.app%2Fapi%2Fbadge%2Fuptime)](https://portfolio-emsghin2iq-as.a.run.app/#status)
+[![Uptime from Google Cloud uptime checks](https://img.shields.io/endpoint?url=https%3A%2F%2Fportfolio-emsghin2iq-as.a.run.app%2Fapi%2Fbadge%2Fuptime)](https://portfolio-emsghin2iq-as.a.run.app/status)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/zhenxi0901/portfolio/badge)](https://scorecard.dev/viewer/?uri=github.com/zhenxi0901/portfolio)
 
 ![The hero: a 3D service mesh of the tools I work with](docs/screenshots/hero.webp)
 
 ## What you will find on it
 
-Three things I work on, each with its own colour on the page: the **building IoT platform** I run on GKE
-and the **AI agent platform** I run on Cloud Run (both at Primustech), and **ARIES agent benchmarks**, my
-final-year project at NTU.
+Three things I work on, each with a chapter of its own: the **building IoT platform** I run on GKE
+(`/iot`) and the **AI agent platform** I run on Cloud Run (`/ai`), both at Primustech, and **ARIES agent
+benchmarks**, my final-year project at NTU (`/research`). The home page is short on purpose: who I am,
+what I am doing now, a card per chapter, and the ways into the site's own operations. Writing and
+postmortems are at `/writing`, experience and the Ask console at `/about`, and the one-page version the
+site used to be is kept at `/v1` ([ADR 11](docs/adr/0011-chapters-not-one-page.md)).
 
 | | |
 |---|---|
@@ -26,7 +29,7 @@ final-year project at NTU.
 | **Inside one request**: where an agent answer's time and tokens go. | **Cost review**: a ~15% cut in seven moves, each with its before and after and the trade-off on record. |
 | [![A case study page: the numbers, then the working model](docs/screenshots/case-page.webp)](https://portfolio-emsghin2iq-as.a.run.app/work/reaper) | [![A postmortem page: impact in numbers, then the write-up](docs/screenshots/postmortem.webp)](https://portfolio-emsghin2iq-as.a.run.app/postmortems/contact-form) |
 | **A page per case study** (`/work/<case>`): the numbers, the same working model, the full write-up, and links into the deeper sections. | **Postmortems** (`/postmortems/<slug>`): blameless write-ups of what went wrong running this site, with times and counts from the commits, the CI history and Cloud Run's request logs. |
-| [![The on-call drill, paged and investigating](docs/screenshots/oncall-drill.webp)](https://portfolio-emsghin2iq-as.a.run.app/oncall) | [![DORA metrics for this site, from its own deploy history](docs/screenshots/delivery.webp)](https://portfolio-emsghin2iq-as.a.run.app/#status) |
+| [![The on-call drill, paged and investigating](docs/screenshots/oncall-drill.webp)](https://portfolio-emsghin2iq-as.a.run.app/oncall) | [![DORA metrics for this site, from its own deploy history](docs/screenshots/delivery.webp)](https://portfolio-emsghin2iq-as.a.run.app/status) |
 | **Go on call** (`/oncall`): two simulated pages, stale telemetry on the IoT platform or slow answers on the AI agent platform. Every look and action costs minutes while the error budget burns, and you get a postmortem of your own response; the site's terminal runs them as text too (`oncall`). | **How this site ships**: DORA's four keys for this repository, computed by the pipeline from its own commits and deploy runs and baked into the image it deploys. |
 | [![A console on the site calling its own MCP server](docs/screenshots/agents.webp)](https://portfolio-emsghin2iq-as.a.run.app/agents) | [![The site's claims, sorted by how they can be checked](docs/screenshots/evidence.webp)](https://portfolio-emsghin2iq-as.a.run.app/evidence) |
 | **Ask it with your own agent** (`/agents`): the site is an MCP server. Add one URL to Claude, Cursor or any MCP client, or call the tools from the console on the page. `curl` on the home page gets a text card. | **Evidence** (`/evidence`): every headline claim, sorted by whether you can check it live, on public record, or not at all because the work is private. |

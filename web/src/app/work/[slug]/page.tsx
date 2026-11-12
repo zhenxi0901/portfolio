@@ -7,6 +7,7 @@ import { caseViz } from "@/components/work/case-viz";
 import { ProductTag } from "@/components/site/product-tag";
 import { Reveal } from "@/components/motion/reveal";
 import { pageMetadata } from "@/lib/page-metadata";
+import { sectionHref } from "@/lib/sections";
 
 // Static export: only the cases in profile.ts exist; anything else is the 404 page.
 export const dynamicParams = false;
@@ -33,7 +34,7 @@ export default async function CasePage(props: PageProps<"/work/[slug]">) {
 
   return (
     // Back to the card on the home page, which sits with its product: in Work, or in the product's own section.
-    <ArticleShell back={{ href: `/#case-${c.id}`, label: products[c.products[0]].name }}>
+    <ArticleShell back={{ href: sectionHref(`case-${c.id}`), label: products[c.products[0]].name }}>
       <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
         {c.products.map((p) => (
           <ProductTag key={p} p={p} />

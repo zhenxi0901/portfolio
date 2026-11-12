@@ -16,7 +16,7 @@ const day = (iso: string) =>
 
 export default function DecisionsPage() {
   return (
-    <ArticleShell back={{ href: "/#status", label: "How this site runs" }}>
+    <ArticleShell back={{ href: "/status", label: "How this site runs" }}>
       <p className="mt-8 font-mono text-xs text-ink-3">Architecture decision records · {decisions.length} so far</p>
       <h1 className="mt-4 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">
         Why this site is built the way it is.

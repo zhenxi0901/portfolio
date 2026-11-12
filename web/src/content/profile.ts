@@ -24,6 +24,12 @@ export const stats: Stat[] = [
   { value: 3.02, decimals: 2, suffix: "x", label: "throughput from running four isolated agent tasks at once" },
 ];
 
+/** The home page's "now" line: what I am doing at the moment, and the day it was last true. */
+export const now = {
+  updated: "12 Nov 2026",
+  text: "Final-year Computer Science at NTU, researching what it costs to serve long-running LLM agents, and a DevOps intern at Primustech on its building IoT and AI agent platforms. Graduating June 2027, and open to SRE, DevOps, cloud and AI-infrastructure roles.",
+};
+
 export type CaseStudy = {
   id: string;
   /** Which product the work was for (see products.ts). */
@@ -66,8 +72,8 @@ export const cases: CaseStudy[] = [
       { value: "1", label: "restore drill passed before deletion protection went on" },
     ],
     deeper: [
-      { label: "How traffic, telemetry and commands move through the platform", href: "/#platform-paths" },
-      { label: "What I alert on there, and the SLOs", href: "/#platform-signals" },
+      { label: "How traffic, telemetry and commands move through the platform", href: "/iot#platform-paths" },
+      { label: "What I alert on there, and the SLOs", href: "/iot#platform-signals" },
     ],
   },
   {
@@ -118,7 +124,7 @@ export const cases: CaseStudy[] = [
       { value: "10,386 → 2,891", label: "samples per scrape from the Kafka exporter" },
     ],
     deeper: [
-      { label: "The full cost review, one move at a time", href: "/#platform-cost" },
+      { label: "The full cost review, one move at a time", href: "/iot#platform-cost" },
       { label: "The write-up: finding a metrics bill in 914 orphaned Kafka topics", href: "/writing/metrics-bill-kafka-topics" },
     ],
   },
@@ -143,8 +149,8 @@ export const cases: CaseStudy[] = [
       { value: "0", label: "drift between Terraform and what is live" },
     ],
     deeper: [
-      { label: "SLOs, error budgets and burn-rate alerts, on a Grafana-style board", href: "/#platform-signals" },
-      { label: "Postmortems I wrote for this site", href: "/#postmortems" },
+      { label: "SLOs, error budgets and burn-rate alerts, on a Grafana-style board", href: "/iot#platform-signals" },
+      { label: "Postmortems I wrote for this site", href: "/writing#postmortems" },
     ],
   },
   {
@@ -172,7 +178,7 @@ export const cases: CaseStudy[] = [
       { value: "6-12", label: "commands per unit per hour at most, set per lane" },
     ],
     deeper: [
-      { label: "How a command reaches the plant, hop by hop", href: "/#platform-paths" },
+      { label: "How a command reaches the plant, hop by hop", href: "/iot#platform-paths" },
       { label: "The same idea on this site: releases that roll themselves back", href: "/decisions#build-once-check-before-traffic" },
     ],
   },
@@ -204,7 +210,7 @@ export const cases: CaseStudy[] = [
       },
     ],
     deeper: [
-      { label: "What I alert on there, and the SLOs", href: "/#platform-signals" },
+      { label: "What I alert on there, and the SLOs", href: "/iot#platform-signals" },
       { label: "This site's own two-step: check a release before it takes traffic", href: "/decisions#build-once-check-before-traffic" },
     ],
   },
@@ -229,9 +235,9 @@ export const cases: CaseStudy[] = [
       { value: "2,014", label: "BMS devices in the demo building I built for the agents to query" },
     ],
     deeper: [
-      { label: "Follow a request through the platform", href: "/#ai-map" },
-      { label: "The AI infra stack, layer by layer", href: "/#ai-stack" },
-      { label: "Inside one traced request", href: "/#ai-trace" },
+      { label: "Follow a request through the platform", href: "/ai#ai-map" },
+      { label: "The AI infra stack, layer by layer", href: "/ai#ai-stack" },
+      { label: "Inside one traced request", href: "/ai#ai-trace" },
     ],
   },
 ];

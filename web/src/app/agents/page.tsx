@@ -45,7 +45,7 @@ const sources = [
 
 export default function AgentsPage() {
   return (
-    <ArticleShell back={{ href: "/#ask", label: "Ask me" }} wide>
+    <ArticleShell back={{ href: "/about#ask", label: "Ask me" }} wide>
       <p className="mt-8 font-mono text-xs text-ink-3">
         {host}/mcp · Model Context Protocol {MCP_PROTOCOL}
       </p>

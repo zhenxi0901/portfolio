@@ -323,7 +323,7 @@ func TestMCPTools(t *testing.T) {
 	_, out = rpc(t, ts.URL, `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"ask","arguments":{"question":"How did you cut the cloud bill?"}}}`, nil)
 	res := out["result"].(map[string]any)
 	text := res["content"].([]any)[0].(map[string]any)["text"].(string)
-	if res["isError"] != false || !strings.Contains(text, "15%") || !strings.Contains(text, "- Cost review: "+ts.URL+"/#platform") {
+	if res["isError"] != false || !strings.Contains(text, "15%") || !strings.Contains(text, "- Cost review: "+ts.URL+"/iot#platform") {
 		t.Errorf("ask: %v", res)
 	}
 

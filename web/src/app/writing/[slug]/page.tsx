@@ -74,7 +74,7 @@ export default async function PostPage(props: PageProps<"/writing/[slug]">) {
   const others = posts.filter((p) => p.slug !== post.slug);
 
   return (
-    <ArticleShell back={{ href: "/#writing", label: "All writing" }}>
+    <ArticleShell back={{ href: "/writing", label: "All writing" }}>
       <article>
         <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
           <ProductTag p={post.product} />

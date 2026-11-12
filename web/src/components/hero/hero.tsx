@@ -5,7 +5,8 @@ import { Cluster } from "@/components/hero/cluster";
 import { KineticName } from "@/components/hero/kinetic-name";
 import { TourButton } from "@/components/site/tour";
 
-export function Hero() {
+/** `work` is where "See the work" goes: the chapter cards on the home page, the case studies on /v1. */
+export function Hero({ work = "#chapters" }: { work?: string } = {}) {
   return (
     <section id="top" className="relative overflow-hidden">
       <div className="mx-auto grid min-h-[100dvh] max-w-[1320px] grid-cols-1 items-center gap-6 px-4 pb-24 pt-24 sm:px-8 lg:grid-cols-12 lg:gap-4">
@@ -32,7 +33,7 @@ export function Hero() {
             style={{ "--d": "0.35s" } as React.CSSProperties}
           >
             <Button asChild size="lg">
-              <a href="#work">
+              <a href={work}>
                 See the work <ArrowDown weight="bold" />
               </a>
             </Button>
