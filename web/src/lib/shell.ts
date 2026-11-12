@@ -86,13 +86,14 @@ const PAGES: Record<string, string> = {
   contact: "/#contact",
   v1: "/v1",
   status: "/status",
+  cost: "/cost",
   changelog: "/changelog",
   decisions: "/decisions",
   agents: "/agents",
   evidence: "/evidence",
   oncall: "/oncall",
 };
-const CURL_PATHS = ["/", "/api/status", "/api/slo", "/api/card.txt", "/llms.txt", "/llms-full.txt", "/knowledge.json", "/delivery.json", "/.well-known/security.txt"];
+const CURL_PATHS = ["/", "/api/status", "/api/slo", "/api/cost", "/api/card.txt", "/llms.txt", "/llms-full.txt", "/knowledge.json", "/delivery.json", "/.well-known/security.txt"];
 
 const stripMd = (name: string) => name.replace(/\.md$/, "");
 
@@ -367,7 +368,7 @@ const commands: Record<string, Command> = {
       ...["whoami", "ls", "cat", "cd", "open"].map(helpRow),
       line(""),
       line(t("Live, from this site's API", BOLD)),
-      ...["status", "slo", "deploys", "ask", "mcp", "curl", "neofetch"].map(helpRow),
+      ...["status", "slo", "cost", "deploys", "ask", "mcp", "curl", "neofetch"].map(helpRow),
       line(""),
       line(t("Practice", BOLD)),
       helpRow("oncall"),
@@ -489,6 +490,27 @@ const commands: Record<string, Command> = {
         ...(r.stale ? [row("reading", t(`last good reading ${r.updated.slice(0, 16).replace("T", " ")} UTC; Cloud Monitoring is not answering`, "text-p-ai"))] : []),
         line(""),
         dim("Google Cloud uptime checks request the site every minute from Singapore, Belgium and Oregon."),
+      ];
+    },
+  },
+  cost: {
+    summary: "what the site has cost this month, at list prices",
+    run: async () => {
+      const r = await api.cost();
+      if (!r.available) return [dim(`No receipt here: ${r.reason ?? "no reason given"}`), line(t("The page explains it: ", DIM), cmd("open cost"))];
+      const money = (x: number) => (Math.abs(x) >= 1 ? `US$${x.toFixed(2)}` : `US$${x.toFixed(4)}`);
+      const qty = (q: number, unit: string) => (unit === "GiB" ? `${q.toFixed(2)} GiB` : `${Math.round(q).toLocaleString("en-GB")} ${unit}`);
+      return [
+        row("period", `${r.start.slice(0, 10)} to ${r.end.slice(0, 16).replace("T", " ")} UTC, ${r.days.toFixed(1)} days`),
+        ...r.lines.map((l) => row(l.item.toLowerCase().replace("data to the internet", "egress"), t(money(l.cost), ACCENT), `  ${qty(l.quantity, l.unit)}`)),
+        row("list price", money(r.list_price)),
+        row("free tier", `-${money(r.free_tier)}`),
+        row("to pay", t(money(r.bill), ACCENT), "  estimated"),
+        ...(r.projected_list_price > 0 ? [row("month", `${money(r.projected_list_price)} at list price, ${money(r.projected_bill)} to pay, at this pace`)] : []),
+        row("checks", `${Math.round(r.probe_share * 100)}% of requests are the site's own uptime checks`),
+        ...(r.stale ? [row("reading", t(`last good reading ${r.updated.slice(0, 16).replace("T", " ")} UTC; Cloud Monitoring is not answering`, "text-p-ai"))] : []),
+        line(""),
+        line(t(`List prices as of ${r.prices.as_of}. The receipt and a what-if: `, DIM), cmd("open cost")),
       ];
     },
   },

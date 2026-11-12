@@ -101,6 +101,16 @@ export function CommandPalette() {
       action: () => goTo(`/postmortems/${p.slug}`),
     })),
     { id: "status", group: "How this site runs", label: "Status page", keywords: ["status", "uptime", "up", "down", "incidents", "availability", "feed"], icon: page, action: () => goTo("/status") },
+    {
+      // Not "section-cost": that is the IoT platform's cost review, and two entries with one id
+      // break cmdk's list (rows that no longer match stay, several rows show as selected).
+      id: "site-cost",
+      group: "How this site runs",
+      label: "What this site costs",
+      keywords: ["cost", "bill", "finops", "budget", "price", "pricing", "free tier", "egress", "money", "receipt"],
+      icon: page,
+      action: () => goTo("/cost"),
+    },
     { id: "changelog", group: "How this site runs", label: "Changelog", keywords: ["changelog", "releases", "deploys", "history", "what changed"], icon: page, action: () => goTo("/changelog") },
     {
       id: "decisions",

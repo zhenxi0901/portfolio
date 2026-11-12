@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Broadcast, ChatCircleDots, Lifebuoy, Plug, Scales, SealCheck, TerminalWindow, type Icon } from "@phosphor-icons/react";
+import { ArrowRight, Broadcast, ChatCircleDots, Lifebuoy, Plug, Receipt, Scales, SealCheck, TerminalWindow, type Icon } from "@phosphor-icons/react";
 import { decisions } from "@/content/decisions";
 import { useTerminal } from "@/components/providers";
 import { SectionHeading } from "@/components/site/section-heading";
@@ -9,6 +9,7 @@ type Tile = { title: string; text: string; icon: Icon; href?: string; terminal?:
 
 const tiles: Tile[] = [
   { title: "Live status", text: "Uptime against a 99.9% objective, how it ships, and every incident so far.", icon: Broadcast, href: "/status" },
+  { title: "What it costs", text: "This month's bill, metered request by request, and what a traffic spike would do to it.", icon: Receipt, href: "/cost" },
   { title: "Go on call", text: "Two simulated incidents to work through, and a postmortem of your own.", icon: Lifebuoy, href: "/oncall" },
   { title: "Ask me", text: "Questions answered from this site's own facts, with sources and a trace.", icon: ChatCircleDots, href: "/about#ask" },
   { title: "The terminal", text: "A shell over the site's live API. Try status, or oncall.", icon: TerminalWindow, terminal: true },

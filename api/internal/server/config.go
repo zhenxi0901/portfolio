@@ -13,6 +13,7 @@ type Config struct {
 	KnowledgePath  string
 	DataDir        string
 	Region         string
+	Service        string // set by Cloud Run as K_SERVICE; /api/cost reads this service's usage
 	Revision       string // set by Cloud Run as K_REVISION
 	AllowedOrigins []string
 	TrustProxy     bool
@@ -24,8 +25,9 @@ type Config struct {
 	// Token that marks the scheduled end-to-end contact check (see contact.SyntheticHeader).
 	ContactSyntheticToken string
 
-	// Read this site's uptime-check results from Cloud Monitoring for /api/slo. On by default on
-	// Cloud Run, where the metadata server provides the project and a token.
+	// Read this site's uptime-check results (for /api/slo) and its own usage (for /api/cost) from
+	// Cloud Monitoring. On by default on Cloud Run, where the metadata server provides the project
+	// and a token.
 	SLOFromMonitoring bool
 
 	// Export the Ask API's OpenTelemetry spans to Cloud Trace. On by default on Cloud Run.
@@ -47,6 +49,7 @@ func ConfigFromEnv() Config {
 		KnowledgePath:         env("KNOWLEDGE_PATH", filepath.Join(static, "knowledge.json")),
 		DataDir:               env("DATA_DIR", filepath.Join(os.TempDir(), "portfolio-contact")),
 		Region:                env("REGION", "local"),
+		Service:               env("K_SERVICE", "portfolio"),
 		Revision:              os.Getenv("K_REVISION"),
 		AllowedOrigins:        splitList(os.Getenv("ALLOWED_ORIGINS")),
 		TrustProxy:            os.Getenv("TRUST_PROXY") == "true",

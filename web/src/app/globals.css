@@ -29,6 +29,9 @@
   --p-ai: #92400e;
   --p-aries: #6d28d9;
   --shadow: 0 1px 0 rgba(13, 13, 16, 0.04), 0 12px 32px -16px rgba(13, 13, 16, 0.18);
+  /* The cost receipt's paper: a warm white, a step brighter than the surface it lies on. */
+  --paper: #fffef9;
+  --paper-shadow: rgba(13, 13, 16, 0.16);
 }
 
 .dark {
@@ -49,6 +52,8 @@
   --p-ai: #fbbf24;
   --p-aries: #a78bfa;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
+  --paper: #1c1c21;
+  --paper-shadow: rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
@@ -260,6 +265,26 @@ h2[data-tour] {
 }
 @keyframes tunnel {
   to { background-position: 12px 0; }
+}
+
+/*
+ * The cost receipt: paper with torn zigzag top and bottom edges. The mask cuts the teeth (one
+ * conic gradient per edge plus the solid middle), and the shadow is a drop-shadow on the wrapper
+ * because a box-shadow would be masked away with the corners.
+ */
+.receipt {
+  filter: drop-shadow(0 12px 18px var(--paper-shadow));
+}
+.receipt-paper {
+  --tooth: 8px;
+  background: var(--paper);
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) var(--tooth) repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) var(--tooth) repeat-x,
+    linear-gradient(#000 0 0) center / 100% calc(100% - 2 * var(--tooth) + 1px) no-repeat;
+}
+@media print {
+  .receipt { filter: none; }
 }
 
 /* Dotted canvas behind the hero and a few tiles. */

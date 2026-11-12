@@ -37,6 +37,57 @@ export type SloReport = {
   releases?: "open" | "frozen" | "unknown";
 };
 
+/** One row of the cost receipt, at list price (see api/internal/cost). */
+export type CostLine = { item: string; quantity: number; unit: string; price: number; cost: number; free: number };
+
+/** The price list and the service's limits, so a what-if is priced the same way as the receipt. */
+export type CostPrices = {
+  as_of: string;
+  vcpu_second: number;
+  gib_second: number;
+  per_million_requests: number;
+  per_gib_egress: number;
+  free_vcpu_seconds: number;
+  free_gib_seconds: number;
+  free_requests: number;
+  free_credit_vcpu: number;
+  free_credit_memory: number;
+  free_credit_requests: number;
+  billing_step_seconds: number;
+  vcpu: number;
+  memory_gib: number;
+  max_instances: number;
+  concurrency: number;
+  probes_per_minute: number;
+  ceiling_per_month: number;
+  instance_second: number;
+};
+
+/** What this site has cost this month: its own usage from Cloud Monitoring at list prices. */
+export type CostReport = {
+  available: boolean;
+  reason?: string;
+  start: string;
+  end: string;
+  days: number;
+  month_days: number;
+  usage: { requests: number; billable_seconds: number; vcpu_seconds: number; gib_seconds: number; egress_bytes: number };
+  lines: CostLine[];
+  list_price: number;
+  free_tier: number;
+  bill: number;
+  projected_list_price: number;
+  projected_bill: number;
+  per_ten_thousand: number;
+  billed_seconds_per_request: number;
+  probe_requests: number;
+  probe_share: number;
+  probe_billed_share: number;
+  prices: CostPrices;
+  updated: string;
+  stale?: boolean;
+};
+
 /** The OpenTelemetry spans of one Ask request (see api/internal/tracing). */
 export type AskTrace = {
   trace_id: string;
@@ -83,6 +134,8 @@ export const api = {
   status: () => request<Status>("/api/status", { timeoutMs: 4000 }),
   // The first call after a cold start reads Cloud Monitoring, which can take a few seconds.
   slo: () => request<SloReport>("/api/slo", { timeoutMs: 15000 }),
+  // Like slo, the first call after a cold start reads Cloud Monitoring (five metrics).
+  cost: () => request<CostReport>("/api/cost", { timeoutMs: 20000 }),
   ask: (question: string) =>
     request<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }), timeoutMs: 20000 }),
   contact: (payload: { name: string; email: string; message: string; company: string }) =>
