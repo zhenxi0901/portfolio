@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ArrowCounterClockwise, BellRinging, CheckCircle, MagnifyingGlass, Wrench, XCircle } from "@phosphor-icons/react";
 import type { Move, Scenario } from "@/content/oncall";
 import { clock, debrief, idle, lowerFirst, movesNow, paged, pct, play as playMove, spent as spentOf, statusLabel, type DrillState } from "@/lib/drill";
@@ -246,9 +245,9 @@ function Debrief({ scenario, state, onRestart }: { scenario: Scenario; state: Dr
         <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium hover:border-ink-3">
           <ArrowCounterClockwise size={15} /> Run it again
         </button>
-        <Link href="/#postmortems" className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent">
+        <a href="/writing#postmortems" className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent">
           Read the real postmortems
-        </Link>
+        </a>
       </div>
     </div>
   );

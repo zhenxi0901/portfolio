@@ -10,6 +10,12 @@ export const dynamic = "force-static";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
+    // The chapters (decision 11). /v1, the one-page version, is left out: it asks not to be indexed.
+    { url: `${SITE_URL}/iot`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/ai`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/research`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/writing`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/about`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/oncall`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/status`, changeFrequency: "daily", priority: 0.6 },
     { url: `${SITE_URL}/changelog`, changeFrequency: "daily", priority: 0.5 },

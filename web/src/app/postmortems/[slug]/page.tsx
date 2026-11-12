@@ -36,7 +36,7 @@ export default async function PostmortemPage(props: PageProps<"/postmortems/[slu
   const others = postmortems.filter((p) => p.slug !== pm.slug);
 
   return (
-    <ArticleShell back={{ href: "/#postmortems", label: "All postmortems" }}>
+    <ArticleShell back={{ href: "/writing#postmortems", label: "All postmortems" }}>
       <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-xs text-ink-3">
         <KindChip kind={pm.kind} />
         <span>{pm.date}</span>

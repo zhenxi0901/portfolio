@@ -18,7 +18,7 @@ const tones: Record<ProofKind, string> = { live: "text-accent-ink", public: "tex
 const order: ProofKind[] = ["live", "public", "private"];
 const external = (href: string) => href.startsWith("http");
 // Sections of the home page, which is a different document from this one.
-const home = { postmortems: "/#postmortems", contact: "/#contact" };
+const home = { postmortems: "/writing#postmortems", contact: "/#contact" };
 
 function Badge({ kind }: { kind: ProofKind }) {
   const Icon = icons[kind];

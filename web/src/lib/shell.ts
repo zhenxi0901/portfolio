@@ -74,6 +74,12 @@ const ROOT_FILES: Entry[] = [
 /** Pages that are not files: `open` reaches them. */
 const PAGES: Record<string, string> = {
   home: "/",
+  iot: "/iot",
+  ai: "/ai",
+  research: "/research",
+  writing: "/writing",
+  about: "/about",
+  v1: "/v1",
   status: "/status",
   changelog: "/changelog",
   decisions: "/decisions",
@@ -431,17 +437,17 @@ const commands: Record<string, Command> = {
     },
   },
   open: {
-    summary: "go to a page: status, agents, evidence, work/gke…",
+    summary: "go to a page: iot, ai, research, status, work/gke…",
     usage: "open <page>",
     run: (args, env) => {
       const target = stripMd(operands(args)[0] ?? "");
       if (!target)
         return [line(t("Pages: ", DIM), ...Object.keys(PAGES).flatMap((p, i) => [...(i ? [t("  ")] : []), cmd(`open ${p}`)])), dim("Or any file: open work/gke")];
       const key = target.replace(/^\//, "");
-      // "/", "~" and about.md all mean the home page: about.md is who the site is about.
-      const page = own(PAGES, key) ?? (key === "" || key === "~" || key === "about" ? "/" : undefined);
+      // "/" and "~" mean the home page; about (and about.md, who the site is about) the About page.
+      const page = own(PAGES, key) ?? (key === "" || key === "~" ? "/" : undefined);
       const found = page ? null : find(resolvePath(env.cwd, target));
-      const path = page ?? (found?.kind === "file" ? (found.dir ? `/${found.dir}/${found.name}` : found.name === "about" ? "/" : `/${found.name}`) : null);
+      const path = page ?? (found?.kind === "file" ? (found.dir ? `/${found.dir}/${found.name}` : `/${found.name}`) : null);
       if (!path) return fail(`open: ${target}: no such page. Try: open`);
       env.navigate(path);
       return [dim(`opening ${path} …`)];

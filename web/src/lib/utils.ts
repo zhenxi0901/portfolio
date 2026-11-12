@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { pageOf, sectionHref } from "@/lib/sections";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -15,14 +16,14 @@ export function goTo(path: string) {
 
 /** Jump to a tab of the "Inside the platform" section; from another page, via its deep link. */
 export function openPlatformTab(tab: "paths" | "signals" | "cost") {
-  if (!document.getElementById("platform")) return goTo(`/#platform-${tab}`);
+  if (!document.getElementById("platform")) return goTo(`${pageOf("platform")}#platform-${tab}`);
   window.dispatchEvent(new CustomEvent("platform-tab", { detail: tab }));
   scrollToId("platform");
 }
 
 /** Open a tab of the AI agent platform section and scroll to its views; from another page, via its deep link. */
 export function openAiTab(tab: "map" | "stack" | "trace" | "measure") {
-  if (!document.getElementById("ai-views")) return goTo(`/#ai-${tab}`);
+  if (!document.getElementById("ai-views")) return goTo(`${pageOf("ai-views")}#ai-${tab}`);
   window.dispatchEvent(new CustomEvent("ai-tab", { detail: tab }));
   scrollToId("ai-views");
 }
@@ -33,12 +34,11 @@ export function openAiTab(tab: "map" | "stack" | "trace" | "measure") {
  */
 export const modalOpen = () => typeof document !== "undefined" && document.querySelector('[role="dialog"][data-state="open"]') !== null;
 
-/** Scroll to a section by id, honouring reduced motion. From another page, go to it on the home page. */
+/** Scroll to a section by id, honouring reduced motion. On another page, go to the page it lives on. */
 export function scrollToId(id: string) {
   const el = document.getElementById(id);
   if (!el) {
-    // Sections live on the home page.
-    if (window.location.pathname !== "/") goTo(`/#${id}`);
+    if (window.location.pathname !== pageOf(id)) goTo(sectionHref(id));
     return;
   }
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

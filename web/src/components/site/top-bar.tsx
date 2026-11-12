@@ -4,11 +4,14 @@ import { Command, TerminalWindow } from "@phosphor-icons/react";
 import { profile } from "@/content/profile";
 import { usePalette, useTerminal } from "@/components/providers";
 import { ThemeToggle } from "@/components/site/theme-toggle";
+import { pages } from "@/components/site/nav-items";
+import { usePathname } from "next/navigation";
 
 /** On the home page the name jumps to the top; on other pages (`home`) it goes back home. */
 export function TopBar({ home = false }: { home?: boolean }) {
   const { setOpen } = usePalette();
   const terminal = useTerminal();
+  const path = usePathname();
   return (
     <header data-print-hide className="fixed inset-x-0 top-0 z-30">
       <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-4 sm:px-8">
@@ -23,6 +26,19 @@ export function TopBar({ home = false }: { home?: boolean }) {
           <span className="sr-only text-sm font-medium tracking-tight sm:not-sr-only">{profile.name}</span>
           <span className="sr-only">{home ? ", home page" : ", back to top"}</span>
         </a>
+        {/* The chapters, on screens wide enough for them; phones have the dock at the bottom. */}
+        <nav aria-label="Chapters" className="hidden items-center gap-0.5 rounded-full border border-line bg-surface/80 p-1 backdrop-blur-md lg:flex">
+          {pages.slice(1).map((p) => (
+            <a
+              key={p.href}
+              href={p.href}
+              aria-current={path === p.href ? "page" : undefined}
+              className="rounded-full px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink aria-[current=page]:bg-surface-2 aria-[current=page]:font-medium aria-[current=page]:text-ink"
+            >
+              {p.label}
+            </a>
+          ))}
+        </nav>
         <div className="flex items-center gap-1 rounded-full border border-line bg-surface/80 p-1 backdrop-blur-md">
           <button
             type="button"

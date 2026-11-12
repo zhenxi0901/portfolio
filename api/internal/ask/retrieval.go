@@ -26,7 +26,9 @@ type Fact struct {
 	Title  string `json:"title"`
 	Text   string `json:"text"`
 	Anchor string `json:"anchor"`
-	Lead   string `json:"lead,omitempty"`
+	// Href is the anchor's section on the page it lives on, like "/iot#platform" (web/src/lib/sections.ts).
+	Href string `json:"href,omitempty"`
+	Lead string `json:"lead,omitempty"`
 }
 
 func LoadFacts(path string) ([]Fact, error) {

@@ -52,7 +52,7 @@ export const claimGroups: ClaimGroup[] = [
       },
       {
         claim: "The commit shown on the page is the commit that is running.",
-        seen: { label: "Live status", href: "/#status" },
+        seen: { label: "Live status", href: "/status" },
         kind: "live",
         proof: "The server reports the commit it was built from. Compare it with the head of the main branch on GitHub.",
         command: `curl -s ${SITE_URL}/api/status`,
@@ -69,7 +69,7 @@ export const claimGroups: ClaimGroup[] = [
       },
       {
         claim: `${delivery.deploys} deploys in the ${delivery.windowDays} days to ${delivery.generated.slice(0, 10)}${failureRate}.`,
-        seen: { label: "How this site ships", href: "/#status" },
+        seen: { label: "How this site ships", href: "/status" },
         kind: "public",
         proof: "Computed by the pipeline from its own run history. Every run is public, and the changelog lists each release with the commits it shipped.",
         links: [
@@ -81,7 +81,7 @@ export const claimGroups: ClaimGroup[] = [
         ? [
             {
               claim: `A rollback drill in production had traffic back on the previous revision ${drill.restoreSeconds} seconds after the switch.`,
-              seen: { label: "How this site ships", href: "/#status" },
+              seen: { label: "How this site ships", href: "/status" },
               kind: "public" as const,
               proof: "The drill is a workflow run that fails its own live check on purpose and passes only if the rollback then works. Its log has the timestamps.",
               links: [{ label: "The drill's run", href: drill.url }],
@@ -107,7 +107,7 @@ export const claimGroups: ClaimGroup[] = [
       },
       {
         claim: "Three things went wrong while building it, and each has a postmortem.",
-        seen: { label: "Postmortems", href: "/#postmortems" },
+        seen: { label: "Postmortems", href: "/writing#postmortems" },
         kind: "public",
         proof: "The write-ups cite the commits that caused and fixed each problem. The commits are in the repository's history.",
         links: [{ label: "Commit history", href: `${REPO}/commits/main` }],
@@ -121,7 +121,7 @@ export const claimGroups: ClaimGroup[] = [
     claims: [
       {
         claim: "I wrote the Toolathlon adapter for ARIES, the lab's agent-serving framework.",
-        seen: { label: "Research", href: "/#research" },
+        seen: { label: "Research", href: "/research" },
         kind: "public",
         proof: "Merged upstream in October 2026.",
         links: [
@@ -138,21 +138,21 @@ export const claimGroups: ClaimGroup[] = [
       },
       {
         claim: "Portable plugins (skills and MCP servers) that work in both of ARIES's agent harnesses.",
-        seen: { label: "Research", href: "/#research" },
+        seen: { label: "Research", href: "/research" },
         kind: "public",
         proof: "Open and in review, not merged. Listed here so the site does not imply otherwise.",
         links: [{ label: "ARIES #96", href: fyp.plugins.pr }],
       },
       {
         claim: "Co-author of a paper at ICCV 2025.",
-        seen: { label: "Research", href: "/#research" },
+        seen: { label: "Research", href: "/research" },
         kind: "public",
         proof: `${publication.title}. The code is public and the paper lists its authors.`,
         links: [{ label: "PVChat code", href: publication.code }],
       },
       {
         claim: "21 merged pull requests on a robot car's Android controller.",
-        seen: { label: "Experience", href: "/#experience" },
+        seen: { label: "Experience", href: "/about#experience" },
         kind: "public",
         proof: "A team repository for NTU's Multidisciplinary Design Project. The pull requests are public.",
         links: [{ label: "My merged pull requests", href: "https://github.com/whupdido/mdp/pulls?q=is%3Apr+author%3Azhenxi0901+is%3Amerged" }],

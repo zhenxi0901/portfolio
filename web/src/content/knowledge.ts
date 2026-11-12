@@ -15,6 +15,7 @@ import { budgetPolicy, burnRules, investigation, slos, sreTerms } from "@/conten
 import { productOrder, products } from "@/content/products";
 import { postmortems } from "@/content/postmortems";
 import { scenarios } from "@/content/oncall";
+import { sectionHref } from "@/lib/sections";
 import { posts } from "@/content/writing";
 import { decisions } from "@/content/decisions";
 
@@ -22,7 +23,8 @@ import { decisions } from "@/content/decisions";
 // exported at build time as /knowledge.json, which the Go API loads too.
 
 // `lead` opens a retrieval answer; "Tools used:" sentences are never picked (see retrieval.ts).
-export type Fact = { id: string; title: string; text: string; anchor: string; lead?: string };
+/** `anchor` is the section a fact comes from; `href` is where that section is now (lib/sections). */
+export type Fact = { id: string; title: string; text: string; anchor: string; href?: string; lead?: string };
 
 export function buildKnowledge(): Fact[] {
   const facts: Fact[] = [];
@@ -318,5 +320,6 @@ export function buildKnowledge(): Fact[] {
     text: posts.map((p) => `"${p.title}".`).join(" ") + " All are in the Writing section, with the measurements behind them.",
   });
 
-  return facts;
+  // Each fact links to its section on the page it lives on, for the Ask console and the MCP tools.
+  return facts.map((f) => ({ ...f, href: sectionHref(f.anchor) }));
 }
