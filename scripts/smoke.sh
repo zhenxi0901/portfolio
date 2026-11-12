@@ -20,6 +20,7 @@ check "unknown page is 404"         "test \$(curl -s -o /dev/null -w '%{http_cod
 check "SLO JSON"                    "curl -fsS $BASE/api/slo | grep '\"target\":0.999'"
 check "status JSON"                 "curl -fsS $BASE/api/status | grep '\"status\":\"ok\"'"
 check "cost JSON has the price list" "curl -fsS $BASE/api/cost | grep '\"vcpu_second\":0.0000336'"
+check "lab answers without faults"   "curl -fsS $BASE/api/lab/echo | grep '\"fault\":\"none\"'"
 check "ask answers from facts"      "curl -fsS -X POST $BASE/api/ask -H 'Content-Type: application/json' -d '{\"question\":\"How did you cut the cloud bill?\"}' | grep 15%"
 check "ask rejects bad input"       "test \$(curl -s -o /dev/null -w '%{http_code}' -X POST $BASE/api/ask -H 'Content-Type: application/json' -d '{\"question\":\"x\"}') = 400"
 # 429 also counts: the contact limit is 3 per 10 minutes, so back-to-back runs hit it first.

@@ -37,9 +37,10 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		s.metrics.Requests.WithLabelValues(route, methodLabel(r.Method), strconv.Itoa(rec.code)).Inc()
 		s.metrics.Duration.WithLabelValues(route).Observe(elapsed.Seconds())
 		// Probes, uptime checks and scrapes would drown out real traffic on the status page and in
-		// the logs (the uptime checks alone are about 4,300 requests a day).
+		// the logs (the uptime checks alone are about 4,300 requests a day). The lab's delays are
+		// ones a visitor asked for, so they stay out of the live latency figures too.
 		probe := machineRoutes[route]
-		if !probe {
+		if !probe && route != labRoute {
 			s.metrics.Window.Add(float64(elapsed.Microseconds()) / 1000)
 		}
 		// A machine route that fails is worth seeing, though: an MCP client that keeps getting 4xx
@@ -50,6 +51,10 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		}
 		if rec.code >= 500 {
 			level = slog.LevelError
+		}
+		// A 503 the lab injected on request is the lab working, not the server failing.
+		if route == labRoute && strings.Contains(w.Header().Get("X-Fault"), "error") {
+			level = slog.LevelDebug
 		}
 		s.log.Log(r.Context(), level, "request",
 			"method", r.Method, "path", r.URL.Path, "route", route, "status", rec.code,
@@ -63,6 +68,9 @@ func (s *Server) observe(next http.Handler) http.Handler {
 var machineRoutes = map[string]bool{
 	"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true, "/api/badge/uptime": true, "/api/card.svg": true, "/api/card.txt": true, "/mcp": true,
 }
+
+// labRoute is the "break it yourself" endpoint (internal/lab).
+const labRoute = "/api/lab/echo"
 
 // routeLabel keeps metric cardinality bounded: the mux pattern, never the raw path.
 func routeLabel(r *http.Request) string {

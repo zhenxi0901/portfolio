@@ -255,6 +255,40 @@ func TestCostOffCloudRun(t *testing.T) {
 	}
 }
 
+// The lab answers with the faults asked for, and its delays and errors stay out of the status
+// page's live numbers.
+func TestLabFaultsStayOutOfTheStatusNumbers(t *testing.T) {
+	ts, _ := newTestServer(t)
+	var faults []string
+	for range 3 {
+		r, err := http.Get(ts.URL + "/api/lab/echo?fail=0.6&slow=1&delay=30")
+		must(t, err)
+		var reply struct {
+			Fault string `json:"fault"`
+		}
+		must(t, json.NewDecoder(r.Body).Decode(&reply))
+		r.Body.Close()
+		if !strings.HasPrefix(reply.Fault, "slow") || (r.StatusCode != 200 && r.StatusCode != 503) {
+			t.Errorf("status %d, fault %q: every request asked to be slow", r.StatusCode, reply.Fault)
+		}
+		faults = append(faults, reply.Fault)
+	}
+	resp, err := http.Get(ts.URL + "/api/status")
+	must(t, err)
+	defer resp.Body.Close()
+	var st statusResponse
+	must(t, json.NewDecoder(resp.Body).Decode(&st))
+	if st.RequestsTotal != 0 {
+		t.Errorf("requests_total %d after only lab requests (%v), want 0", st.RequestsTotal, faults)
+	}
+	post, err := http.Post(ts.URL+"/api/lab/echo", "application/json", nil)
+	must(t, err)
+	post.Body.Close()
+	if post.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("POST /api/lab/echo: %d", post.StatusCode)
+	}
+}
+
 // Uptime checks hit /api/health every minute from three places; they are not visitors.
 func TestProbesDoNotCountAsTraffic(t *testing.T) {
 	ts, _ := newTestServer(t)

@@ -25,6 +25,7 @@ import (
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
 	"github.com/zhenxi0901/portfolio/api/internal/cost"
 	"github.com/zhenxi0901/portfolio/api/internal/gcp"
+	"github.com/zhenxi0901/portfolio/api/internal/lab"
 	"github.com/zhenxi0901/portfolio/api/internal/mcp"
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
 	"github.com/zhenxi0901/portfolio/api/internal/ratelimit"
@@ -172,11 +173,15 @@ func (s *Server) Handler() http.Handler {
 	// Rate limiting sits outside the trace, so a flood of 429s creates no spans.
 	mux.Handle("POST /api/ask", s.limit("ask", askLimit, s.traced("POST /api/ask", http.HandlerFunc(s.ask.Handle))))
 	mux.Handle("POST /api/contact", s.limit("contact", contactLimit, http.HandlerFunc(s.contact.Handle)))
+	// Break it yourself (/break): delays and 503s a visitor asks for, on their own requests only.
+	// 240 a minute per client covers comparing every client strategy in one go.
+	labLimit := ratelimit.New(240, time.Minute)
+	mux.Handle("GET "+labRoute, s.limit("lab", labLimit, lab.New()))
 	// The catch-all wins over a method-specific pattern, so a known path with the wrong method would
 	// read as 404; answer 405 with the allowed method instead.
 	apiMethods := map[string]string{
 		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/cost": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD", "/api/card.txt": "GET, HEAD",
-		"/api/ask": "POST", "/api/contact": "POST",
+		"/api/ask": "POST", "/api/contact": "POST", labRoute: "GET, HEAD",
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if allow, ok := apiMethods[r.URL.Path]; ok {
