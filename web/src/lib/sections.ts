@@ -2,7 +2,7 @@
 // split into chapters (decision 11), and links, the Ask console's sources, the palette, the tour
 // and the MCP server all find a section through this table rather than assuming "/#id".
 import { cases } from "@/content/profile";
-import { productOrder, products, type ProductKey } from "@/content/products";
+import { productOrder, type ProductKey } from "@/content/products";
 
 /** Each product's chapter page. */
 export const productPage: Record<ProductKey, string> = { iot: "/iot", ai: "/ai", aries: "/research" };
@@ -44,8 +44,9 @@ export function pageOf(id: string): string {
 
 /** Every id that was on the home page before the split and is on another page now, with that page. */
 export function movedFromHome(): Record<string, string> {
-  // Product groups only where a group of cards existed: the IoT platform's (the AI cases sit in its section).
-  const groups = productOrder.filter((p) => !products[p].casesInSection && cases.some((c) => c.products[0] === p)).map((p) => `work-${p}`);
+  // A group of cards per product that has cases. The AI platform's existed for a few hours on
+  // 11 Nov 2026, before its case moved into its own section; a link to it still lands on /ai.
+  const groups = productOrder.filter((p) => cases.some((c) => c.products[0] === p)).map((p) => `work-${p}`);
   const ids = [...Object.keys(PAGE), ...cases.map((c) => `case-${c.id}`), ...groups];
   return Object.fromEntries(ids.map((id) => [id, pageOf(id)]).filter(([, page]) => page !== "/"));
 }
