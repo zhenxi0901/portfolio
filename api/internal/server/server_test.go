@@ -225,6 +225,36 @@ func TestSLOOffCloudRun(t *testing.T) {
 	}
 }
 
+// Off Cloud Run /api/cost has no usage to read, but still sends the price list for the what-if.
+func TestCostOffCloudRun(t *testing.T) {
+	ts, _ := newTestServer(t)
+	resp, err := http.Get(ts.URL + "/api/cost")
+	must(t, err)
+	defer resp.Body.Close()
+	var body struct {
+		Available bool   `json:"available"`
+		Reason    string `json:"reason"`
+		Prices    struct {
+			AsOf         string  `json:"as_of"`
+			VCPUSecond   float64 `json:"vcpu_second"`
+			MaxInstances int     `json:"max_instances"`
+		} `json:"prices"`
+	}
+	must(t, json.NewDecoder(resp.Body).Decode(&body))
+	if resp.StatusCode != 200 || body.Available || body.Reason == "" || body.Prices.AsOf == "" || body.Prices.VCPUSecond <= 0 || body.Prices.MaxInstances != 3 {
+		t.Errorf("status %d, body %+v", resp.StatusCode, body)
+	}
+	if got := resp.Header.Get("Cache-Control"); got != "public, max-age=300" {
+		t.Errorf("Cache-Control %q", got)
+	}
+	post, err := http.Post(ts.URL+"/api/cost", "application/json", nil)
+	must(t, err)
+	post.Body.Close()
+	if post.StatusCode != http.StatusMethodNotAllowed || post.Header.Get("Allow") != "GET, HEAD" {
+		t.Errorf("POST /api/cost: %d, Allow %q", post.StatusCode, post.Header.Get("Allow"))
+	}
+}
+
 // Uptime checks hit /api/health every minute from three places; they are not visitors.
 func TestProbesDoNotCountAsTraffic(t *testing.T) {
 	ts, _ := newTestServer(t)

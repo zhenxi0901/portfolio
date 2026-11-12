@@ -23,6 +23,7 @@ import (
 	"github.com/zhenxi0901/portfolio/api/internal/ask"
 	"github.com/zhenxi0901/portfolio/api/internal/card"
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
+	"github.com/zhenxi0901/portfolio/api/internal/cost"
 	"github.com/zhenxi0901/portfolio/api/internal/gcp"
 	"github.com/zhenxi0901/portfolio/api/internal/mcp"
 	"github.com/zhenxi0901/portfolio/api/internal/metrics"
@@ -45,6 +46,7 @@ type Server struct {
 	ask     *ask.Service
 	contact *contact.Service
 	slo     *slo.Service
+	cost    *cost.Service
 	// Delivery numbers baked into the image (/delivery.json) for the profile card; nil if absent.
 	delivery *card.Delivery
 	started  time.Time
@@ -71,8 +73,10 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 
 	meta := gcp.NewMetadata()
 	var uptime slo.Source
+	var usage cost.Source
 	if cfg.SLOFromMonitoring {
 		uptime = slo.NewMonitoring(meta)
+		usage = cost.NewMonitoring(meta, cfg.Service)
 	}
 	var export sdktrace.SpanExporter
 	if cfg.TraceExport {
@@ -98,6 +102,7 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 		ask:      ask.NewService(facts, llm, m, log).WithTraces(rec, cfg.TraceExport),
 		contact:  contact.NewService(cfg.DataDir, cfg.ContactWebhook, cfg.ContactRequireWebhook, m, log).WithSyntheticToken(cfg.ContactSyntheticToken),
 		slo:      slo.New(uptime, log),
+		cost:     cost.New(usage, log),
 		started:  time.Now(),
 
 		closeTraces: closeTraces,
@@ -141,6 +146,12 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		writeJSON(w, http.StatusOK, s.slo.Report(r.Context()))
 	})
+	// What the site has cost this month: its usage from Cloud Monitoring at list prices, and the
+	// price list for the page's what-if. Usage is read at most once an hour.
+	mux.HandleFunc("GET /api/cost", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		writeJSON(w, http.StatusOK, s.cost.Report(r.Context()))
+	})
 	// The same availability as a shields.io endpoint badge, for the GitHub profile.
 	mux.HandleFunc("GET /api/badge/uptime", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
@@ -164,7 +175,7 @@ func (s *Server) Handler() http.Handler {
 	// The catch-all wins over a method-specific pattern, so a known path with the wrong method would
 	// read as 404; answer 405 with the allowed method instead.
 	apiMethods := map[string]string{
-		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD", "/api/card.txt": "GET, HEAD",
+		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/cost": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD", "/api/card.txt": "GET, HEAD",
 		"/api/ask": "POST", "/api/contact": "POST",
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {

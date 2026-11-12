@@ -21,6 +21,11 @@ export function Footer() {
             </a>
           </li>
           <li>
+            <a className="hover:text-ink" href="/cost">
+              Cost
+            </a>
+          </li>
+          <li>
             <a className="hover:text-ink" href="/changelog">
               Changelog
             </a>
