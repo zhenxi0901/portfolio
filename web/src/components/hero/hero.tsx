@@ -3,11 +3,16 @@ import { cases, profile } from "@/content/profile";
 import { heroStat } from "@/content/headlines";
 import { Button } from "@/components/ui/button";
 import { Cluster } from "@/components/hero/cluster";
+import { LiveMap } from "@/components/hero/live-map";
 import { KineticName } from "@/components/hero/kinetic-name";
 import { TourButton } from "@/components/site/tour";
 
-/** `work` is where "See the work" goes: the chapter cards on the home page, the case studies on /v1. */
-export function Hero({ work = "#chapters" }: { work?: string } = {}) {
+/**
+ * `work` is where "See the work" goes: the chapter cards on the home page, the case studies on /v1.
+ * `legacy` keeps the 3D constellation of tools for /v1, the site as it was; the home page shows the
+ * live map of its own request path instead.
+ */
+export function Hero({ work = "#chapters", legacy = false }: { work?: string; legacy?: boolean } = {}) {
   return (
     <section id="top" className="relative overflow-hidden">
       <div className="mx-auto grid min-h-[100dvh] max-w-[1320px] grid-cols-1 items-center gap-6 px-4 pb-24 pt-24 sm:px-8 lg:grid-cols-12 lg:gap-4">
@@ -53,9 +58,15 @@ export function Hero({ work = "#chapters" }: { work?: string } = {}) {
             <TourButton className="inline-flex items-center gap-2 text-sm font-medium text-ink-2 underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink hover:decoration-accent-ink" />
           </div>
         </div>
-        <div className="relative lg:col-span-6 lg:-mr-10 xl:-mr-16">
-          <Cluster />
-        </div>
+        {legacy ? (
+          <div className="relative lg:col-span-6 lg:-mr-10 xl:-mr-16">
+            <Cluster />
+          </div>
+        ) : (
+          <div className="hero-in relative lg:col-span-6" style={{ "--d": "0.3s" } as React.CSSProperties}>
+            <LiveMap />
+          </div>
+        )}
       </div>
     </section>
   );

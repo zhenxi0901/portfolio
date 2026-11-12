@@ -129,7 +129,8 @@ export function VisitTrace() {
   const t = trace && trace !== "unavailable" ? trace : null;
 
   return (
-    <div ref={ref} className="mt-4 overflow-hidden rounded-3xl border border-line bg-surface p-6">
+    // The hero's "You" node links here (#visit-trace).
+    <div ref={ref} id="visit-trace" className="mt-4 scroll-mt-28 overflow-hidden rounded-3xl border border-line bg-surface p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <p className="font-semibold">Your visit, traced</p>
         <p className="text-sm text-ink-3">Measured by your own browser. Nothing is sent anywhere.</p>
