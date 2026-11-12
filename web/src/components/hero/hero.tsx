@@ -1,5 +1,6 @@
 import { ArrowDown, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
-import { profile } from "@/content/profile";
+import { cases, profile } from "@/content/profile";
+import { heroStat } from "@/content/headlines";
 import { Button } from "@/components/ui/button";
 import { Cluster } from "@/components/hero/cluster";
 import { KineticName } from "@/components/hero/kinetic-name";
@@ -28,8 +29,13 @@ export function Hero({ work = "#chapters" }: { work?: string } = {}) {
           >
             {profile.intro}
           </p>
+          {/* Proof on the first screen: on a phone the first number is otherwise a screen and a half down. */}
+          <p className="hero-in mt-5 max-w-[52ch] font-mono text-xs leading-relaxed text-ink-3" style={{ "--d": "0.28s" } as React.CSSProperties}>
+            {heroStat(169).value} merged PRs on a production IoT platform · {cases.length} case studies with working models ·{" "}
+            {heroStat(320).value} LLM agent runs benchmarked
+          </p>
           <div
-            className="hero-in mt-9 flex flex-wrap items-center gap-3"
+            className="hero-in mt-8 flex flex-wrap items-center gap-3"
             style={{ "--d": "0.35s" } as React.CSSProperties}
           >
             <Button asChild size="lg">

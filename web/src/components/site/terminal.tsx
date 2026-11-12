@@ -105,10 +105,11 @@ export default function Terminal() {
     void run(command);
   });
   useEffect(() => {
-    if (!open || !pending) return;
+    // A command still out (a slow ask, say) finishes first; the handed-over one runs once it has.
+    if (!open || !pending || busy) return;
     const timer = setTimeout(() => runPending(pending), 60);
     return () => clearTimeout(timer);
-  }, [open, pending]);
+  }, [open, pending, busy]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Keys pressed while an input method is composing (Chinese, Japanese, ...) are its own.
@@ -202,7 +203,11 @@ export default function Terminal() {
                   )}
                   {entry.lines.map((segs, i) => (
                     // At most 88 characters wide, the measure shell.ts writes prose for; narrower screens wrap sooner.
-                    <p key={i} className="min-h-[1.65em] max-w-[88ch] whitespace-pre-wrap break-words">
+                    <p
+                      key={i}
+                      className="min-h-[1.65em] max-w-[88ch] whitespace-pre-wrap break-words"
+                      style={segs[0]?.hang ? { paddingLeft: `${segs[0].hang}ch`, textIndent: `-${segs[0].hang}ch` } : undefined}
+                    >
                       {segs.map((seg, k) => {
                         const command = seg.run;
                         return seg.href ? (

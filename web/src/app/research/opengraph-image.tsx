@@ -1,6 +1,6 @@
 import { ogContentType, ogImage, ogSize, ogTone } from "@/lib/og";
 import { products } from "@/content/products";
-import { heroStat } from "@/lib/og-stat";
+import { heroStat } from "@/content/headlines";
 
 export const size = ogSize;
 export const contentType = ogContentType;

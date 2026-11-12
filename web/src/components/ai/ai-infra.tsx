@@ -35,7 +35,7 @@ const aiCases = cases.filter((c) => c.products[0] === "ai");
 
 export function AiInfra() {
   const [tab, setTab] = useState<Tab>("map");
-  // Other pages link straight to a tab: /#ai-trace.
+  // Other pages link straight to a tab: /ai#ai-trace.
   useHashTab("ai", TAB_IDS, setTab);
   // And this page opens one with openAiTab() (lib/utils.ts), for example from the case card below.
   useEffect(() => {
@@ -81,7 +81,11 @@ export function AiInfra() {
             })}
           </div>
           <p className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-2">
-            Building data comes from <ProductTag p="iot" />, the platform in the section above.
+            Building data comes from{" "}
+            <a href="/iot" className="rounded-full transition-opacity hover:opacity-80">
+              <ProductTag p="iot" />
+            </a>
+            , the platform I run on GKE; it has a chapter of its own.
           </p>
         </Reveal>
 

@@ -152,7 +152,11 @@ export function DeliveryPanel() {
         Computed by the pipeline from this repository&apos;s commits and deploy runs as of the time above, before it built the
         image you are looking at. Each release starts with no traffic and is smoke-tested at its own URL first; a deploy counts as failed only if
         its revision took traffic and then failed the live checks, and a failure there rolls back on its own. Problems that did not come from a
-        deploy are in the postmortems below.
+        deploy are in the{" "}
+        <a href="/writing#postmortems" className="underline underline-offset-4 hover:text-ink">
+          postmortems
+        </a>
+        .
       </p>
     </div>
   );

@@ -6,7 +6,7 @@ import { pageMetadata } from "@/lib/page-metadata";
 export const metadata = pageMetadata({
   title: "Decisions: why this site is built the way it is",
   description:
-    "Architecture decision records for a portfolio run as a production service: Cloud Run over GKE, one Go binary, build once and check before traffic, an SLO measured from outside, and what each one costs.",
+    "Architecture decision records for a portfolio run as a production service: Cloud Run over GKE, one Go binary, an SLO measured from outside, and what each costs.",
   path: "/decisions",
   markdown: "decisions.md",
 });

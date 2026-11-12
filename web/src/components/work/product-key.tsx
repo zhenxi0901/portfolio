@@ -15,7 +15,7 @@ export const productStart = (p: Key) =>
 export function ProductKey() {
   return (
     <Reveal className="mt-10">
-      <p className="text-sm text-ink-3">What I work on, and the colour each one wears on this page:</p>
+      <p className="text-sm text-ink-3">What I work on, and the colour each one wears across this site:</p>
       <ul className="mt-3 grid gap-3 md:grid-cols-3">
         {productOrder.map((p) => {
           const Icon = productIcon[p];

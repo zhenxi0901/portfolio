@@ -1,10 +1,11 @@
-// The site's pages and the sections inside them, in reading order. The dock and the top bar list the
-// pages; the command palette lists both, and finds each section on its page through lib/sections.
+// The site's pages and the sections inside them, in reading order. The dock, the top bar and the
+// pager list the pages; the command palette lists the sections and finds each one's page through
+// lib/sections.
 
 export const pages = [
   { href: "/", label: "Home" },
   { href: "/iot", label: "IoT platform" },
-  { href: "/ai", label: "AI platform" },
+  { href: "/ai", label: "AI agent platform" },
   { href: "/research", label: "Research" },
   { href: "/writing", label: "Writing" },
   { href: "/about", label: "About" },

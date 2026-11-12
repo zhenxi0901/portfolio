@@ -15,8 +15,12 @@ import { mcpRequest } from "@/lib/mcp-client";
 import { isTimeout, noAnswer, withTimeout } from "@/lib/signal";
 import { SITE_URL } from "@/lib/site";
 
-/** A run of text. `href` makes it a link; `run` makes it a button that types that command. */
-export type Seg = { text: string; cls?: string; href?: string; run?: string };
+/**
+ * A run of text. `href` makes it a link; `run` makes it a button that types that command. `hang`,
+ * on a line's first run, is a hanging indent in characters: a row of a table (help, ls) that wraps
+ * on a narrow screen keeps its second column lined up.
+ */
+export type Seg = { text: string; cls?: string; href?: string; run?: string; hang?: number };
 export type Line = Seg[];
 
 /** What a command may do besides print. */
@@ -79,6 +83,7 @@ const PAGES: Record<string, string> = {
   research: "/research",
   writing: "/writing",
   about: "/about",
+  contact: "/#contact",
   v1: "/v1",
   status: "/status",
   changelog: "/changelog",
@@ -340,7 +345,7 @@ function playDrill(sc: Scenario, before: DrillState, m: Move, env: ShellEnv): Li
   if (m.kind === "act" && !acts.includes(m)) {
     if (m.effect === "verify") return [line(t("Not yet: ", ERR), t("that is how you close out, once the burn has stopped.", DIM))];
     const close = acts.find((a) => a.effect === "verify");
-    return [line(t("The burn has stopped; that was a way to stop it. ", DIM), ...(close ? [t("Close out: ", DIM), cmd(`oncall ${close.id}`)] : []))];
+    return [line(t("The burn has stopped; only closing out is left. ", DIM), ...(close ? [t("Close out: ", DIM), cmd(`oncall ${close.id}`)] : []))];
   }
   const s = play(before, m);
   env.setDrill({ id: sc.id, state: s });
@@ -664,7 +669,7 @@ const commands: Record<string, Command> = {
   },
   contact: {
     summary: "how to reach me",
-    run: () => [row("email", link(profile.email, `mailto:${profile.email}`)), row("form", cmd("open home"), t("  then the Contact section", DIM))],
+    run: () => [row("email", link(profile.email, `mailto:${profile.email}`)), row("form", cmd("open contact"), t("  on the home page", DIM))],
   },
   history: { summary: "what you have typed", run: (_, env) => env.history.map((h, i) => line(t(String(i + 1).padStart(4) + "  ", DIM), h)) },
   clear: {
@@ -695,7 +700,7 @@ const HELP_WIDTH = 18;
 function helpRow(name: string): Line {
   const c = commands[name];
   const label = c.usage ?? name;
-  return line({ text: label, run: name, cls: ACCENT }, gap(label.length, HELP_WIDTH), t(c.summary, DIM));
+  return line({ text: label, run: name, cls: ACCENT, hang: HELP_WIDTH }, gap(label.length, HELP_WIDTH), t(c.summary, DIM));
 }
 
 /** A tool's example arguments from the agents page, as they would be typed here. */

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export const metadata = pageMetadata({
   title: "Evidence: where this site's claims come from",
   description:
-    "Every headline claim on this portfolio, sorted by how you can check it: live from your browser, on public record, or in a private repository that this page says it cannot link to.",
+    "Every headline claim on this site, sorted by how you can check it: live from your browser, on public record, or in a private repository it cannot link to.",
   path: "/evidence",
 });
 
@@ -17,7 +17,7 @@ const icons: Record<ProofKind, typeof Globe> = { live: Lightning, public: Globe,
 const tones: Record<ProofKind, string> = { live: "text-accent-ink", public: "text-ink-2", private: "text-ink-3" };
 const order: ProofKind[] = ["live", "public", "private"];
 const external = (href: string) => href.startsWith("http");
-// Sections of the home page, which is a different document from this one.
+// Sections on other pages: the postmortems are on /writing, the contact form on the home page.
 const home = { postmortems: "/writing#postmortems", contact: "/#contact" };
 
 function Badge({ kind }: { kind: ProofKind }) {

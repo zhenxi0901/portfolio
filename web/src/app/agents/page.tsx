@@ -13,7 +13,7 @@ import { SITE_URL } from "@/lib/site";
 export const metadata = pageMetadata({
   title: "For agents: this site is an MCP server",
   description:
-    "Point Claude, Cursor or any MCP client at one URL and ask about my work. Five read-only tools over the site's own facts and live numbers, plus llms.txt, Markdown copies of every page and a card for curl.",
+    "Point Claude, Cursor or any MCP client at one URL and ask about my work: five read-only tools over this site's facts and live numbers.",
   path: "/agents",
 });
 

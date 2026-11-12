@@ -172,7 +172,7 @@ export const claimGroups: ClaimGroup[] = [
     claims: [
       {
         claim: "169 of my pull requests merged into a production IoT platform's repository.",
-        seen: { label: "The numbers under the hero", href: "/" },
+        seen: { label: "The IoT platform's card on the home page", href: "/#chapters" },
         kind: "private",
         proof: "Counted from the private repository's pull request history under my GitHub account.",
       },

@@ -82,11 +82,19 @@ func TestTitleOnlyForTheMatchingCommit(t *testing.T) {
 // A local copy says so, on the card and in its description, as get_status and the text card do.
 func TestCardOnALocalCopy(t *testing.T) {
 	s := string(SVG(Data{Commit: "dev", Region: "local", Releases: "unknown", Now: now}, true))
-	if strings.Contains(s, "live on Cloud Run") || strings.Count(s, "local copy") != 2 {
-		t.Errorf("a local copy's card should say so twice and never claim Cloud Run:\n%s", s)
+	if strings.Contains(s, "live on Cloud Run") || strings.Contains(s, "portfolio, live") || strings.Count(s, "local copy") != 3 {
+		t.Errorf("a local copy's card should say so in its title, description and header, and never claim to be live:\n%s", s)
 	}
 	if s := string(SVG(Data{Commit: "abc1234", Region: "asia-southeast1", Now: now}, true)); !strings.Contains(s, "live on Cloud Run · asia-southeast1") {
 		t.Error("the live card lost its location")
+	}
+}
+
+// While the 30 days fill, the description names the same window as the card's label.
+func TestCardDescribesTheUptimeWindow(t *testing.T) {
+	d := Data{Commit: "abc1234", Region: "asia-southeast1", SLOAvailable: true, Availability: 0.9999, BudgetRemaining: 0.9, UptimeLabel: "uptime since 19 Oct", Now: now}
+	if s := string(SVG(d, true)); !strings.Contains(s, "Uptime since 19 Oct: 99.99%") || strings.Contains(s, "over 30 days") {
+		t.Errorf("description does not name the window:\n%s", s)
 	}
 }
 

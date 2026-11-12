@@ -31,6 +31,7 @@ export function buildKnowledge(): Fact[] {
 
   facts.push({
     id: "about",
+    href: "/about",
     title: "About ZhenXi",
     anchor: "top",
     text: `I'm ${profile.name}, based in ${profile.location}, and I'm ${profile.availability.toLowerCase()} in SRE, DevOps, cloud and AI infrastructure. ${profile.intro} Email me at ${profile.email}.`,
@@ -38,6 +39,7 @@ export function buildKnowledge(): Fact[] {
 
   facts.push({
     id: "numbers",
+    href: "/evidence",
     title: "Numbers I can back up",
     anchor: "top",
     lead: "The numbers behind my work, each from a pull-request history or a measurement:",
@@ -107,6 +109,7 @@ export function buildKnowledge(): Fact[] {
 
   facts.push({
     id: "products",
+    href: "/#chapters",
     title: "Products I work on",
     anchor: "work",
     lead: "The products I run and build:",
@@ -233,7 +236,7 @@ export function buildKnowledge(): Fact[] {
   facts.push({
     id: "skills",
     title: "Skills",
-    anchor: "experience",
+    anchor: "stack",
     text:
       "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. " +
       "CI/CD: GitHub Actions, Jenkins, Cloud Build. Observability: Prometheus, Grafana, PromQL, Cloud Monitoring, alerting, load testing. " +
@@ -250,11 +253,12 @@ export function buildKnowledge(): Fact[] {
       "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, " +
       "the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. " +
       "Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute " +
-      "from Singapore, Belgium and Oregon, and the status section shows the real availability and error budget left.",
+      "from Singapore, Belgium and Oregon, and the status page shows the real availability and error budget left.",
   });
 
   facts.push({
     id: "agents",
+    href: "/agents",
     title: "This site as an MCP server",
     anchor: "ask",
     lead: "An AI agent can use this site directly: it is a Model Context Protocol (MCP) server.",
@@ -269,6 +273,7 @@ export function buildKnowledge(): Fact[] {
 
   facts.push({
     id: "releases",
+    href: "/changelog",
     title: "How this site releases",
     anchor: "status",
     lead: "Every push to main goes out the same way, and each step can stop it.",
@@ -282,6 +287,7 @@ export function buildKnowledge(): Fact[] {
 
   facts.push({
     id: "decisions",
+    href: "/decisions",
     title: "Architecture decisions for this site",
     anchor: "status",
     lead: "Why this site is built the way it is, as architecture decision records (ADRs):",
@@ -301,8 +307,9 @@ export function buildKnowledge(): Fact[] {
   // Worded around drills and being on call, so questions about real incidents still reach the postmortems.
   facts.push({
     id: "oncall",
+    href: "/oncall",
     title: "On-call drills",
-    anchor: "postmortems",
+    anchor: "oncall",
     lead: "At /oncall you can practise being on call: two simulated pages, one on each platform I run.",
     text:
       scenarios.map((s) => `${products[s.product].name}, paged at ${s.start}: ${s.page.title}.`).join(" ") +
@@ -320,6 +327,7 @@ export function buildKnowledge(): Fact[] {
     text: posts.map((p) => `"${p.title}".`).join(" ") + " All are in the Writing section, with the measurements behind them.",
   });
 
-  // Each fact links to its section on the page it lives on, for the Ask console and the MCP tools.
-  return facts.map((f) => ({ ...f, href: sectionHref(f.anchor) }));
+  // Each fact links to its section on the page it lives on (facts about a whole page, to that page),
+  // for the Ask console and the MCP tools.
+  return facts.map((f) => ({ ...f, href: f.href ?? sectionHref(f.anchor) }));
 }

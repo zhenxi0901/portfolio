@@ -114,7 +114,11 @@ export function Monitoring() {
                 <p className="mt-4 text-sm leading-relaxed text-ink-2">
                   The platform&apos;s SLO page stays a design gate until objectives are agreed, so these targets are proposals. This
                   site&apos;s repo ships the pattern as Prometheus rules for its local monitoring stack (a 99.5% request SLO with a
-                  14.4x fast-burn alert), and the live site measures its own 99.9% availability from outside, in the status section.{" "}
+                  14.4x fast-burn alert), and the live site measures its own 99.9% availability from outside, on its{" "}
+                  <a href="/status" className="underline underline-offset-4 hover:text-ink">
+                    status page
+                  </a>
+                  .{" "}
                   <a href={RULES_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium text-ink underline decoration-accent-ink decoration-2 underline-offset-4">
                     See the rules <ArrowUpRight size={13} />
                   </a>

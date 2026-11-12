@@ -34,8 +34,11 @@ export function openAiTab(tab: "map" | "stack" | "trace" | "measure") {
  */
 export const modalOpen = () => typeof document !== "undefined" && document.querySelector('[role="dialog"][data-state="open"]') !== null;
 
-/** Scroll to a section by id, honouring reduced motion. On another page, go to the page it lives on. */
-export function scrollToId(id: string) {
+/**
+ * Scroll to a section by id, honouring reduced motion. On another page, go to the page it lives
+ * on. `focus` also moves keyboard focus there, for jumps a keyboard user makes (the dock).
+ */
+export function scrollToId(id: string, { focus = false }: { focus?: boolean } = {}) {
   const el = document.getElementById(id);
   if (!el) {
     if (window.location.pathname !== pageOf(id)) goTo(sectionHref(id));
@@ -43,4 +46,25 @@ export function scrollToId(id: string) {
   }
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  if (focus) {
+    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+    el.focus({ preventScroll: true });
+  }
+}
+
+/**
+ * Follows a link inside the site, such as a fact's source in the Ask console: a section on this
+ * page scrolls into view, a tab's deep link opens the tab (through the hash), and a link to
+ * another page loads that page.
+ */
+export function followHref(href: string) {
+  const url = new URL(href, window.location.href);
+  if (url.pathname !== window.location.pathname) return goTo(url.pathname + url.search + url.hash);
+  const id = url.hash.slice(1);
+  if (!id) {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  }
+  if (document.getElementById(id)) return scrollToId(id);
+  window.location.hash = id;
 }

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Pause, Play, X } from "@phosphor-icons/react";
 import { goTo, modalOpen, scrollToId } from "@/lib/utils";
 
-type Stop = { id: string; title: string; text: string; open?: () => void };
+type Stop = { id: string; title: string; text: string };
 
 // The tour walks the home page, which since the split into chapters (decision 11) is short enough
 // to see in a minute; every stop is on it, so the tour never leaves the page.
@@ -26,8 +26,8 @@ const STOPS: Stop[] = [
   },
   {
     id: "latest",
-    title: "Writing",
-    text: "Posts on serving LLM agents and finding a metrics bill, and blameless postmortems of what broke here.",
+    title: "Latest writing",
+    text: "The newest posts, from serving LLM agents to a benchmark run without root. The postmortems are on the writing page.",
   },
   {
     id: "contact",
@@ -86,8 +86,7 @@ export function Tour() {
   useEffect(() => {
     if (i === null) return;
     const stop = STOPS[i];
-    if (stop.open) stop.open();
-    else scrollToId(stop.id);
+    scrollToId(stop.id);
     const heading = document.getElementById(stop.id)?.querySelector("h2");
     heading?.setAttribute("data-tour", "");
     return () => heading?.removeAttribute("data-tour");

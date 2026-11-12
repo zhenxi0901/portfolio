@@ -15,7 +15,7 @@ Server-side numbers also miss the front door: the health check that only worked 
 
 SLI: the share of Cloud Monitoring uptime checks, run every minute from Singapore, Belgium and Oregon, that get a 2xx from /api/health within 10 seconds. SLO: 99.9% over 30 days, a budget of 43.2 minutes.
 
-The API reads the results back from Cloud Monitoring and the status section shows availability, downtime and budget left.
+The API reads the results back from Cloud Monitoring and the status page shows availability, downtime and budget left.
 
 ## Consequences
 

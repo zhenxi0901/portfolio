@@ -18,25 +18,30 @@ import { Contact } from "@/components/sections/contact";
 import { pageMetadata } from "@/lib/page-metadata";
 
 // Kept on purpose, like a tagged release: the site as one long page, as it was until 12 Nov 2026.
-// Search engines are told to index the home page instead, which has all of this in chapters.
+// It asks not to be indexed, with its own canonical so the two signals agree, and shares with the
+// home page's card.
 const base = pageMetadata({
   title: "Version 1: the one-page site",
   description: "This portfolio as it was until 12 November 2026: every section on one long page. The current site splits it into chapters.",
   path: "/v1",
 });
-export const metadata = { ...base, alternates: { canonical: "/" }, robots: { index: false, follow: true } };
+export const metadata = {
+  ...base,
+  robots: { index: false, follow: true },
+  openGraph: { ...base.openGraph, images: [{ url: "/opengraph-image", width: 1200, height: 630 }] },
+};
 
 export default function VersionOne() {
   return (
     <>
       <a
-        href="#work"
+        href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
       >
         Skip to content
       </a>
       <TopBar />
-      <main>
+      <main id="main">
         <aside aria-label="About this version" className="mx-auto max-w-[1320px] px-4 pt-24 sm:px-8">
           <p className="rounded-3xl border border-dashed border-line-strong bg-surface p-5 text-[15px] leading-relaxed text-ink-2">
             <span className="font-semibold text-ink">Version 1, kept as a record.</span> Until 12 November 2026 everything was on this one page,

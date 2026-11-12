@@ -23,7 +23,7 @@ export function Now() {
       alive = false;
     };
   }, []);
-  const live = slo?.available ? `${sloPct(slo.availability, 2)} available over ${slo.since ? sloSpan(slo.since, slo.updated) : `${slo.window_days} days`}` : null;
+  const live = slo?.available ? `${sloPct(slo.availability)} available over ${slo.since ? sloSpan(slo.since, slo.updated) : `${slo.window_days} days`}` : null;
 
   return (
     <section id="now" aria-labelledby="now-title" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 sm:px-8">

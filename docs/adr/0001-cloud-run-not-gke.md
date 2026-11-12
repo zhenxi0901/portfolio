@@ -24,7 +24,7 @@ What it buys:
 
 What it costs:
 
-- Cold starts. The status section says when a visitor woke the server up; the uptime checks keep an instance warm most of the time.
+- Cold starts. The visit trace on the status page shows when a visitor woke the server up; the uptime checks keep an instance warm most of the time.
 - No CPU once the response is written, so work cannot be left running afterwards. The contact form learned this the hard way: see its postmortem.
 - Memory is per instance, so rate limits and caches are per instance too. At three instances that is an acceptable approximation.
 
