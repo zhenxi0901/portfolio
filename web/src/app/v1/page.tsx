@@ -51,7 +51,7 @@ export default function VersionOne() {
             </a>
           </p>
         </aside>
-        <Hero work="#work" />
+        <Hero work="#work" legacy />
         <Impact />
         <Work />
         <Platform />
