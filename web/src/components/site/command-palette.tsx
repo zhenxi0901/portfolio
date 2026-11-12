@@ -104,6 +104,14 @@ export function CommandPalette() {
     {
       // Not "section-cost": that is the IoT platform's cost review, and two entries with one id
       // break cmdk's list (rows that no longer match stay, several rows show as selected).
+      id: "break",
+      group: "How this site runs",
+      label: "Break it yourself",
+      keywords: ["chaos", "fault injection", "retries", "backoff", "circuit breaker", "hedging", "resilience", "lab", "break"],
+      icon: page,
+      action: () => goTo("/break"),
+    },
+    {
       id: "site-cost",
       group: "How this site runs",
       label: "What this site costs",

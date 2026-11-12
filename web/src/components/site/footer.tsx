@@ -26,6 +26,11 @@ export function Footer() {
             </a>
           </li>
           <li>
+            <a className="hover:text-ink" href="/break">
+              Break it
+            </a>
+          </li>
+          <li>
             <a className="hover:text-ink" href="/changelog">
               Changelog
             </a>

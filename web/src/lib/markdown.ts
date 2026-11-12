@@ -128,6 +128,7 @@ export function llmsTxt() {
       `[Evidence](${SITE_URL}/evidence): the site's main claims, sorted by whether they can be checked live, on public record, or are private.`,
       `[Status](${SITE_URL}/status): live state, availability against a 99.9% SLO, and the incident history.`,
       `[What it costs](${SITE_URL}/cost): this month's usage from Cloud Monitoring at list prices, where the money goes, and what caps the bill.`,
+      `[Break it yourself](${SITE_URL}/break): inject delays and errors into your own requests to the live server and watch retries, a circuit breaker and hedging cope.`,
       `[Changelog](${SITE_URL}/changelog): every release to production and the commits it shipped.`,
       `[Live SLO as JSON](${SITE_URL}/api/slo): availability and error budget from Google Cloud uptime checks.`,
       `[This month's cost as JSON](${SITE_URL}/api/cost): usage, list prices, the free tier and the estimated bill.`,

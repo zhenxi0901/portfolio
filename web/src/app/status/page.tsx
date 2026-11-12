@@ -31,6 +31,7 @@ const watches = [
 
 const more = [
   { href: "/cost", title: "What it costs", text: "This month's usage at list prices, where the money goes, and what caps the bill." },
+  { href: "/break", title: "Break it yourself", text: "Inject delays and errors into your own requests and watch retries, a breaker and hedging cope." },
   { href: "/changelog", title: "Changelog", text: "Every release to production and the commits it shipped, written by the pipeline." },
   { href: "/decisions", title: "Decisions", text: `Why it is built this way: ${decisions.length} architecture decision records and what each one costs.` },
   { href: "/evidence", title: "Evidence", text: "Where each number on the site comes from, and which ones you can check yourself." },

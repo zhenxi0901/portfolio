@@ -92,6 +92,7 @@ const PAGES: Record<string, string> = {
   agents: "/agents",
   evidence: "/evidence",
   oncall: "/oncall",
+  break: "/break",
 };
 const CURL_PATHS = ["/", "/api/status", "/api/slo", "/api/cost", "/api/card.txt", "/llms.txt", "/llms-full.txt", "/knowledge.json", "/delivery.json", "/.well-known/security.txt"];
 
