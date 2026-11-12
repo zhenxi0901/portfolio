@@ -26,6 +26,11 @@ export const sections = [
   },
   { id: "ai", label: "AI agent platform", keywords: ["ai", "agents", "llm", "rag", "gpu", "langfuse", "milvus", "vertex", "inference", "trace"] },
   { id: "research", label: "Research", keywords: ["fyp", "aries", "benchmark", "sglang", "a100", "prefix cache", "iccv", "pvchat", "paper"] },
+  {
+    id: "capacity",
+    label: "Size a GPU for agents",
+    keywords: ["capacity", "gpu", "kv cache", "calculator", "vram", "tokens per second", "inference", "h100", "a100", "l4", "qwen", "llama"],
+  },
   { id: "writing", label: "Writing", keywords: ["blog", "posts", "articles", "notes", "prefix cache", "kafka", "metrics bill"] },
   {
     id: "postmortems",

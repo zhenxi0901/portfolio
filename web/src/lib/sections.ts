@@ -27,6 +27,7 @@ const PAGE: Record<string, string> = {
   postmortems: "/writing",
   status: "/status",
   cost: "/cost",
+  capacity: "/research",
   oncall: "/oncall",
 };
 

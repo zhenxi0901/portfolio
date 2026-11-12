@@ -11,6 +11,7 @@ import { AgentTime } from "@/components/research/agent-time";
 import { Rootless } from "@/components/research/rootless";
 import { ZoomImage } from "@/components/research/zoom-image";
 import { ProductTag } from "@/components/site/product-tag";
+import { CapacityLab } from "@/components/research/capacity-lab";
 
 export function Research() {
   return (
@@ -93,6 +94,10 @@ export function Research() {
         </div>
 
         <Reveal className="mt-20">
+          <CapacityLab />
+        </Reveal>
+
+        <Reveal className="mt-6">
           <article className="grid items-center gap-8 overflow-hidden rounded-3xl border border-line bg-surface p-6 sm:p-8 lg:grid-cols-12">
             <div className="lg:col-span-5">
               <p className="font-mono text-xs text-ink-3">
