@@ -8,10 +8,16 @@ import { SITE_URL } from "@/lib/site";
 export type ProofKind = "live" | "public" | "private";
 
 /** A check the page can run from the visitor's browser against this site's own API. */
-export type LiveCheck = "slo" | "status" | "mcp";
+export type LiveCheck = "slo" | "status" | "mcp" | "cost" | "lab";
 
 /** What each check reads, for the accessible names of its buttons: the page has several of each. */
-export const checkName: Record<LiveCheck, string> = { slo: "the availability", status: "the running commit", mcp: "the MCP server" };
+export const checkName: Record<LiveCheck, string> = {
+  slo: "the availability",
+  status: "the running commit",
+  mcp: "the MCP server",
+  cost: "this month's bill",
+  lab: "the fault-injection lab",
+};
 
 export type Claim = {
   claim: string;
@@ -66,6 +72,24 @@ export const claimGroups: ClaimGroup[] = [
         proof: "Ask the server for its tools. The page for agents has a console that calls each one.",
         check: "mcp",
         links: [{ label: "api/internal/mcp/mcp.go", href: `${REPO}/blob/main/api/internal/mcp/mcp.go` }],
+      },
+      {
+        claim: "The cost page prints this month's bill from the service's own meters.",
+        seen: { label: "What it costs", href: "/cost" },
+        kind: "live",
+        proof: "The API reads the month's requests, billed instance time, CPU, memory and bytes sent from Cloud Monitoring, and prices them at Google's list prices.",
+        command: `curl -s ${SITE_URL}/api/cost`,
+        check: "cost",
+        links: [{ label: "api/internal/cost/cost.go", href: `${REPO}/blob/main/api/internal/cost/cost.go` }],
+      },
+      {
+        claim: "The fault-injection lab makes the live server hold requests and answer real 503s.",
+        seen: { label: "Break it yourself", href: "/break" },
+        kind: "live",
+        proof: "Ask the server to hold a request, then ask it to fail some: the first comes back late, and the failures as 503s with Retry-After, on your requests only.",
+        command: `curl -si "${SITE_URL}/api/lab/echo?slow=1&delay=500"`,
+        check: "lab",
+        links: [{ label: "api/internal/lab/lab.go", href: `${REPO}/blob/main/api/internal/lab/lab.go` }],
       },
       {
         claim: `${delivery.deploys} deploys in the ${delivery.windowDays} days to ${delivery.generated.slice(0, 10)}${failureRate}.`,
