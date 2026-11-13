@@ -1,13 +1,69 @@
 "use client";
 
-import { useId, useState } from "react";
-import { ArrowCounterClockwise, ArrowUpRight } from "@phosphor-icons/react";
+import { useId, useState, useSyncExternalStore } from "react";
+import { ArrowCounterClockwise, ArrowUpRight, LinkSimple } from "@phosphor-icons/react";
 import { assumptions, estimate, gpus, models, type Inputs } from "@/lib/capacity";
 import { cn } from "@/lib/utils";
 
 // What I served in the FYP: Qwen3-4B, four runs at once, the measured prefix-cache hit rate. The
 // task's shape matches the prefix-cache panel above (a 6,000-token head, 450 tokens a turn).
 const fyp = { modelId: "qwen3-4b", gpuId: "a100-80", fp8: false, head: 6000, turns: 40, perTurn: 450, reply: 150, cacheHit: 0.96, outsideSeconds: 4, agents: 4, pricePerHour: 2 };
+type Setup = typeof fyp;
+
+// A setup as a link: /research?model=llama3.1-70b&gpu=h100&fp8=1#capacity. Only what differs from
+// my setup is written, and anything a link says is checked against the controls' own ranges.
+type Range = { min: number; max: number; step: number };
+const numbers: { key: Exclude<keyof Setup, "modelId" | "gpuId" | "fp8">; name: string; range: Range }[] = [
+  { key: "head", name: "head", range: { min: 0, max: 20_000, step: 500 } },
+  { key: "turns", name: "turns", range: { min: 5, max: 100, step: 1 } },
+  { key: "perTurn", name: "tokens", range: { min: 100, max: 3000, step: 50 } },
+  { key: "reply", name: "reply", range: { min: 20, max: 1000, step: 10 } },
+  { key: "cacheHit", name: "hit", range: { min: 0, max: 0.99, step: 0.01 } },
+  { key: "outsideSeconds", name: "tools", range: { min: 0, max: 30, step: 0.5 } },
+  { key: "agents", name: "agents", range: { min: 1, max: 32, step: 1 } },
+  { key: "pricePerHour", name: "price", range: { min: 0.5, max: 10, step: 0.25 } },
+];
+const snap = (v: number, { min, max, step }: Range) => Number((Math.round((Math.min(max, Math.max(min, v)) - min) / step) * step + min).toFixed(4));
+
+function fromQuery(search: string): Setup | null {
+  const q = new URLSearchParams(search);
+  const s: Setup = { ...fyp };
+  let any = false;
+  const model = q.get("model");
+  if (model && models.some((m) => m.id === model)) [s.modelId, any] = [model, true];
+  const gpu = q.get("gpu");
+  if (gpu && gpus.some((g) => g.id === gpu)) [s.gpuId, any] = [gpu, true];
+  if (q.has("fp8")) [s.fp8, any] = [q.get("fp8") === "1", true];
+  for (const n of numbers) {
+    const v = Number(q.get(n.name) ?? NaN);
+    if (q.has(n.name) && Number.isFinite(v)) [s[n.key], any] = [snap(v, n.range), true];
+  }
+  s.reply = Math.min(s.reply, s.perTurn);
+  return any ? s : null;
+}
+
+function toQuery(s: Setup): string {
+  const q = new URLSearchParams();
+  if (s.modelId !== fyp.modelId) q.set("model", s.modelId);
+  if (s.gpuId !== fyp.gpuId) q.set("gpu", s.gpuId);
+  if (s.fp8 !== fyp.fp8) q.set("fp8", s.fp8 ? "1" : "0");
+  for (const n of numbers) if (s[n.key] !== fyp[n.key]) q.set(n.name, String(s[n.key]));
+  const str = q.toString();
+  return str ? `?${str}` : "";
+}
+
+// The setup the address carries, parsed once per address. The server renders my own setup, and a
+// shared one replaces it once the page is running.
+let parsed: { search: string; setup: Setup | null } | null = null;
+const fromAddress = () => {
+  const search = window.location.search;
+  if (parsed?.search !== search) parsed = { search, setup: fromQuery(search) };
+  return parsed.setup;
+};
+const onHistory = (changed: () => void) => {
+  window.addEventListener("popstate", changed);
+  return () => window.removeEventListener("popstate", changed);
+};
 
 const n = (v: number, d = 0) => v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
 const gib = (v: number) => `${v >= 10 ? n(v) : n(v, 1)} GiB`;
@@ -51,8 +107,28 @@ function Select({ label, value, options, onChange }: { label: string; value: str
 
 /** Pick a model, a GPU and an agent's task; see what fits, how fast, how busy, and what a task costs. */
 export function CapacityLab() {
-  const [s, set] = useState(fyp);
-  const up = (patch: Partial<typeof fyp>) => set((old) => ({ ...old, ...patch }));
+  const shared = useSyncExternalStore(onHistory, fromAddress, () => null);
+  const [own, setOwn] = useState<Setup | null>(null);
+  const s = own ?? shared ?? fyp;
+  const up = (patch: Partial<Setup>) => setOwn((old) => ({ ...(old ?? shared ?? fyp), ...patch }));
+  const [link, setLink] = useState<{ url: string; copied: boolean } | null>(null);
+  const share = async () => {
+    const path = `${window.location.pathname}${toQuery(s)}#capacity`;
+    const url = window.location.origin + path;
+    // The address bar shows the same link, so copying it from there works too.
+    window.history.replaceState(null, "", path);
+    try {
+      await navigator.clipboard.writeText(url);
+      setLink({ url, copied: true });
+    } catch {
+      setLink({ url, copied: false }); // no clipboard: the link is shown to copy by hand
+    }
+  };
+  const reset = () => {
+    setOwn(fyp);
+    setLink(null);
+    window.history.replaceState(null, "", `${window.location.pathname}#capacity`);
+  };
   const model = models.find((m) => m.id === s.modelId)!;
   const gpu = gpus.find((g) => g.id === s.gpuId)!;
   const inputs: Inputs = { model, gpu, fp8: s.fp8, head: s.head, turns: s.turns, perTurn: s.perTurn, reply: Math.min(s.reply, s.perTurn), cacheHit: s.cacheHit, outsideSeconds: s.outsideSeconds, agents: s.agents, pricePerHour: s.pricePerHour };
@@ -93,14 +169,29 @@ export function CapacityLab() {
             once, a 96% prefix-cache hit rate.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => set(fyp)}
-          aria-disabled={atFyp || undefined}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-disabled:opacity-50"
-        >
-          <ArrowCounterClockwise size={14} aria-hidden /> Back to my setup
-        </button>
+        {/* Not shrink-0: on a phone it wraps below the heading and its buttons wrap too. */}
+        <div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={share}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+            >
+              <LinkSimple size={14} aria-hidden /> Copy a link to this setup
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              aria-disabled={atFyp || undefined}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-disabled:opacity-50"
+            >
+              <ArrowCounterClockwise size={14} aria-hidden /> Back to my setup
+            </button>
+          </div>
+          <p role="status" className="max-w-[22rem] text-xs text-ink-2 sm:text-right">
+            {link && (link.copied ? "Copied: the link opens the lab with this setup." : <span className="break-all font-mono">{link.url}</span>)}
+          </p>
+        </div>
       </div>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-12">
