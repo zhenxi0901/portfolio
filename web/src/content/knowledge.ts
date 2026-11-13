@@ -42,10 +42,10 @@ export function buildKnowledge(): Fact[] {
     href: "/evidence",
     title: "Numbers I can back up",
     anchor: "top",
-    lead: "The numbers behind my work, each from a pull-request history or a measurement:",
+    lead: "The numbers behind my work, from pull-request histories, measurements and one estimate:",
     text:
       `I have merged 169 pull requests into Primustech's production IoT platform, 4 into ARIES, the open-source agent-serving framework, and 21 into a robot-car project. ` +
-      `I cut cloud spend by about 15%, benchmarked 320 LLM agent runs, and measured a 3.02x throughput from running four isolated agent tasks at once.`,
+      `I cut cloud spend by an estimated 15%, benchmarked 320 LLM agent runs, and measured a 3.02x throughput from running four isolated agent tasks at once.`,
   });
 
   for (const c of cases) {
@@ -101,7 +101,7 @@ export function buildKnowledge(): Fact[] {
     id: "cost-review",
     title: "Cost review",
     anchor: "platform",
-    lead: "How I cut cloud spend by about 15%:",
+    lead: "How I cut cloud spend by an estimated 15%:",
     text: costReview.levers
       .map((l) => `${l.title} (${l.area}, ${l.status}): ${l.detail} ${l.guardrail.startsWith("sort_desc") ? "" : l.guardrail}`)
       .join(" "),

@@ -18,7 +18,7 @@ export const profile = {
 export type Stat = { value: number; decimals?: number; prefix?: string; suffix?: string; label: string };
 
 export const stats: Stat[] = [
-  { value: 15, prefix: "~", suffix: "%", label: "cloud spend cut across monitoring, database and compute" },
+  { value: 15, prefix: "~", suffix: "%", label: "lower cloud spend, as estimated in my cost review" },
   { value: 169, label: "pull requests merged into a production IoT platform" },
   { value: 320, label: "long-horizon LLM agent runs benchmarked for my final-year project" },
   { value: 3.02, decimals: 2, suffix: "x", label: "throughput from running four isolated agent tasks at once" },
@@ -106,7 +106,7 @@ export const cases: CaseStudy[] = [
     products: ["iot"],
     org: "Primustech",
     year: "2026",
-    title: "Cutting cloud spend by ~15%",
+    title: "Cutting cloud spend by an estimated 15%",
     summary: "Measured first, then cut monitoring, database and compute, with every trade-off written down.",
     problem:
       "Nobody had measured where the money went. Managed Prometheus alone was about US$106 a month, the third-largest line item, and climbing with no matching growth in traffic.",
@@ -116,10 +116,10 @@ export const cases: CaseStudy[] = [
       "Right-sized Cloud SQL from 4 vCPU/16 GiB to 2 vCPU/12 GiB and moved it from regional HA to zonal, with the recovery trade-off documented.",
       "Cut Core API pod requests from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack onto fewer nodes, and retired a replaced ingestion lane end to end.",
     ],
-    result: "Cut cloud spend by about 15%, without dropping a single alert.",
+    result: "Cut cloud spend by an estimated 15%, without dropping a single alert.",
     stack: ["Managed Prometheus", "Kafka", "Kubernetes CronJob", "Cloud SQL", "GKE autoscaling", "Terraform"],
     numbers: [
-      { value: "~15%", label: "cloud spend cut, with no alert dropped" },
+      { value: "~15%", label: "estimated cut in cloud spend, with no alert dropped" },
       { value: "914", label: "orphaned Kafka topics reaped, 86% of all topics" },
       { value: "10,386 → 2,891", label: "samples per scrape from the Kafka exporter" },
     ],
