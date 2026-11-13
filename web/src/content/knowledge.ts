@@ -1,0 +1,374 @@
+import {
+  cases,
+  costReview,
+  education,
+  experience,
+  flows,
+  fyp,
+  monitoringFacts,
+  profile,
+  publication,
+  signals,
+} from "@/content/profile";
+import { aiOverview, journeys, measures, stack } from "@/content/ai-platform";
+import { budgetPolicy, burnRules, investigation, slos, sreTerms } from "@/content/slo";
+import { productOrder, products } from "@/content/products";
+import { postmortems } from "@/content/postmortems";
+import { scenarios } from "@/content/oncall";
+import { sectionHref } from "@/lib/sections";
+import { posts } from "@/content/writing";
+import { decisions } from "@/content/decisions";
+
+// Facts the "Ask" console retrieves from. Built from profile.ts so there is one source of truth;
+// exported at build time as /knowledge.json, which the Go API loads too.
+
+// `lead` opens a retrieval answer; "Tools used:" sentences are never picked (see retrieval.ts).
+/** `anchor` is the section a fact comes from; `href` is where that section is now (lib/sections). */
+export type Fact = { id: string; title: string; text: string; anchor: string; href?: string; lead?: string };
+
+export function buildKnowledge(): Fact[] {
+  const facts: Fact[] = [];
+
+  facts.push({
+    id: "about",
+    href: "/about",
+    title: "About ZhenXi",
+    anchor: "top",
+    text: `I'm ${profile.name}, based in ${profile.location}, and I'm ${profile.availability.toLowerCase()} in SRE, DevOps, cloud and AI infrastructure. ${profile.intro} Email me at ${profile.email}.`,
+  });
+
+  facts.push({
+    id: "numbers",
+    href: "/evidence",
+    title: "Numbers I can back up",
+    anchor: "top",
+    lead: "The numbers behind my work, each from a pull-request history or a measurement:",
+    text:
+      `I have merged 169 pull requests into Primustech's production IoT platform, 4 into ARIES, the open-source agent-serving framework, and 21 into a robot-car project. ` +
+      `I cut cloud spend by about 15%, benchmarked 320 LLM agent runs, and measured a 3.02x throughput from running four isolated agent tasks at once.`,
+  });
+
+  for (const c of cases) {
+    facts.push({
+      id: `case-${c.id}`,
+      title: c.title,
+      anchor: `case-${c.id}`,
+      lead: `${c.title} (${c.org}, ${c.year}).`,
+      text: `${c.summary} ${c.problem} ${c.did.join(" ")} ${c.result} Tools used: ${c.stack.join(", ")}.`,
+    });
+  }
+
+  for (const r of experience) {
+    const id = `role-${r.org.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+    // A role on two products is two facts, so a question about either finds its own half; anything
+    // it did on neither product is one more.
+    const parts = r.byProduct
+      ? [...r.byProduct, ...(r.points.length ? [{ product: null, points: r.points, tags: r.tags }] : [])]
+      : [{ product: null, points: r.points, tags: r.tags }];
+    for (const part of parts) {
+      const on = part.product ? products[part.product].name : null;
+      facts.push({
+        id: part.product ? `${id}-${part.product}` : id,
+        title: on ? `${r.role} at ${r.org}: ${on}` : `${r.role} at ${r.org}`,
+        anchor: "experience",
+        lead: on ? `${r.role} at ${r.org}, ${r.period}, on the ${on}.` : `${r.role} at ${r.org}, ${r.period}.`,
+        text: `${part.points.join(" ")} Based in ${r.place}.` + (part.tags.length ? ` Tools used: ${part.tags.join(", ")}.` : ""),
+      });
+    }
+  }
+
+  for (const f of flows) {
+    facts.push({
+      id: `path-${f.id}`,
+      title: f.name,
+      anchor: "platform",
+      lead: f.about,
+      text: `${f.about} ` + f.hops.map((h) => `${h.at} (${h.tag}): ${h.text}`).join(" "),
+    });
+  }
+
+  facts.push({
+    id: "monitoring",
+    title: "What I monitor and why",
+    anchor: "platform",
+    lead: "The signals I alert on, chosen by failure mode:",
+    text:
+      signals.map((s) => `${s.question} I watch ${s.metrics.join(" and ")}. ${s.why}`).join(" ") +
+      ` ${monitoringFacts.join(". ")}.`,
+  });
+
+  facts.push({
+    id: "cost-review",
+    title: "Cost review",
+    anchor: "platform",
+    lead: "How I cut cloud spend by about 15%:",
+    text: costReview.levers
+      .map((l) => `${l.title} (${l.area}, ${l.status}): ${l.detail} ${l.guardrail.startsWith("sort_desc") ? "" : l.guardrail}`)
+      .join(" "),
+  });
+
+  facts.push({
+    id: "products",
+    href: "/#chapters",
+    title: "Products I work on",
+    anchor: "work",
+    lead: "The products I run and build:",
+    // The organisation without its note, so "final-year project" questions reach the project itself.
+    text: productOrder.map((k) => `${products[k].name}, ${products[k].org.split(",")[0]} (${products[k].runs}): ${products[k].what}`).join(" "),
+  });
+
+  facts.push({
+    id: "slos",
+    title: "SLIs, SLOs and error budgets for the IoT platform",
+    anchor: "platform",
+    lead: "How I monitor the IoT platform the SRE way:",
+    text:
+      "I measure SLIs from what users feel, set SLOs with an error budget for each, and alert when a budget burns too fast. " +
+      sreTerms.map((t) => `${t.term} (${t.name}): ${t.what} ${t.here}`).join(" ") +
+      " Proposed SLOs: " +
+      slos.map((o) => `${o.name}, ${o.target}% over 30 days, measured as ${o.good} over ${o.valid}. ${o.why}`).join(" ") +
+      " Burn-rate alerts: " +
+      burnRules.map((r) => `${r.name} above ${r.rate}x over ${r.long} and ${r.short} means ${r.spends}, so it is a ${r.action}.`).join(" ") +
+      " Error budget policy: " +
+      budgetPolicy.map((p) => `${p.when}: ${p.then}`).join(" "),
+  });
+
+  facts.push({
+    id: "investigation",
+    title: "How I investigate an incident",
+    anchor: "platform",
+    lead: "Seven Grafana pages, each starting from a question:",
+    text:
+      investigation.pages.map((p) => `${p.page}: ${p.start} Narrow using ${p.narrow}.`).join(" ") +
+      " Rules I monitor by: " +
+      investigation.rules.join(" ") +
+      " Runbook for late telemetry: " +
+      investigation.runbook.join(" "),
+  });
+
+  facts.push({
+    id: "ai-stack",
+    title: "The AI infrastructure stack I run",
+    anchor: "ai",
+    lead: "The AI agent platform, layer by layer:",
+    text: stack.map((l) => `${l.name} (${l.tools.join(", ")}): ${l.does}${l.mine ? ` My part: ${l.mine}` : ""}`).join(" "),
+  });
+
+  facts.push({
+    id: "ai-products",
+    title: "The AI agent platform I run",
+    anchor: "ai",
+    text: aiOverview,
+  });
+
+  // The lead already opens the answer, so the text is the steps alone (a repeated lead would be
+  // quoted twice when it is more than one sentence).
+  for (const j of journeys) {
+    facts.push({
+      id: `ai-${j.id}`,
+      title: j.name,
+      anchor: "ai",
+      lead: j.about,
+      text: j.steps.map((st) => `${st.title}: ${st.text}${st.mine ? ` ${st.mine}` : ""}`).join(" "),
+    });
+  }
+
+  facts.push({
+    id: "llm-measures",
+    title: "How I benchmark and watch an LLM service",
+    anchor: "ai",
+    lead: "What I measure on an LLM service, and why:",
+    text: measures.map((m) => `${m.question} I measure ${m.metrics.join(", ")}. ${m.why}`).join(" "),
+  });
+
+  facts.push({
+    id: "fyp",
+    title: fyp.title,
+    anchor: "research",
+    text:
+      `My final-year project at NTU HyScale Lab benchmarks long-horizon LLM agent workloads. I contributed a Go benchmark adapter to ARIES, ` +
+      `the lab's open-source agent-serving framework, so Toolathlon tasks (108 tasks, 34 MCP servers) run with live applications in isolated containers.` +
+      `Findings: ${fyp.findings.map((f) => `${f.value} ${f.label}`).join("; ")}. ` +
+      `Running 4 tasks at once gave ${fyp.concurrency[2].attempts} attempts per hour against ${fyp.concurrency[0].attempts} at 1, a 3.02x throughput, ` +
+      `using ${fyp.concurrency[2].memGiB} GiB of memory. Self-hosted Qwen3-4B was served with SGLang on an NVIDIA A100 at NSCC, reached from the Google Cloud benchmark VM over an SSH tunnel through IAP. ` +
+      `I also found and fixed a Docker exec race condition in ARIES that dropped runs under load.`,
+  });
+
+  facts.push({
+    id: "apptainer",
+    title: "ARIES on a supercomputer without root",
+    anchor: "research",
+    lead: "I added an Apptainer backend to ARIES so the whole agent stack runs on an HPC cluster, where users have neither Docker nor root.",
+    text:
+      `Merged into ARIES on ${fyp.apptainer.merged}: ${fyp.apptainer.lines.toLocaleString("en-US")} lines across ${fyp.apptainer.files} files. ` +
+      `On NSCC's ASPIRE 2A supercomputer, the agent, its sandbox and Qwen3-4B served by SGLang ran in one batch job on the same A100 node. ` +
+      `The harness and the sandbox are Apptainer (Singularity) instances with a fake root, and the bridge is a process beside them; the run has its own user and network namespace through slirp4netns, ` +
+      `so other users of a shared node cannot reach it; and because the cluster has no cgroup per container, CPU and memory are measured from /proc. ` +
+      `One hang traced to a fake-root daemon per command, fixed with one per instance. Portable agent plugins (skills and MCP servers) are in review next.`,
+  });
+
+  facts.push({
+    id: "mcp-profiling",
+    title: "What MCP tool servers cost an agent",
+    anchor: "research",
+    lead: "I profiled MCP tool servers across 48 instrumented agent runs.",
+    text:
+      `Model calls are ${fyp.agentTime.parts[0].all}% of the agent's time and the harness's own tools ${fyp.agentTime.parts[1].all}%; MCP calls are 8.6% overall, 13% in tasks whose servers reach the internet and 3.4% in the pool tasks, which are mostly backed by applications. ` +
+      `Local MCP servers answer in 2 to 15 ms, application servers in 6 to 191 ms, and servers that reach the internet in 0.2 to 1.8 s at the median with long tails. ` +
+      `Two ideas would save memory rather than time: starting a server lazily at its first call adds about 1.2 s per server, roughly as much as all the MCP waiting in a run, and restoring an idle application from a snapshot takes about 1.5 s. Neither promises much on this workload. ` +
+      `The expensive server is the Playwright browser: 437 MiB and 56 CPU-seconds a run.`,
+  });
+
+  facts.push({
+    id: "pvchat",
+    title: publication.title,
+    anchor: "research",
+    text: `${publication.role} of ${publication.title}, published at ${publication.venue}. ${publication.summary}`,
+  });
+
+  facts.push({
+    id: "education",
+    title: "Education",
+    anchor: "experience",
+    text: `${education.degree} at ${education.school}, ${education.period}. Exchange semesters at ${education.exchanges.join(" and ")}.`,
+  });
+
+  facts.push({
+    id: "skills",
+    title: "Skills",
+    anchor: "stack",
+    text:
+      "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. " +
+      "CI/CD: GitHub Actions, Jenkins, Cloud Build. Observability: Prometheus, Grafana, PromQL, Cloud Monitoring, alerting, load testing. " +
+      "AI infrastructure: LLM serving with SGLang, LLM benchmarking, A100 GPUs, Vertex AI, RAG, MCP, PyTorch. " +
+      "Data: Kafka, ZooKeeper, PostgreSQL, Redis, MQTT. Languages: Python, Java, Bash, Go, C and C++. " +
+      "Industrial: BMS, SCADA, BACnet, OPC, PLCs.",
+  });
+
+  facts.push({
+    id: "site",
+    title: "How this site is built",
+    anchor: "status",
+    text:
+      "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, " +
+      "the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. " +
+      "Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute " +
+      "from Singapore, Belgium and Oregon, and the status page shows the real availability and error budget left.",
+  });
+
+  facts.push({
+    id: "agents",
+    href: "/agents",
+    title: "This site as an MCP server",
+    anchor: "ask",
+    lead: "An AI agent can use this site directly: it is a Model Context Protocol (MCP) server.",
+    text:
+      "POST /mcp is an MCP server over Streamable HTTP with five read-only tools: ask, search_facts, list_topics, get_status and get_delivery. " +
+      "Add the URL to Claude Code, Cursor or any MCP client and the agent can answer questions about my work from the site's own facts and read its live SLO and delivery numbers. " +
+      "It needs no key, keeps no session and runs no model: retrieval only, so the calling agent brings its own LLM. " +
+      "It speaks the stateless 2026-07-28 revision of the protocol and still answers the initialize handshake of older clients, written in Go against the standard library. " +
+      "For crawlers there is /llms.txt, /llms-full.txt and a Markdown copy of every page under /md/; from a terminal, curl on the home page returns a text card with the live commit and uptime. " +
+      "The /agents page explains how to connect and has a console that sends real requests.",
+  });
+
+  facts.push({
+    id: "releases",
+    href: "/changelog",
+    title: "How this site releases",
+    anchor: "status",
+    lead: "Every push to main goes out the same way, and each step can stop it.",
+    text:
+      "CI builds the image once, smoke-tests it, holds it to Lighthouse budgets and a critical-CVE gate, then pushes it with an SBOM and signed build provenance. " +
+      "The deploy releases that exact digest without rebuilding: it verifies the attestations, holds the release if the site's error budget is spent, " +
+      "starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back on its own if that fails. " +
+      "A rollback drill rehearses this in production; the first one had traffic back on the old revision 20 seconds after the switch. " +
+      "Every release becomes a GitHub release, and the changelog page lists each one with the commits it shipped. ",
+  });
+
+  facts.push({
+    id: "cost",
+    href: "/cost",
+    title: "What this site costs to run",
+    anchor: "cost",
+    lead: "The /cost page prints this month's bill as a receipt, from the service's own meters.",
+    text:
+      "The Go server reads the month's usage from Cloud Monitoring (requests, billed instance time, CPU and memory, bytes sent to the internet) at most once an hour " +
+      "and prices it at Google's list prices for Cloud Run with request-based billing in Singapore. " +
+      "The free tier covers the compute, so what is left to pay, so far well under a US dollar a month, is almost all data leaving Google's network. " +
+      "Most requests come from its own monitoring, and Cloud Run bills in 100 ms steps, so each of those is billed far longer than the server spends on it. " +
+      "A what-if prices a busier month, from a good day to a viral one, and the page lists what caps the bill: scale to zero, at most three instances, rate limits and a budget alert. " +
+      "The terminal's cost command prints the same receipt.",
+  });
+
+  facts.push({
+    id: "break",
+    href: "/break",
+    title: "Break it yourself: fault injection on the live site",
+    anchor: "break",
+    lead: "At /break you can inject faults into this site's live server and watch four client strategies cope with them.",
+    text:
+      "Choose how many requests the server answers with a 503 and how many it holds before answering, then send real requests to /api/lab/echo and see every attempt on a timeline. " +
+      "The clients: give up after one attempt, retry with exponential backoff and full jitter, retry behind a circuit breaker that fails fast after four failures in a row, and hedge, sending a second copy when the first is slow. " +
+      "The faults land on your own requests only, within limits (60% errors, 1.5 s holds, 24 held at once, 240 requests a minute), and never touch the site's SLO, which is measured on another endpoint. " +
+      "To debug the real server instead, a break-fix drill on the repository's drill/01 branch opens in GitHub Codespaces with one bug planted in it.",
+  });
+
+  facts.push({
+    id: "capacity",
+    href: "/research#capacity",
+    title: "Capacity lab: serving hardware for AI agents",
+    anchor: "capacity",
+    lead: "The research chapter has a capacity lab that sizes the serving hardware for long-running AI agents.",
+    text:
+      "Pick a model, an accelerator and an agent's task, and it estimates the GPU memory the weights and each agent's KV cache need, " +
+      "how many agents' histories fit, how fast they decode, how busy the card really is and what a task costs. " +
+      "It starts from my FYP's setup: Qwen3-4B, four agents at once and a 96% prefix-cache hit rate. " +
+      "Decoding is memory-bound and prefill compute-bound; the arithmetic is first-order, and the page says what it leaves out.",
+  });
+
+  facts.push({
+    id: "decisions",
+    href: "/decisions",
+    title: "Architecture decisions for this site",
+    anchor: "status",
+    lead: "Why this site is built the way it is, as architecture decision records (ADRs):",
+    text: decisions.map((d) => `${d.title}.`).join(" ") + " Each record gives the context, what the choice buys and what it costs.",
+  });
+
+  facts.push({
+    id: "postmortems",
+    title: "Postmortems from this site",
+    anchor: "postmortems",
+    lead: "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews).",
+    text:
+      postmortems.map((p) => `${p.title}: ${p.summary} The lesson: ${p.lesson}`).join(" ") +
+      " Each one has a timeline, the root cause, how it was detected and action items linked to the commits that fixed it.",
+  });
+
+  // Worded around drills and being on call, so questions about real incidents still reach the postmortems.
+  facts.push({
+    id: "oncall",
+    href: "/oncall",
+    title: "On-call drills",
+    anchor: "oncall",
+    lead: "At /oncall you can practise being on call: two simulated pages, one on each platform I run.",
+    text:
+      scenarios.map((s) => `${products[s.product].name}, paged at ${s.start}: ${s.page.title}.`).join(" ") +
+      " Each drill uses the platform's own services and dashboards; the objectives behind the pages are proposals or made up for practice, and so is what goes wrong. " +
+      "Every look and every action costs simulated minutes while the error budget burns, and at the end you get a debrief of your own response: the timeline, time to mitigate, budget spent and what went well. " +
+      "The site's terminal runs the same drills as text: type oncall.",
+  });
+
+  facts.push({
+    id: "writing",
+    title: "Writing",
+    anchor: "writing",
+    lead: "Things I have written up at length:",
+    // Titles only: the summaries' numbers already belong to other facts and would compete with them.
+    text: posts.map((p) => `"${p.title}".`).join(" ") + " All are in the Writing section, with the measurements behind them.",
+  });
+
+  // Each fact links to its section on the page it lives on (facts about a whole page, to that page),
+  // for the Ask console and the MCP tools.
+  return facts.map((f) => ({ ...f, href: f.href ?? sectionHref(f.anchor) }));
+}

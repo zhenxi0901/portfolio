@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+/* next-themes toggles the `dark` class on <html>; Tailwind's dark: variant follows it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * One neutral family (zinc) and one accent (acid lime), both modes.
+ * --accent is for fills, --accent-ink is for accent strokes and text on the surface,
+ * so the lime stays legible on the light background.
+ */
+:root {
+  --bg: #f6f6f4;
+  --surface: #fdfdfc;
+  --surface-2: #efefec;
+  --ink: #0d0d10;
+  --ink-2: #4b4b53;
+  --ink-3: #6b6b73;
+  --line: #e2e2de;
+  --line-strong: #cfcfca;
+  --accent: #b5f23d;
+  --accent-ink: #3f6212;
+  --on-accent: #0d0d10;
+  /* 4.8:1 or better on every light surface, for small status text. */
+  --good: #067a06;
+  --critical: #c53030;
+  /* One colour per product, so a visitor can tell which system a card or box belongs to. */
+  --p-iot: #026398; /* 4.8:1 or better as tag text on its own tint, on every light surface */
+  /* Product colours. Light values are dark enough for 12px text on their own 10% tint (4.5:1). */
+  --p-ai: #92400e;
+  --p-aries: #6d28d9;
+  --shadow: 0 1px 0 rgba(13, 13, 16, 0.04), 0 12px 32px -16px rgba(13, 13, 16, 0.18);
+  /* The cost receipt's paper: a warm white, a step brighter than the surface it lies on. */
+  --paper: #fffef9;
+  --paper-shadow: rgba(13, 13, 16, 0.16);
+}
+
+.dark {
+  --bg: #0a0a0c;
+  --surface: #111114;
+  --surface-2: #17171b;
+  --ink: #f2f2f0;
+  --ink-2: #b4b4bb;
+  --ink-3: #8e8e97;
+  --line: #222227;
+  --line-strong: #303036;
+  --accent: #c2f75c;
+  --accent-ink: #c2f75c;
+  --on-accent: #0d0d10;
+  --good: #22c55e;
+  --critical: #f87171;
+  --p-iot: #38bdf8;
+  --p-ai: #fbbf24;
+  --p-aries: #a78bfa;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
+  --paper: #1c1c21;
+  --paper-shadow: rgba(0, 0, 0, 0.7);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+  --color-good: var(--good);
+  --color-critical: var(--critical);
+  --color-p-iot: var(--p-iot);
+  --color-p-ai: var(--p-ai);
+  --color-p-aries: var(--p-aries);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --shadow-soft: var(--shadow);
+  --animate-marquee: marquee var(--duration, 40s) linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - var(--gap, 3rem) / 2)); }
+}
+
+/* Pages are separate documents; where the browser can, cross-fade between them. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Focus and anchors land clear of the fixed top bar (64 px) and the dock at the bottom (72 px). */
+  scroll-padding-top: 5rem;
+  scroll-padding-bottom: 6rem;
+  color-scheme: light;
+}
+html.dark { color-scheme: dark; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--accent); color: var(--on-accent); }
+
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Film grain on a fixed, non-interactive layer only (never on scrolling content). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.dark body::after { opacity: 0.05; }
+
+/*
+ * Scroll reveals. Content is visible by default; it only starts hidden once the inline
+ * script in <head> has marked the page as scripted (html.js), and a 4 s fallback animation
+ * forces it visible even if hydration never happens.
+ */
+html.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(var(--reveal-y, 18px));
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s);
+  animation: reveal-fallback 0.01s linear 4s forwards;
+}
+html.js [data-reveal][data-shown] {
+  opacity: 1;
+  transform: none;
+}
+@keyframes reveal-fallback {
+  to { opacity: 1; transform: none; }
+}
+
+/* Children that animate when their reveal container is shown. */
+.grow-x {
+  transform-origin: left;
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--grow-delay, 0.1s);
+}
+html.js [data-reveal]:not([data-shown]) .grow-x { transform: scaleX(0); }
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
+
+/*
+ * Kinetic name: CSS only, so the headline renders with or without JavaScript. It rises but never
+ * fades: a letter at opacity 0 does not count as painted, which pushed the largest paint back.
+ */
+.kinetic-letter {
+  display: inline-block;
+  animation: letter-rise 0.9s cubic-bezier(0.2, 0.9, 0.25, 1.15) backwards;
+  animation-delay: calc(var(--i) * 45ms + 60ms);
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.25, 1.4), color 0.25s;
+}
+.kinetic-letter:hover {
+  transform: translateY(-0.12em) rotate(var(--r, -5deg));
+  color: var(--accent-ink);
+}
+@keyframes letter-rise {
+  from { transform: translateY(0.6em) rotate(6deg); }
+}
+
+/* The rest of the hero arrives on a timer, not on hydration, so a busy phone still shows it. */
+.hero-in {
+  animation: hero-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) backwards;
+}
+.hero-rise {
+  animation: hero-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) backwards;
+}
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(14px); }
+}
+@keyframes hero-rise {
+  from { transform: translateY(14px); }
+}
+
+/* The section the guided tour is showing. */
+h2[data-tour] {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
+}
+
+/* The hop a request is travelling on the AI platform map. */
+.map-flow {
+  stroke-dasharray: 6 6;
+  animation: map-flow 0.9s linear infinite;
+}
+@keyframes map-flow {
+  to { stroke-dashoffset: -12; }
+}
+
+/* A step's text on the AI platform map arriving. */
+.step-in {
+  animation: step-in 0.25s ease-out both;
+}
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+/* Cost review: bars grow in, "after" bars shrink to their size, reaped topics fade, removed
+   resources get struck through one by one. */
+.bar-in {
+  transform-origin: left;
+  animation: bar-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes bar-in {
+  from { transform: scaleX(0); }
+}
+.shrink-to {
+  animation: shrink-to 1.1s cubic-bezier(0.65, 0, 0.35, 1) 0.35s both;
+}
+@keyframes shrink-to {
+  from { width: var(--from); }
+  to { width: var(--to); }
+}
+.reap-dot {
+  animation: reap-dot 0.35s ease-out both;
+}
+@keyframes reap-dot {
+  to { opacity: 0.25; transform: scale(0.55); }
+}
+.strike-in {
+  position: relative;
+}
+.strike-in::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1.5px;
+  background: currentColor;
+  transform-origin: left;
+  animation: strike 0.45s ease-out var(--d, 0s) both;
+}
+@keyframes strike {
+  from { transform: scaleX(0); }
+}
+
+/* The SSH tunnel between the research GPU and the agents. */
+.tunnel {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--accent-ink) 0 6px, transparent 6px 12px);
+  animation: tunnel 0.8s linear infinite;
+}
+@keyframes tunnel {
+  to { background-position: 12px 0; }
+}
+
+/*
+ * The cost receipt: paper with torn zigzag top and bottom edges. The mask cuts the teeth (one
+ * conic gradient per edge plus the solid middle), and the shadow is a drop-shadow on the wrapper
+ * because a box-shadow would be masked away with the corners.
+ */
+.receipt {
+  filter: drop-shadow(0 12px 18px var(--paper-shadow));
+}
+.receipt-paper {
+  --tooth: 8px;
+  background: var(--paper);
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) var(--tooth) repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) var(--tooth) repeat-x,
+    linear-gradient(#000 0 0) center / 100% calc(100% - 2 * var(--tooth) + 1px) no-repeat;
+}
+@media print {
+  .receipt { filter: none; }
+}
+
+/* Dotted canvas behind the hero and a few tiles. */
+.dot-grid {
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  html.js [data-reveal] { opacity: 1; transform: none; }
+  html.js [data-reveal]:not([data-shown]) .grow-x { transform: none; }
+  html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 0; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  body::after, [data-print-hide] { display: none !important; }
+  body { background: #fff; color: #111; }
+}

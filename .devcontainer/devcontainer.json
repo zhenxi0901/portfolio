@@ -1,0 +1,17 @@
+{
+  "name": "Break-fix drill 01",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": { "version": "1.27" }
+  },
+  "postCreateCommand": "cd api && go mod download",
+  "postAttachCommand": "cat drills/01/BRIEF.txt",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": { "label": "the site's Go server", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["drills/01/README.md"] },
+    "vscode": { "extensions": ["golang.go"] }
+  }
+}

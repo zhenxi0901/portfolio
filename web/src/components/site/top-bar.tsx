@@ -1,0 +1,74 @@
+"use client";
+
+import { Command, TerminalWindow } from "@phosphor-icons/react";
+import { profile } from "@/content/profile";
+import { usePalette, useTerminal } from "@/components/providers";
+import { ThemeToggle } from "@/components/site/theme-toggle";
+import { pages } from "@/components/site/nav-items";
+import { usePathname } from "next/navigation";
+import { chapterOf } from "@/lib/sections";
+
+/** On the home page the name jumps to the top; on other pages (`home`) it goes back home. */
+export function TopBar({ home = false }: { home?: boolean }) {
+  const { setOpen } = usePalette();
+  const terminal = useTerminal();
+  const path = usePathname();
+  // A case study or a post belongs to a chapter: the menu marks that chapter too.
+  const chapter = chapterOf(path);
+  return (
+    <header data-print-hide className="fixed inset-x-0 top-0 z-30">
+      <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-4 sm:px-8">
+        <a
+          href={home ? "/" : "#top"}
+          className="group flex items-center gap-2.5 rounded-full border border-line bg-surface/80 py-1 pl-1 pr-1 backdrop-blur-md sm:pr-4"
+        >
+          <span aria-hidden className="grid size-9 place-items-center rounded-full bg-accent font-mono text-[13px] font-bold text-on-accent transition-transform duration-300 group-hover:rotate-[-12deg]">
+            LZ
+          </span>
+          {/* The name is the link's text on every screen; phones just don't show it. */}
+          <span className="sr-only text-sm font-medium tracking-tight sm:not-sr-only">{profile.name}</span>
+          <span className="sr-only">{home ? ", home page" : ", back to top"}</span>
+        </a>
+        {/* The chapters, on screens wide enough for them; phones have the dock at the bottom. */}
+        <nav aria-label="Chapters" className="hidden items-center gap-0.5 rounded-full border border-line bg-surface/80 p-1 backdrop-blur-md lg:flex">
+          {pages.slice(1).map((p) => (
+            <a
+              key={p.href}
+              href={p.href}
+              aria-current={chapter === p.href ? (path === p.href ? "page" : "true") : undefined}
+              className="rounded-full px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink aria-[current=page]:bg-surface-2 aria-[current=page]:font-medium aria-[current=page]:text-ink aria-[current=true]:bg-surface-2 aria-[current=true]:text-ink"
+            >
+              {p.label}
+            </a>
+          ))}
+        </nav>
+        <div className="flex items-center gap-1 rounded-full border border-line bg-surface/80 p-1 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            // The label text is hidden on phones, so the button needs its name spelled out.
+            aria-label="Jump anywhere"
+            data-palette-trigger
+            aria-keyshortcuts="/"
+            className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <Command size={15} />
+            <span className="hidden sm:inline">Jump anywhere</span>
+            <kbd className="rounded-md border border-line px-1.5 font-mono text-[11px] text-ink-3">/</kbd>
+          </button>
+          <button
+            type="button"
+            onClick={() => terminal.setOpen(true)}
+            aria-label="Open the terminal"
+            aria-keyshortcuts="`"
+            title="Terminal: a shell over this site's API (`)"
+            className="inline-flex size-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <TerminalWindow size={18} />
+          </button>
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+  );
+}

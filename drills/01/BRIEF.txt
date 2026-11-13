@@ -1,0 +1,15 @@
+
+  BREAK-FIX DRILL 01 · you are on call
+
+  Scripts and agents that call the Ask API (/api/ask) say it sometimes
+  answers with an error. Visitors to the site haven't noticed a thing.
+  The uptime checks, which the SLO is measured by, are all green.
+  Find out why and fix it.
+
+    make drill    start the real server and send it traffic
+    make check    test your fix: every question gets a real answer
+    make stop     stop the server
+
+  The brief, the tools and three hints: drills/01/README.md
+  One rule: don't compare this branch with main or read its history.
+  That is the answer key.

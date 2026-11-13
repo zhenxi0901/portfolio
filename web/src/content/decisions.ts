@@ -1,0 +1,318 @@
+// Architecture decision records for this site: what was chosen, what it costs, and the evidence in
+// the repository. The /decisions page renders them, and scripts/gen-adr.mts writes the same records
+// to docs/adr/ as Markdown (CI fails if those files are stale). No imports: the script runs under
+// plain Node.
+
+export type Decision = {
+  id: number;
+  slug: string;
+  title: string;
+  /** ISO date the decision was made. */
+  date: string;
+  status: "Accepted" | "Superseded";
+  context: string[];
+  decision: string[];
+  good: string[];
+  bad: string[];
+  evidence: { label: string; path: string }[];
+};
+
+export const REPO_BLOB = "https://github.com/zhenxi0901/portfolio/blob/main/";
+
+export const decisions: Decision[] = [
+  {
+    id: 1,
+    slug: "cloud-run-not-gke",
+    title: "Run the site on Cloud Run, not GKE",
+    date: "2026-10-01",
+    status: "Accepted",
+    context: [
+      "A personal site gets little traffic, in bursts, and has to cost close to nothing: the project's budget alert is set at S$1 a month.",
+      "I run GKE at work, so a cluster would have been the familiar choice. It would also have meant a control plane, node pools and upgrades for one small service.",
+    ],
+    decision: [
+      "Cloud Run, scaling to zero, at most three instances of one CPU and 256 MiB, billed per request (CPU idles between requests).",
+    ],
+    good: [
+      "Near-zero cost, HTTPS and immutable revisions built in, and nothing to patch.",
+      "Revisions and traffic tags are what make releasing with no traffic, and rolling back in seconds, cheap (ADR 3).",
+    ],
+    bad: [
+      "Cold starts. The visit trace on the status page shows when a visitor woke the server up; the uptime checks keep an instance warm most of the time.",
+      "No CPU once the response is written, so work cannot be left running afterwards. The contact form learned this the hard way: see its postmortem.",
+      "Memory is per instance, so rate limits and caches are per instance too. At three instances that is an acceptable approximation.",
+    ],
+    evidence: [
+      { label: "infra/main.tf: the service, scaling and limits", path: "infra/main.tf" },
+      { label: "api/internal/server/timing.go: telling a visitor they woke it up", path: "api/internal/server/timing.go" },
+    ],
+  },
+  {
+    id: 2,
+    slug: "one-binary-one-origin",
+    title: "One Go binary serves the static site and the API",
+    date: "2026-10-01",
+    status: "Accepted",
+    context: [
+      "The front end is a Next.js static export; the API answers questions, takes contact messages and reports status.",
+      "Hosting the pages and the API separately means two deploys and cross-origin requests; running Next.js as a server means a Node runtime in the image and CPU on every page view.",
+    ],
+    decision: [
+      "A Go server built on the standard library serves the export and /api/* from one origin and one image: distroless, non-root, about 30 MB.",
+      "Pages are compressed with brotli and gzip at build time and served as-is; hashed assets are cached as immutable.",
+    ],
+    good: [
+      "One origin, so the site needs no CORS and the content security policy stays strict.",
+      "One image to build, test, attest and release (ADR 3); no compression work per request.",
+      "Four direct Go dependencies: Prometheus' client and three OpenTelemetry modules.",
+    ],
+    bad: [
+      "No server rendering: changing content means a rebuild, which every push to main does in minutes anyway.",
+      "The Ask console's retrieval exists twice, in Go and in TypeScript (the browser's offline fallback). A parity test in CI keeps them giving the same answers.",
+    ],
+    evidence: [
+      { label: "Dockerfile", path: "Dockerfile" },
+      { label: "api/internal/server/static.go", path: "api/internal/server/static.go" },
+      { label: "web/scripts/gen-parity.mts: the parity fixtures", path: "web/scripts/gen-parity.mts" },
+    ],
+  },
+  {
+    id: 3,
+    slug: "build-once-check-before-traffic",
+    title: "Build once, release that digest, check it before it takes traffic",
+    date: "2026-10-19",
+    status: "Accepted",
+    context: [
+      "The first pipeline rebuilt the image at deploy time, so what reached production was not the image CI had tested, and traffic moved to a new revision before anything checked it.",
+      "A filter on the branch name alone would also have let a fork's pull request from its own main reach the deploy credentials.",
+    ],
+    decision: [
+      "CI builds the image once, smoke-tests it, holds it to Lighthouse budgets and a critical-CVE gate, and only then pushes it with an SBOM and build-provenance attestation.",
+      "The deploy releases that digest without rebuilding: it verifies the attestations, applies the error-budget gate (ADR 7), starts the revision with no traffic, smoke-tests it at its own URL, pins traffic to it and checks again. If that fails, traffic goes back to the previous revision on its own.",
+      "Only pushes to main in this repository deploy. A manual rollback drill rehearses the whole path in production.",
+    ],
+    good: [
+      "What was tested is what runs, and the release says so with signed evidence attached.",
+      "A failed release either never takes traffic or is rolled back: the first drill had traffic back on the old revision 20 seconds after the switch.",
+      "Every release is a GitHub release listing the commits it shipped.",
+    ],
+    bad: [
+      "Traffic is pinned to the revision the pipeline checked, so a Terraform change to the service goes live only with the next release.",
+      "gcloud names the revision it tags in the service's template, which Terraform has to clear on its next apply; that costs a revision that takes no traffic.",
+    ],
+    evidence: [
+      { label: ".github/workflows/ci.yml", path: ".github/workflows/ci.yml" },
+      { label: ".github/workflows/deploy.yml", path: ".github/workflows/deploy.yml" },
+    ],
+  },
+  {
+    id: 4,
+    slug: "slo-from-outside",
+    title: "Measure the site's SLO from outside",
+    date: "2026-10-19",
+    status: "Accepted",
+    context: [
+      "The service scales to zero and Prometheus does not run on Cloud Run, so request metrics only exist while an instance does.",
+      "Server-side numbers also miss the front door: the health check that only worked from inside returned 200 to the container and 404 to the world.",
+    ],
+    decision: [
+      "SLI: the share of Cloud Monitoring uptime checks, run every minute from Singapore, Belgium and Oregon, that get a 2xx from /api/health within 10 seconds. SLO: 99.9% over 30 days, a budget of 43.2 minutes.",
+      "The API reads the results back from Cloud Monitoring and the status page shows availability, downtime and budget left.",
+    ],
+    good: [
+      "It measures what a visitor gets, through the same front door, from three continents.",
+      "About 130,000 checks a month fits in Cloud Monitoring's free allowance.",
+    ],
+    bad: [
+      "One endpoint, sampled once a minute: a failure that lasts seconds, or that only breaks one page, can be missed.",
+      "Monitoring stores several samples per probe, so the counts mean something only as a ratio.",
+      "The probes keep an instance warm, so cold starts are rarer than real traffic alone would make them.",
+    ],
+    evidence: [
+      { label: "infra/slo.tf", path: "infra/slo.tf" },
+      { label: "api/internal/slo/slo.go", path: "api/internal/slo/slo.go" },
+    ],
+  },
+  {
+    id: 5,
+    slug: "plain-rest-for-google-apis",
+    title: "Call Google Cloud with plain REST, not client libraries",
+    date: "2026-10-19",
+    status: "Accepted",
+    context: [
+      "The API reads uptime results from Cloud Monitoring and exports OpenTelemetry spans to Cloud Trace. Google's Go client libraries for both bring gRPC and a large dependency tree.",
+    ],
+    decision: [
+      "Take the project ID and an access token from the metadata server and call the REST APIs directly: Monitoring's timeSeries query, and a small span exporter for Cloud Trace's traces:batchWrite.",
+    ],
+    good: [
+      "The dependency tree stays small (ADR 2), and both clients are tested against fake servers, metadata server included.",
+      "Each Ask answer can show its own spans, because the spans pass through a recorder the API owns.",
+    ],
+    bad: [
+      "I own the exporter: batching, timeouts and any change in the API are mine to handle.",
+      "Only the calls the site needs exist; anything new is another hand-written request.",
+    ],
+    evidence: [
+      { label: "api/internal/gcp: the metadata server client", path: "api/internal/gcp/metadata.go" },
+      { label: "api/internal/tracing/cloudtrace.go: the exporter", path: "api/internal/tracing/cloudtrace.go" },
+    ],
+  },
+  {
+    id: 6,
+    slug: "retrieval-first-ask",
+    title: "Answer questions by retrieval first; an LLM is optional",
+    date: "2026-10-01",
+    status: "Accepted",
+    context: [
+      "The Ask console answers questions about me on a public site. Wrong answers, prompt injection and an open-ended model bill are all real risks.",
+    ],
+    decision: [
+      "BM25 retrieval over the site's own facts, generated at build time from the same content files as the pages, picks the answer. An OpenAI-compatible model can phrase it, fenced against injected instructions, rate limited and cached.",
+      "The browser carries the same retrieval, so the console still answers if the API is down.",
+    ],
+    good: [
+      "Every answer comes from something the site already says, at no model cost by default.",
+      "Answers are deterministic, so they can be tested: Go and TypeScript are checked against the same 23 questions in CI.",
+    ],
+    bad: [
+      "Retrieval quotes rather than converses, and a question the facts do not cover gets the closest fact, not a new answer.",
+    ],
+    evidence: [
+      { label: "api/internal/ask/retrieval.go", path: "api/internal/ask/retrieval.go" },
+      { label: "web/src/lib/retrieval.ts", path: "web/src/lib/retrieval.ts" },
+    ],
+  },
+  {
+    id: 7,
+    slug: "error-budget-gates-releases",
+    title: "The error budget gates releases, in code",
+    date: "2026-10-19",
+    status: "Accepted",
+    context: [
+      "An SLO with no consequence is a dashboard. Error-budget policies usually live in a document that someone has to remember during an incident.",
+    ],
+    decision: [
+      "/api/slo reports whether releases are open or frozen. Once the 30-day budget is spent, the deploy holds every release except a commit marked with a Reliability-fix line, or a manual run that states an override; the reason goes in the run summary.",
+      "If the SLO cannot be read, the gate stays open and says so: losing the measurement should not stop a fix.",
+    ],
+    good: [
+      "The policy is enforced and auditable rather than remembered; the page shows its state live.",
+    ],
+    bad: [
+      "With a 43-minute budget, one bad hour freezes feature releases until the window rolls past it, which can take weeks. That is the point, but it is strict for a one-person site.",
+      "Failing open means a broken measurement and a spent budget would let a release through.",
+    ],
+    evidence: [
+      { label: "scripts/budget-gate.sh", path: "scripts/budget-gate.sh" },
+      { label: "api/internal/slo/slo.go: the releases field", path: "api/internal/slo/slo.go" },
+    ],
+  },
+  {
+    id: 8,
+    slug: "scheduled-checks-not-alert-policies",
+    title: "Page with scheduled checks, not Cloud Monitoring alert policies",
+    date: "2026-10-19",
+    status: "Accepted",
+    context: [
+      "The contact-form postmortem left two actions open: alert when a message goes undelivered, and check the path end to end.",
+      "Cloud Monitoring alert policies are billed per condition, and the project's budget is S$1 a month.",
+    ],
+    decision: [
+      "A GitHub Actions schedule searches Cloud Run's logs hourly for undelivered messages since the previous search, as a read-only identity, and twice a day sends a message marked by a secret token through the live form and the real webhook, posted silently. A failed check fails the workflow, and GitHub emails me.",
+    ],
+    good: [
+      "Free, versioned with the code, and it tests the real path rather than a proxy for it.",
+    ],
+    bad: [
+      "GitHub starts scheduled runs late when it is busy, sometimes by hours, so the email can lag the failure; each search covers the time since the last, so nothing is missed, only delayed. And email is not a pager.",
+      "GitHub turns off schedules in a public repository after 60 days without activity.",
+    ],
+    evidence: [
+      { label: ".github/workflows/synthetic.yml", path: ".github/workflows/synthetic.yml" },
+      { label: "infra/watch.tf", path: "infra/watch.tf" },
+    ],
+  },
+  {
+    id: 9,
+    slug: "no-long-lived-credentials",
+    title: "No long-lived credentials anywhere",
+    date: "2026-10-01",
+    status: "Accepted",
+    context: [
+      "A public repository's workflows deploy to a real project. A leaked service-account key, or a secret in Terraform state or a log, would be a standing risk.",
+    ],
+    decision: [
+      "GitHub's OIDC token is exchanged through Workload Identity Federation for short-lived credentials, limited to this repository's main branch. Separate identities deploy and read logs, each with only the roles it needs.",
+      "Secrets live in Secret Manager. Terraform creates them empty and never sees the values; the project and service accounts are repository secrets so the public logs mask them.",
+    ],
+    good: ["There is no key to leak or rotate, and every credential expires within the hour."],
+    bad: ["Setting a secret is a manual step, on purpose, and the README has to say how."],
+    evidence: [
+      { label: "infra/github.tf", path: "infra/github.tf" },
+      { label: "SECURITY.md", path: "SECURITY.md" },
+    ],
+  },
+  {
+    id: 10,
+    slug: "mcp-without-sessions-or-a-model",
+    title: "An MCP server with no sessions and no model",
+    date: "2026-11-11",
+    status: "Accepted",
+    context: [
+      "People increasingly look things up through an AI agent, and that includes looking up a candidate. The site already had a file of facts and a retrieval index behind its Ask console; the Model Context Protocol (MCP) is how an agent reaches something like that as tools.",
+      "The protocol changed shape in 2026. The 2026-07-28 revision is stateless: no handshake, every request describes itself. Clients written before it still open with an initialize request and expect an answer.",
+    ],
+    decision: [
+      "Serve MCP at /mcp from the same Go binary, written against the standard library. Speak the stateless revision, and also answer the older handshake, without keeping a session for either.",
+      "Five read-only tools over what the site already publishes: its facts, its SLO and its delivery numbers. Retrieval only: the tools return text and numbers, and the calling agent's model does the reasoning.",
+    ],
+    good: [
+      "It fits Cloud Run: any instance can answer any request, and scaling to zero loses nothing.",
+      "No model bill and no prompt for a stranger to attack on my side. The LLM in the loop is the caller's own.",
+      "One set of facts. The Ask console, /llms-full.txt and the tools all read the same file, so they cannot disagree.",
+    ],
+    bad: [
+      "Two protocol eras to keep working. Each has its own tests, and every release calls a tool in both before it takes traffic.",
+      "No SDK, so when the specification moves again the changes are mine to make by hand.",
+      "Tools only: no resources, prompts or streaming. A portfolio does not need them, and each would be more surface to keep correct.",
+      "It is open to anyone, so it is rate limited per client, and the limit is per instance (ADR 1).",
+    ],
+    evidence: [
+      { label: "api/internal/mcp/mcp.go: the protocol, both eras", path: "api/internal/mcp/mcp.go" },
+      { label: "api/internal/server/mcptools.go: the tools", path: "api/internal/server/mcptools.go" },
+      { label: "scripts/smoke.sh: both eras checked on every release", path: "scripts/smoke.sh" },
+    ],
+  },
+  {
+    id: 11,
+    slug: "chapters-not-one-page",
+    title: "Chapters, not one long page",
+    date: "2026-11-12",
+    status: "Accepted",
+    context: [
+      "Everything was on the home page: 13 sections, 23 screens on a laptop and 35 on a phone, 3,526 words and 92 buttons. It grew a section at a time, and each section was worth having; together they were too much to take in.",
+      "People decide fast. Nielsen Norman Group found that 57% of the time spent on a page goes to its first screen and 74% to its first two, and interviewing.io measured recruiters reading a résumé for a median of 31 seconds. Almost all of the page sat below where a visitor would have stopped.",
+      "Engineers whose sites people return to solve this the same way: a short home page that says who and what, and a page per topic.",
+    ],
+    decision: [
+      "A short home page: who I am, what I am doing now (dated), the site's live uptime, one card per product, the ways into the site's own operations, the latest writing, and contact.",
+      "A chapter per product, so each keeps its own work, models and numbers: /iot, /ai and /research. Then /writing for posts and postmortems, and /about for experience, the stack and the Ask console. Status, the changelog, these decisions, the evidence, the MCP server and the drills stay pages of their own.",
+      "One table says which page each section is on (web/src/lib/sections.ts). Every link, the Ask console's sources, the palette, the tour and the MCP tools go through it, and old links of the form /#section are sent on to the section's new page.",
+      "The one-page version stays at /v1, kept out of search results, as a record of where the site came from.",
+    ],
+    good: [
+      "The home page is a few screens, and each chapter reads on its own.",
+      "Each product's material lives in one place, which is easier to keep straight and to link to.",
+    ],
+    bad: [
+      "More clicks to see everything, and more to keep consistent: the chapter menu, the dock and the previous and next links all follow one list of pages.",
+      "/v1 is a second copy of every section to keep building and testing.",
+    ],
+    evidence: [
+      { label: "web/src/lib/sections.ts: which page each section is on", path: "web/src/lib/sections.ts" },
+      { label: "web/src/app/page.tsx: the home page", path: "web/src/app/page.tsx" },
+      { label: "web/src/app/v1/page.tsx: the one-page version", path: "web/src/app/v1/page.tsx" },
+    ],
+  },
+];

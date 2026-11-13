@@ -1,0 +1,206 @@
+{
+  "generated": "2026-10-19T12:06:08.635Z",
+  "windowDays": 30,
+  "deploys": 38,
+  "daysWithDeploys": 4,
+  "leadTimeMinutes": {
+    "median": 5.8,
+    "commits": 50
+  },
+  "changeFailureRate": 0,
+  "failedDeploys": 0,
+  "restoreMinutes": {
+    "median": null,
+    "count": 0
+  },
+  "deployMinutes": {
+    "median": 1.4
+  },
+  "safeguards": {
+    "stoppedBeforeTraffic": 0,
+    "heldByBudget": 0,
+    "rollbacks": 0,
+    "lastDrill": {
+      "ended": "2026-10-19T12:05:49.000Z",
+      "restoreSeconds": 17,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39249180137"
+    }
+  },
+  "head": {
+    "sha": "97ac23e",
+    "title": "Fixes from a full review: releases, the changelog, the card and claims",
+    "committed": "2026-10-19T11:55:32.000Z"
+  },
+  "perDay": [
+    {
+      "date": "2026-09-20",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-21",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-22",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-23",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-24",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-25",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-26",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-27",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-28",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-29",
+      "deploys": 0
+    },
+    {
+      "date": "2026-09-30",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-01",
+      "deploys": 5
+    },
+    {
+      "date": "2026-10-02",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-03",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-04",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-05",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-06",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-07",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-08",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-09",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-10",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-11",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-12",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-13",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-14",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-15",
+      "deploys": 7
+    },
+    {
+      "date": "2026-10-16",
+      "deploys": 6
+    },
+    {
+      "date": "2026-10-17",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-18",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-19",
+      "deploys": 20
+    }
+  ],
+  "recent": [
+    {
+      "sha": "97ac23e",
+      "title": "Fixes from a full review: releases, the changelog, the card and claims",
+      "ended": "2026-10-19T12:03:39.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 8.1,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39248925939"
+    },
+    {
+      "sha": "464e8da",
+      "title": "Changelog: attribute commits by ancestry, and wrap long titles",
+      "ended": "2026-10-19T11:24:07.000Z",
+      "minutes": 1.5,
+      "leadMinutes": 6.6,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39244188283"
+    },
+    {
+      "sha": "a1935b0",
+      "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
+      "ended": "2026-10-19T11:08:16.000Z",
+      "minutes": 1.6,
+      "leadMinutes": 7.3,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39242243666"
+    },
+    {
+      "sha": "17da88d",
+      "title": "Load test: read the status JSON with jq, not by piping curl into python",
+      "ended": "2026-10-19T10:52:20.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 7.1,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39240340244"
+    },
+    {
+      "sha": "747ef92",
+      "title": "Status page, changelog, decision records and a live profile card",
+      "ended": "2026-10-19T10:35:10.000Z",
+      "minutes": 1.9,
+      "leadMinutes": 7.3,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39238277221"
+    },
+    {
+      "sha": "9dfbfb6",
+      "title": "Close the contact-form postmortem's last two action items",
+      "ended": "2026-10-19T10:15:15.000Z",
+      "minutes": 1.6,
+      "leadMinutes": 6.5,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39235917460"
+    }
+  ]
+}

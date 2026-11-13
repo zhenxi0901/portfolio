@@ -1,0 +1,173 @@
+[
+  {
+    "question": "How did ZhenXi cut the cloud bill?",
+    "answer": "How I cut cloud spend by about 15%: Drop metrics nobody reads (Monitoring, done): Turned off three GKE metric packages after confirming 0 of the 27 alerts then in place and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape. Right-size Cloud SQL (Database, done): 4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal. Size pods to need, scale nodes to load (Compute, done): Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter.",
+    "sources": [
+      "cost-review"
+    ]
+  },
+  {
+    "question": "What did the final-year project find?",
+    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 - now, on the ARIES agent benchmarks. Contributed a Go benchmark adapter to ARIES, the lab's open-source framework for agent-serving research. Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026). Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
+    "sources": [
+      "role-ntu-hyscale-lab-aries"
+    ]
+  },
+  {
+    "question": "Which GPUs has ZhenXi used?",
+    "answer": "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. CI/CD: GitHub Actions, Jenkins, Cloud Build. AI infrastructure: LLM serving with SGLang, LLM benchmarking, A100 GPUs, Vertex AI, RAG, MCP, PyTorch.",
+    "sources": [
+      "skills",
+      "capacity"
+    ]
+  },
+  {
+    "question": "What happens when a build has a critical CVE?",
+    "answer": "Every push to main goes out the same way, and each step can stop it. CI builds the image once, smoke-tests it, holds it to Lighthouse budgets and a critical-CVE gate, then pushes it with an SBOM and signed build provenance. The deploy releases that exact digest without rebuilding: it verifies the attestations, holds the release if the site's error budget is spent, starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back on its own if that fails. A rollback drill rehearses this in production; the first one had traffic back on the old revision 20 seconds after the switch.",
+    "sources": [
+      "releases",
+      "case-pipeline"
+    ]
+  },
+  {
+    "question": "Tell me about the ICCV paper",
+    "answer": "Co-author of PVChat: Personalized Video Chat with One-Shot Learning, published at ICCV 2025. The first video LLM that learns a person from a single reference video, so it can answer identity-aware questions about them.",
+    "sources": [
+      "pvchat"
+    ]
+  },
+  {
+    "question": "k8s migration",
+    "answer": "One VM to a GKE platform (Primustech, 2026). Moved a live building-operations platform off a single Docker Compose VM and onto Kubernetes. The IoT platform behind the company's facility-management product ran on one Docker Compose VM: one failure domain, hand-run deploys and no autoscaling. Migrated the production database, cut the public domain over, then turned on deletion protection and passed a restore drill.",
+    "sources": [
+      "case-gke",
+      "role-primustech-iot"
+    ]
+  },
+  {
+    "question": "Where did ZhenXi study?",
+    "answer": "Bachelor of Computer Science at Nanyang Technological University, Jul 2023 - Jun 2027. Exchange semesters at Tsinghua University and Luleå University of Technology.",
+    "sources": [
+      "education"
+    ]
+  },
+  {
+    "question": "Does ZhenXi know Terraform?",
+    "answer": "A pipeline where failed merges never deploy (Primustech, 2026). Builds and deploys were coupled, so what reached production was not always the image that had been tested, and infrastructure drifted from Terraform. Added pull-request, post-merge and Terraform drift gates, a CRITICAL-CVE image gate and weekly base-image rebuilds. Made releases and Terraform applies approval-gated and serialised per component, then moved the repository from Bitbucket to GitHub with full history.",
+    "sources": [
+      "case-pipeline",
+      "role-primustech-iot"
+    ]
+  },
+  {
+    "question": "What products do you run?",
+    "answer": "The products I run and build: Building IoT platform, Primustech (Kubernetes on GKE): Collects live data from building systems (sensors, HVAC, meters) and serves the dashboards and alarms facility teams use. AI agent platform, Primustech (Agents and RAG on Cloud Run): Two AI agents for facility teams: one answers from the IoT platform's live data, the other from company documents. ARIES agent benchmarks, NTU HyScale Lab (SGLang on an A100, Google Cloud VM): Making the lab's open-source agent-serving framework run long agent tasks, then measuring what serving them costs.",
+    "sources": [
+      "products"
+    ]
+  },
+  {
+    "question": "What are your SLOs and error budgets?",
+    "answer": "How I monitor the IoT platform the SRE way: I measure SLIs from what users feel, set SLOs with an error budget for each, and alert when a budget burns too fast. Whatever it leaves over is the error budget, to spend on change. Error budget policy: Budget left: Ship as normal.",
+    "sources": [
+      "slos"
+    ]
+  },
+  {
+    "question": "What is your AI infrastructure stack?",
+    "answer": "The AI agent platform, layer by layer: Models (Gemini on Vertex AI, OpenRouter: Gemini, Grok, Gemini embeddings): Managed models behind two gateways: Vertex AI for the operations agent, OpenRouter for multi-provider access and the document assistant. My part: Service-account access to Vertex AI; provider keys kept in Secret Manager. Retrieval (Milvus, MongoDB, LLM chunking, Gemini vision for images): Documents become Markdown, then meaningful chunks, then vectors in Milvus.",
+    "sources": [
+      "ai-stack",
+      "case-ai-platform"
+    ]
+  },
+  {
+    "question": "How does the document RAG pipeline work?",
+    "answer": "The document assistant's pipeline: upload a PDF, spreadsheet, deck or image, and it becomes searchable for RAG. An upload: Someone adds a document to a knowledge base: PDF, Word, PowerPoint, Excel, CSV or an image. Heavy lifting, elsewhere: A much larger image, with the document parsers, runs as a Cloud Run Job on a schedule and drains the queue. Searchable: The vectors go to Milvus and the document's metadata to MongoDB.",
+    "sources": [
+      "ai-add-document",
+      "ai-ask-documents"
+    ]
+  },
+  {
+    "question": "What do you measure on an LLM service?",
+    "answer": "What I measure on an LLM service, and why: I measure end-to-end latency p50 / p95, time per agent step, model vs tool vs data time. An agent answer is several model calls and tool calls in a row. I measure input / output tokens per request, cost per request, cost per tenant.",
+    "sources": [
+      "llm-measures"
+    ]
+  },
+  {
+    "question": "ZooKeeper quorum alerts",
+    "answer": "Alerts that mean something (Primustech, 2026). The cluster could lose ZooKeeper quorum, stall consumers or silently drop telemetry without anyone being told. Versioned Grafana SRE dashboards and Cloud Monitoring alerts for ZooKeeper quorum loss, stalled consumers and crash loops. Fixed a ZooKeeper leader-election livelock that appeared after a node was replaced, and kept every alert and dashboard in Terraform with zero drift.",
+    "sources": [
+      "case-observability"
+    ]
+  },
+  {
+    "question": "SCADA and PLC experience",
+    "answer": "Control Systems Intern at ENGIE South East Asia, May 2025 - Jan 2026. Configured BMS-room networks and firewalls for multi-building projects across sites. Mapped and validated 800+ BACnet/OPC points from DDCs and PLCs into SCADA. Programmed Siemens S7-1200 PLC logic and linked site data to central monitoring.",
+    "sources": [
+      "role-engie-south-east-asia",
+      "skills"
+    ]
+  },
+  {
+    "question": "How does traffic reach the cluster?",
+    "answer": "How internet traffic reaches the cluster: load balancer, WAF, ingress, Services, pods and the database. Browser (HTTPS 443): One public hostname. Cloud Armor (WAF): OWASP CRS rules plus a login throttle, tuned per route so legitimate traffic passes, with auth and rate limits behind them.",
+    "sources": [
+      "path-user",
+      "path-partner"
+    ]
+  },
+  {
+    "question": "What do you monitor?",
+    "answer": "The signals I alert on, chosen by failure mode: Is data still arriving? I watch rate(bridge_writes) ~ 0 for 10 min and missing data counts as breaching. A dead bridge emits nothing at all, so silence itself has to page.",
+    "sources": [
+      "monitoring",
+      "slos"
+    ]
+  },
+  {
+    "question": "How does a command reach the HVAC plant?",
+    "answer": "How a start or stop command reaches HVAC equipment safely. Operator action (server RPC): Starting or stopping plant becomes a server-side RPC inside the platform. Device MQTT transport (ClusterIP only): Never exposed outside the cluster.",
+    "sources": [
+      "path-command"
+    ]
+  },
+  {
+    "question": "Have you written a postmortem?",
+    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 32 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. The health check that only worked from inside: Cloud Run's front end answers some paths ending in “z” itself, so /healthz returned 404 to every outside check while the app was healthy.",
+    "sources": [
+      "postmortems"
+    ]
+  },
+  {
+    "question": "What is this site's uptime?",
+    "answer": "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute from Singapore, Belgium and Oregon, and the status page shows the real availability and error budget left.",
+    "sources": [
+      "site",
+      "cost"
+    ]
+  },
+  {
+    "question": "Have you written any blog posts?",
+    "answer": "An AI agent can use this site directly: it is a Model Context Protocol (MCP) server. POST /mcp is an MCP server over Streamable HTTP with five read-only tools: ask, search_facts, list_topics, get_status and get_delivery. Add the URL to Claude Code, Cursor or any MCP client and the agent can answer questions about my work from the site's own facts and read its live SLO and delivery numbers. It speaks the stateless 2026-07-28 revision of the protocol and still answers the initialize handshake of older clients, written in Go against the standard library.",
+    "sources": [
+      "agents",
+      "writing"
+    ]
+  },
+  {
+    "question": "Any incidents or outages on this site?",
+    "answer": "What went wrong while I built and ran this site, written up as blameless postmortems (incident reviews). “Message sent” for messages nobody would read: For the site's first 3 h 32 min, the contact form said a message was sent while keeping it on a disk that Cloud Run throws away. The lesson: Only say “done” after the durable handoff. A failing check on a healthy site: The smoke test reported /metrics as broken while Cloud Run's logs showed every /metrics request returning 200.",
+    "sources": [
+      "postmortems",
+      "investigation"
+    ]
+  },
+  {
+    "question": "zzqx plorf",
+    "answer": "I couldn't find that in what this site knows. Try asking about Primustech, the GKE migration, the cloud bill, the final-year project or the ICCV paper.",
+    "sources": []
+  }
+]

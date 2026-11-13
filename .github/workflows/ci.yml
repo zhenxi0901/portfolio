@@ -1,0 +1,174 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Actions are pinned to commit SHAs (tag in the comment): a moved tag cannot change what runs here.
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: web } }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - run: npx eslint src
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Knowledge file and Go parity fixtures are current
+        run: |
+          node scripts/gen-parity.mts
+          cp out/knowledge.json ../api/internal/ask/testdata/knowledge.json
+          git diff --exit-code -- ../api/internal/ask/testdata || {
+            echo "::error::Run the parity script and commit api/internal/ask/testdata"; exit 1; }
+      - name: Decision records in docs/adr are current
+        run: |
+          node scripts/gen-adr.mts
+          if [ -n "$(git status --porcelain -- ../docs/adr)" ]; then
+            git status --short -- ../docs/adr
+            echo "::error::Run node scripts/gen-adr.mts and commit docs/adr"; exit 1
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: site, path: web/out, retention-days: 3 }
+
+  api:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: api } }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version: "1.27", cache-dependency-path: api/go.sum }
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      - run: go test -race -count=1 -coverpkg=./... -coverprofile=cover.out ./...
+      - run: go tool cover -func=cover.out | tail -1
+
+  # Builds the image once. On a push to main, the image that passed every check below is pushed and
+  # attested (SBOM and build provenance), and the deploy workflow releases exactly that digest after
+  # verifying the attestations; nothing is rebuilt for production.
+  image:
+    needs: [web, api]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # the delivery metrics read this repository's deploy runs
+      id-token: write # keyless push and signing, on main only
+      attestations: write # SBOM and provenance attestations, on main only
+    env:
+      PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.GCP_PROJECT != '' }}
+      # The project is a secret so that logs mask it.
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/portfolio/site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # DORA metrics for the status section, baked into the image that gets tested. If the GitHub API
+      # is unavailable, the committed snapshot ships instead.
+      - name: Delivery metrics
+        if: env.PUBLISH == 'true'
+        continue-on-error: true
+        working-directory: web
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/delivery-stats.mjs
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: portfolio:${{ github.sha }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the container
+        run: |
+          docker run -d --name site -p 8080:8080 portfolio:${{ github.sha }}
+          for _ in $(seq 1 20); do curl -fsS localhost:8080/api/health && break; sleep 1; done
+          bash scripts/smoke.sh http://localhost:8080
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24 }
+      # The footer promises accessibility and SEO at 100 for a page of every kind (and the home and
+      # status pages in dark) on every release; this is what keeps it true.
+      - name: Lighthouse budgets
+        env: { LIGHTHOUSE_REPORTS: lighthouse }
+        run: >-
+          node scripts/lighthouse-check.mjs http://localhost:8080/ dark:http://localhost:8080/
+          http://localhost:8080/work/ai-platform http://localhost:8080/writing/serving-llm-agents http://localhost:8080/oncall
+          http://localhost:8080/postmortems/contact-form http://localhost:8080/status dark:http://localhost:8080/status http://localhost:8080/cost http://localhost:8080/break
+          http://localhost:8080/changelog http://localhost:8080/decisions http://localhost:8080/agents http://localhost:8080/evidence
+          http://localhost:8080/iot http://localhost:8080/ai http://localhost:8080/research http://localhost:8080/writing http://localhost:8080/about
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with: { name: lighthouse, path: lighthouse, retention-days: 7 }
+      - name: Block on critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: portfolio:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      # Only now, with every check passed, does the image leave the runner.
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        if: env.PUBLISH == 'true'
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+        if: env.PUBLISH == 'true'
+      - name: Push the tested image
+        id: push
+        if: env.PUBLISH == 'true'
+        run: |
+          gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+          docker tag portfolio:${{ github.sha }} "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:${{ github.sha }}"
+          # The digest exactly as the deploy will look it up.
+          digest=$(gcloud artifacts docker images describe "$IMAGE:${{ github.sha }}" --format='value(image_summary.digest)')
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      # What is in the image, and proof of where it was built. Attestations on a public repository are
+      # public, so the subject is named without the registry path; the digest is what binds it.
+      - name: SBOM of the tested image
+        if: env.PUBLISH == 'true'
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: portfolio:${{ github.sha }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
+      - name: Attest build provenance
+        id: provenance
+        if: env.PUBLISH == 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: portfolio/site
+          subject-digest: ${{ steps.push.outputs.digest }}
+      - name: Attest the SBOM
+        id: sbom
+        if: env.PUBLISH == 'true'
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-name: portfolio/site
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: sbom.spdx.json
+      # The deploy's release job attaches these to the GitHub release.
+      - name: Collect the release evidence
+        if: env.PUBLISH == 'true'
+        run: |
+          mkdir evidence
+          cp sbom.spdx.json evidence/
+          cp "${{ steps.provenance.outputs.bundle-path }}" evidence/provenance.sigstore.json
+          cp "${{ steps.sbom.outputs.bundle-path }}" evidence/sbom.sigstore.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: env.PUBLISH == 'true'
+        with: { name: release-evidence, path: evidence, retention-days: 30 }
