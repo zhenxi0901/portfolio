@@ -80,7 +80,7 @@ func (s *Server) record(w http.ResponseWriter, r *http.Request, code int, elapse
 // proxies that fetch the badge and the profile card, and AI agents on the MCP endpoint. They stay out of the status page's numbers,
 // out of the logs at Info, and never count as an instance's first visitor (timing.go).
 var machineRoutes = map[string]bool{
-	"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true, "/api/badge/uptime": true, "/api/card.svg": true, "/api/card.txt": true, "/mcp": true,
+	"/metrics": true, "/healthz": true, "/readyz": true, "/api/health": true, "/api/badge/uptime": true, "/api/card.svg": true, "/api/card.txt": true, "/api/map.svg": true, "/mcp": true,
 }
 
 // labRoute is the "break it yourself" endpoint (internal/lab).
