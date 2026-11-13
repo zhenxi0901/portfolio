@@ -26,7 +26,9 @@ const (
 )
 
 // StatusClientClosed is what a request the client hung up on is logged as (nginx's 499): nobody
-// is left to read it, but a 200 in the logs would say the server answered.
+// is left to read it, but a 200 in the logs would say the server answered. Only where the hang-up
+// reaches the server: behind Cloud Run's front end it often doesn't, and the request is held for
+// its whole delay and answered (seen on 13 Nov 2026), which is why MaxInFlight counts held requests.
 const StatusClientClosed = 499
 
 // Reply is the body of every answer, failed or not.
