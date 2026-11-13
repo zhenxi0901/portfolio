@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { ArrowClockwise, CircleNotch, Play } from "@phosphor-icons/react";
-import { api, ApiError } from "@/lib/api";
+import { API_BASE, api, ApiError } from "@/lib/api";
 import { mcpRequest } from "@/lib/mcp-client";
-import { isTimeout, noAnswer } from "@/lib/signal";
+import { isTimeout, noAnswer, withTimeout } from "@/lib/signal";
 import { checkName, type LiveCheck as Kind } from "@/content/evidence";
 
 // Rounded down, like every other availability figure on the site.
@@ -14,6 +14,17 @@ const since = (seconds: number) => (seconds < 90 ? `${Math.round(seconds)} s` : 
 
 /** The server said "slow down": a different answer from "no answer", so it is told apart. */
 class RateLimited extends Error {}
+
+const usd = (x: number) => `US$${x < 1 ? x.toFixed(4) : x.toFixed(2)}`;
+
+/** One request to the lab: its status, whether it said how long to wait, and how long it took. */
+async function lab(query: string) {
+  const t0 = performance.now();
+  const res = await fetch(`${API_BASE}/api/lab/echo?${query}`, { cache: "no-store", signal: withTimeout(undefined, 8000) });
+  await res.body?.cancel().catch(() => {});
+  if (res.status === 429) throw new RateLimited();
+  return { status: res.status, fault: res.headers.get("X-Fault") ?? "", retryAfter: res.headers.has("Retry-After"), ms: performance.now() - t0 };
+}
 
 /** Each check asks this site's own API and reports what came back, in one line. */
 const checks: Record<Kind, () => Promise<string>> = {
@@ -35,6 +46,23 @@ const checks: Record<Kind, () => Promise<string>> = {
     const names = x.json?.result?.tools?.map((t) => t.name) ?? [];
     if (x.status !== 200 || names.length === 0) throw new Error(`HTTP ${x.status}`);
     return `HTTP ${x.status}. ${names.length} tools: ${names.join(", ")}.`;
+  },
+  cost: async () => {
+    const r = await api.cost();
+    if (!r.available) return `No meters to read here: ${r.reason ?? "no reason given"} Its price list is dated ${r.prices.as_of}.`;
+    const read = r.stale ? `the last good reading, from ${r.updated.slice(11, 16)} UTC` : `meters read ${r.updated.slice(11, 16)} UTC`;
+    return `${r.usage.requests.toLocaleString("en-GB")} requests so far this month: ${usd(r.list_price)} at list price, ${usd(r.bill)} to pay after the free tier (${read}).`;
+  },
+  lab: async () => {
+    // One request held on purpose, then five at the lab's highest odds of a 503 (60%).
+    const held = await lab("slow=1&delay=500");
+    const tries = 5;
+    let failed = 0;
+    for (let i = 0; i < tries; i++) {
+      const r = await lab("fail=0.6");
+      if (r.status === 503 && r.retryAfter && r.fault === "error") failed++;
+    }
+    return `Asked to hold a request for 500 ms, the server answered after ${Math.round(held.ms)} ms (X-Fault: ${held.fault || "none"}). Asked to fail at 60% odds, it answered ${failed} of ${tries} with a 503 and Retry-After.`;
   },
 };
 
