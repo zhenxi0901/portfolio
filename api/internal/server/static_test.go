@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -171,5 +173,30 @@ func TestStaticVariantHeadersOnBodilessAnswers(t *testing.T) {
 	rec = get(t, h, "/_next/static/app.js", map[string]string{"Accept-Encoding": "br", "If-Match": `"nope"`})
 	if rec.Code != http.StatusPreconditionFailed || rec.Header().Get("Content-Encoding") != "" || rec.Header().Get("Content-Length") != "" {
 		t.Errorf("412: %d, encoding %q, length %q", rec.Code, rec.Header().Get("Content-Encoding"), rec.Header().Get("Content-Length"))
+	}
+}
+
+func TestNotFoundIsCompressed(t *testing.T) {
+	dir := t.TempDir()
+	page := strings.Repeat("<p>lost</p>", 200)
+	must(t, os.WriteFile(filepath.Join(dir, "404.html"), []byte(page), 0o644))
+	var gz bytes.Buffer
+	zw := gzip.NewWriter(&gz)
+	_, _ = zw.Write([]byte(page))
+	must(t, zw.Close())
+	must(t, os.WriteFile(filepath.Join(dir, "404.html.gz"), gz.Bytes(), 0o644))
+	h := staticHandler(dir)
+
+	req := httptest.NewRequest(http.MethodGet, "/no-such-page", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound || rec.Header().Get("Content-Encoding") != "gzip" || rec.Body.Len() >= len(page) {
+		t.Fatalf("404 with gzip accepted: %d, %q, %d bytes", rec.Code, rec.Header().Get("Content-Encoding"), rec.Body.Len())
+	}
+	plain := httptest.NewRecorder()
+	h.ServeHTTP(plain, httptest.NewRequest(http.MethodGet, "/no-such-page", nil))
+	if plain.Code != http.StatusNotFound || plain.Header().Get("Content-Encoding") != "" || plain.Body.String() != page {
+		t.Errorf("404 without Accept-Encoding: %d, %q", plain.Code, plain.Header().Get("Content-Encoding"))
 	}
 }

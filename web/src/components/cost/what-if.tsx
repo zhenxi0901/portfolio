@@ -103,7 +103,8 @@ function month(p: CostPrices, visits: number, f: Footprint, report: CostReport |
   const out = egressCost(m.egress / 2 ** 30, p);
   const free = Math.min(cpu, p.free_credit_vcpu) + Math.min(mem, p.free_credit_memory) + Math.min(req, p.free_credit_requests);
   const list = cpu + mem + req + out;
-  const cap = (p.max_instances * Math.min(p.vcpu / perRequest, p.concurrency / perRequest)) / f.requests;
+  // CPU binds first: one vCPU runs out long before 80 concurrent requests do.
+  const cap = (p.max_instances * (p.vcpu / perRequest)) / f.requests;
   const peak = (PEAK * visits) / DAY;
   return {
     requests: m.requests,
@@ -154,7 +155,7 @@ export function WhatIf() {
       <p className="rounded-3xl border border-line bg-surface p-6 text-ink-2" role="status">
         {failed === "absent"
           ? "The what-if prices with the live price list, which this copy of the site can't reach."
-          : failed === "down"
+          : failed === "busy" || failed === "down"
             ? "The what-if needs the live price list, which didn't load just now. Try again in a minute."
             : "Loading the price list…"}
       </p>
@@ -203,8 +204,8 @@ export function WhatIf() {
               onClick={() => setVisits(s.visits)}
               className="rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-pressed:border-accent-ink aria-pressed:text-ink"
             >
-              {s.label}
-              <span className="ml-1.5 font-mono text-xs text-ink-3">{count(s.visits)}</span>
+              {s.label}{" "}
+              <span className="ml-1 font-mono text-xs text-ink-3">{count(s.visits)}</span>
             </button>
           ))}
         </div>

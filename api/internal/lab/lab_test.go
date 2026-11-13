@@ -13,7 +13,7 @@ import (
 // handler returns a Handler whose dice roll the given values in turn and whose sleep records
 // what it was asked to wait.
 func handler(rolls ...float64) (*Handler, *[]time.Duration) {
-	h := New()
+	h := New(nil)
 	slept := &[]time.Duration{}
 	h.rand = func() float64 {
 		if len(rolls) == 0 {
@@ -113,6 +113,28 @@ func TestBusyWhenTooManyAreHeld(t *testing.T) {
 	<-h.inflight
 	if rec, _ := get(h, ""); rec.Code != 200 {
 		t.Errorf("after a slot frees: status %d", rec.Code)
+	}
+}
+
+func TestOneVisitorCannotHoldTheWholeLab(t *testing.T) {
+	h, _ := handler()
+	h.visitor = func(r *http.Request) string { return r.Header.Get("X-Visitor") }
+	ask := func(who string) int {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/lab/echo", nil)
+		req.Header.Set("X-Visitor", who)
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	h.held["heavy"] = MaxPerVisitor // a run already holding its share
+	if code := ask("heavy"); code != http.StatusTooManyRequests {
+		t.Errorf("a visitor past their share got %d, want 429", code)
+	}
+	if code := ask("someone else"); code != 200 {
+		t.Errorf("another visitor got %d, want 200", code)
+	}
+	if h.held["heavy"] != MaxPerVisitor || len(h.held) != 1 {
+		t.Errorf("places not given back: %v", h.held)
 	}
 }
 

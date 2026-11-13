@@ -226,24 +226,56 @@ func newSlowSource() *slowSource {
 	return &slowSource{started: make(chan struct{}, 16), release: make(chan struct{})}
 }
 
-func TestServiceFirstVisitorsShareOneRead(t *testing.T) {
+func TestServiceFirstVisitorsWaitForTheOneRead(t *testing.T) {
 	src := newSlowSource()
 	s := New(src, quiet)
 	s.now = func() time.Time { return nov12 }
-	const n = 5
-	reports := make(chan Report, n)
-	for range n {
+	reports := make(chan Report, 5)
+	go func() { reports <- s.Report(context.Background()) }() // this one reads
+	<-src.started
+	// Visitors who arrive during the read have no report to be given, so they wait for that read
+	// rather than starting their own or being turned away.
+	const waiters = 4
+	for range waiters {
 		go func() { reports <- s.Report(context.Background()) }()
 	}
-	<-src.started
+	select {
+	case r := <-reports:
+		t.Fatalf("a visitor was answered before the read finished: %+v", r)
+	case <-time.After(100 * time.Millisecond):
+	}
 	close(src.release)
-	for range n {
+	for range waiters + 1 {
 		if r := <-reports; !r.Available || r.Usage != november {
 			t.Errorf("a first visitor got %+v", r)
 		}
 	}
 	if c := src.calls.Load(); c != 1 {
-		t.Errorf("%d reads for %d visitors arriving together, want 1", c, n)
+		t.Errorf("%d reads for visitors arriving together, want 1", c)
+	}
+}
+
+// panickySource panics on its first read and answers after that.
+type panickySource struct{ calls atomic.Int32 }
+
+func (p *panickySource) Usage(context.Context, time.Time, time.Time) (Usage, error) {
+	if p.calls.Add(1) == 1 {
+		panic("boom")
+	}
+	return november, nil
+}
+
+func TestServiceRecoversFromAPanickingRead(t *testing.T) {
+	src := &panickySource{}
+	s := New(src, quiet)
+	now := nov12
+	s.now = func() time.Time { return now }
+	if r := s.Report(context.Background()); r.Available || r.Reason == "" {
+		t.Fatalf("after a read that panicked: %+v", r)
+	}
+	now = now.Add(retryAfter + time.Second)
+	if r := s.Report(context.Background()); !r.Available || src.calls.Load() != 2 {
+		t.Errorf("not read again after the panic: %+v, %d reads", r, src.calls.Load())
 	}
 }
 
@@ -293,10 +325,11 @@ func TestServiceReadOutlivesTheVisitorWhoStartedIt(t *testing.T) {
 	s2.now = func() time.Time { return nov12 }
 	go s2.Report(context.Background())
 	<-src2.started
+	t0 := time.Now()
 	waiter, stop := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer stop()
-	if r := s2.Report(waiter); r.Available || r.Reason == "" {
-		t.Errorf("a visitor who gave up waiting got %+v", r)
+	if r, waited := s2.Report(waiter), time.Since(t0); r.Available || r.Reason == "" || waited < 40*time.Millisecond {
+		t.Errorf("a visitor who gave up waiting got %+v after %v; it should wait until its own deadline", r, waited)
 	}
 	close(src2.release)
 }

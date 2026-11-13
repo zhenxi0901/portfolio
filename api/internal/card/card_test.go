@@ -47,8 +47,9 @@ func wellFormed(t *testing.T, svg []byte) {
 }
 
 func TestCardShowsTheLiveNumbers(t *testing.T) {
+	// Read at 12:00, counting the uptime checks up to the last whole hour before it.
 	d := Data{Commit: "9dfbfb6", Region: "asia-southeast1", SLOAvailable: true, Availability: 0.99996, BudgetRemaining: 0.97,
-		Releases: "open", Delivery: delivery(t), Now: now}
+		Releases: "open", Delivery: delivery(t), Now: now, SLOUpdated: now, SLOThrough: now.Add(-time.Hour)}
 	for _, darkTheme := range []bool{true, false} {
 		svg := SVG(d, darkTheme)
 		wellFormed(t, svg)
@@ -56,7 +57,7 @@ func TestCardShowsTheLiveNumbers(t *testing.T) {
 		for _, want := range []string{
 			"99.99%", // floored, never rounded up to a 100.00% it is not
 			"97.0%", ">32<", "4.4 min", ">0%<", "deploys, 30 days",
-			"committed 1 h ago", "releases open", "traffic back in 20 s, 19 Oct", "as of 12:00 UTC",
+			"committed 1 h ago", "releases open", "traffic back in 20 s, 19 Oct", "uptime to 11:00 UTC",
 		} {
 			if !strings.Contains(s, want) {
 				t.Errorf("dark=%v: card lacks %q", darkTheme, want)

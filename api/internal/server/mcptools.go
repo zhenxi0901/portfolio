@@ -226,8 +226,8 @@ func sloSummary(rep slo.Report) (string, map[string]any) {
 	if since, ok := strings.CutPrefix(rep.UptimeLabel(), "uptime since "); ok {
 		measured = ", measured since " + since
 	}
-	fmt.Fprintf(&b, " Availability %.3f%% against a %.1f%% objective over %d days%s; %.1f%% of the error budget is left, and releases are %s.",
-		slo.FloorPct(rep.Availability, 3), slo.Target*100, slo.WindowDays, measured, slo.FloorPct(max(rep.BudgetRemaining, 0), 1), rep.Releases)
+	fmt.Fprintf(&b, " Availability %s against a %.1f%% objective over %d days%s; %.1f%% of the error budget is left, and releases are %s.",
+		slo.Uptime(rep.Availability), slo.Target*100, slo.WindowDays, measured, slo.FloorPct(max(rep.BudgetRemaining, 0), 1), rep.Releases)
 	// A reading kept from before Cloud Monitoring stopped answering is old news; say how old.
 	if rep.Stale {
 		fmt.Fprintf(&b, " These are the last good numbers, read %s; Cloud Monitoring is not answering right now.", rep.Updated.UTC().Format("2 Jan 15:04 UTC"))

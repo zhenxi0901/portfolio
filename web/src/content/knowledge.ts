@@ -282,7 +282,7 @@ export function buildKnowledge(): Fact[] {
       "The deploy releases that exact digest without rebuilding: it verifies the attestations, holds the release if the site's error budget is spent, " +
       "starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back on its own if that fails. " +
       "A rollback drill rehearses this in production; the first one had traffic back on the old revision 20 seconds after the switch. " +
-      "Every release becomes a GitHub release, and the changelog page lists each one with the commits it shipped. ",
+      "Every release becomes a GitHub release, and the changelog page lists each one with the commits it shipped.",
   });
 
   facts.push({
@@ -290,7 +290,7 @@ export function buildKnowledge(): Fact[] {
     href: "/cost",
     title: "What this site costs to run",
     anchor: "cost",
-    lead: "The /cost page prints this month's bill as a receipt, from the service's own meters.",
+    lead: "So far it costs well under a US dollar a month to run: the /cost page prints the month's bill as a receipt, from the service's own meters.",
     text:
       "The Go server reads the month's usage from Cloud Monitoring (requests, billed instance time, CPU and memory, bytes sent to the internet) at most once an hour " +
       "and prices it at Google's list prices for Cloud Run with request-based billing in Singapore. " +
@@ -309,7 +309,7 @@ export function buildKnowledge(): Fact[] {
     text:
       "Choose how many requests the server answers with a 503 and how many it holds before answering, then send real requests to /api/lab/echo and see every attempt on a timeline. " +
       "The clients: give up after one attempt, retry with exponential backoff and full jitter, retry behind a circuit breaker that fails fast after four failures in a row, and hedge, sending a second copy when the first is slow. " +
-      "The faults land on your own requests only, within limits (60% errors, 1.5 s holds, 24 held at once, 240 requests a minute), and never touch the site's SLO, which is measured on another endpoint. " +
+      "The faults land on your own requests only, within limits (60% errors, 1.5 s holds, 24 held at once and 8 per visitor, 240 requests a minute), and never touch the site's SLO, which is measured on another endpoint. " +
       "To debug the real server instead, a break-fix drill on the repository's drill/01 branch opens in GitHub Codespaces with one bug planted in it.",
   });
 

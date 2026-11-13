@@ -46,8 +46,12 @@ function readTrace(): Trace | null {
     end: nav.connectEnd,
     tone: "net",
     // Zero-length but late: the browser opened the connection before this page's timing began.
-    note: connect < 0.5 ? (nav.requestStart - nav.fetchStart >= 20 ? "opened before the page's timing began" : "connection reused") : undefined,
+    note: connect < 0.5 ? (nav.requestStart - nav.fetchStart >= 5 ? "opened before the page's timing began" : "connection reused") : undefined,
   });
+  // That early handshake still took time before the request went out: show it, so the rows add up.
+  if (connect < 0.5 && nav.requestStart - nav.fetchStart >= 5) {
+    spans.push({ label: "Connection setup", start: nav.fetchStart, end: nav.requestStart, tone: "net", note: "done before the timed phases" });
+  }
   const revision = st.get("rev")?.description || undefined;
   spans.push({
     label: "Waiting for the first byte",

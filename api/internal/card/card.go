@@ -63,6 +63,7 @@ type Data struct {
 	Availability    float64
 	BudgetRemaining float64
 	SLOUpdated      time.Time // when the SLO numbers were read from Cloud Monitoring
+	SLOThrough      time.Time // the end of the last whole hour those numbers count
 	SLOStale        bool      // the latest read failed; these are the last good numbers
 	SLOReason       string    // why there are no SLO numbers, when there are none
 	UptimeLabel     string    // "uptime, 30 days", or "uptime since 19 Oct" while the window fills
@@ -141,7 +142,7 @@ func SVG(d Data, darkTheme bool) []byte {
 		if label == "" {
 			label = "uptime, 30 days"
 		}
-		ms[0] = metric{fmt.Sprintf("%.2f%%", slo.FloorPct(d.Availability, 2)), label, tone(p, d.Availability >= 0.999, d.Availability >= 0.99)}
+		ms[0] = metric{slo.Uptime(d.Availability), label, tone(p, d.Availability >= 0.999, d.Availability >= 0.99)}
 		left := d.BudgetRemaining
 		// One decimal, rounded down, as on the site: never "100%" with some of it spent.
 		ms[1] = metric{fmt.Sprintf("%.1f%%", slo.FloorPct(max(left, 0), 1)), "error budget left", tone(p, left >= 0.5, left > 0)}
@@ -184,7 +185,11 @@ func SVG(d Data, darkTheme bool) []byte {
 	// It says so: the delivery numbers beside them are the live release's own, counted at its build.
 	asOf := "as of " + d.Now.UTC().Format("15:04 UTC")
 	if up && !d.SLOUpdated.IsZero() {
-		asOf = "uptime as of " + d.SLOUpdated.UTC().Format("15:04 UTC")
+		through := d.SLOUpdated
+		if !d.SLOThrough.IsZero() {
+			through = d.SLOThrough // the counts stop at the last whole hour, before the read
+		}
+		asOf = "uptime to " + through.UTC().Format("15:04 UTC")
 		if d.SLOStale {
 			asOf = "uptime: last good reading " + d.SLOUpdated.UTC().Format("2 Jan 15:04 UTC")
 		}
@@ -212,7 +217,7 @@ func summary(d Data) string {
 		if label == "" {
 			label = "uptime, 30 days"
 		}
-		s += fmt.Sprintf(" %s%s: %.2f%%, error budget left %.1f%%.", strings.ToUpper(label[:1]), label[1:], slo.FloorPct(d.Availability, 2), slo.FloorPct(max(d.BudgetRemaining, 0), 1))
+		s += fmt.Sprintf(" %s%s: %s, error budget left %.1f%%.", strings.ToUpper(label[:1]), label[1:], slo.Uptime(d.Availability), slo.FloorPct(max(d.BudgetRemaining, 0), 1))
 	}
 	if d.Delivery != nil {
 		s += fmt.Sprintf(" %d deploys in %d days.", d.Delivery.Deploys, d.Delivery.WindowDays)
@@ -301,7 +306,7 @@ func Terminal(d Data, base string) []byte {
 			span = "over " + span
 		}
 		left := d.BudgetRemaining
-		row("uptime", fmt.Sprintf("%s%.2f%%%s %s, measured from outside", shade(d.Availability >= 0.999, d.Availability >= 0.99), slo.FloorPct(d.Availability, 2), reset, span))
+		row("uptime", fmt.Sprintf("%s%s%s %s, measured from outside", shade(d.Availability >= 0.999, d.Availability >= 0.99), slo.Uptime(d.Availability), reset, span))
 		row("budget", fmt.Sprintf("%s%.1f%%%s of the error budget left, releases %s", shade(left >= 0.5, left > 0), slo.FloorPct(max(left, 0), 1), reset, d.Releases))
 		// Numbers kept from before Cloud Monitoring stopped answering are old news; say how old.
 		if d.SLOStale && !d.SLOUpdated.IsZero() {

@@ -34,7 +34,7 @@ export function CostGuardrails() {
             Break it yourself
           </a>{" "}
           is the one page where a visitor can make the server hold requests open, so it has its own caps: 1.5 s a hold, 24 held at once on
-          an instance, 240 requests a minute per visitor.
+          an instance and 8 per visitor, 240 requests a minute per visitor.
         </>
       ),
     },
@@ -43,8 +43,8 @@ export function CostGuardrails() {
       how: "On the billing account, so a surprise reaches my inbox before it reaches an invoice.",
     },
     {
-      what: "Not capped: bandwidth",
-      how: "Data out has no ceiling of its own. The budget alert is the tripwire, and a CDN in front of the site would be the fix if traffic ever made it matter.",
+      what: "Not capped on their own: data out and page requests",
+      how: "Data out has no ceiling of its own, and neither do requests for pages: only the three instances bound how many get served. The budget alert is the tripwire, and a CDN in front of the site would be the fix if traffic ever made it matter.",
     },
   ];
   return (

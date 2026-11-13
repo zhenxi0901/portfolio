@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { api, type SloReport, type Status } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { uptime } from "@/lib/uptime";
 
 /*
  * The hero: this site's own request path, live. The path your page request just took (from this
@@ -32,7 +33,9 @@ function readVisit(): Visit | null {
   const age = st.get("cold")?.duration;
   return {
     connect: connect >= 0.5 ? connect : null,
-    setup: connect < 0.5 && before >= 20 ? before : null,
+    // Reused only when the request went out at once; a gap of more than a few ms is a handshake
+    // the browser did before the page's timing began.
+    setup: connect < 0.5 && before >= 5 ? before : null,
     ttfb: nav.responseStart - nav.requestStart,
     server: st.get("app")?.duration ?? null,
     cold: age !== undefined && age < COLD_START_MS,
@@ -243,13 +246,13 @@ export function LiveMap() {
 
   const { visit, status, slo, delivery, place } = live;
   // Only a measured figure is shown as one; until there is one, the objective it is measured against.
-  const avail = slo?.available ? `${(Math.floor(slo.availability * 1e5) / 1e3).toFixed(3)}% up` : "99.9% objective";
+  const avail = slo?.available ? `${uptime(slo.availability)} up` : "99.9% objective";
   const commit = status?.commit ?? delivery?.head?.sha ?? "…";
   // delivery.json is written by the build; its time is the deploy's only if that build is what's live.
   const deployed = delivery?.head && status && sameCommit(status.commit, delivery.head.sha) ? ago(delivery.generated) : null;
   // The instance a poll reached; the cold start belongs to the one that served this page.
   const instance = status ? `up ${up(status.uptime_seconds)}` : "asia-southeast1";
-  const page = visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB · ${ms(visit.total)}${visit.cold ? " · cold start" : ""}` : "static export";
+  const page = visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB · ${ms(visit.total)}${visit.cold ? " · cold" : ""}` : "static export";
 
   return (
     <figure ref={box} className="w-full">
@@ -296,7 +299,7 @@ export function LiveMap() {
         <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} accent />
         <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} accent />
         <Card node="api" title="/api" sub="status · slo · cost" href="/agents" label="The JSON API and the MCP server: for agents." />
-        <Card node="actions" title="GitHub Actions" sub={deployed ? `${commit} · ${deployed}` : commit} href="/changelog" label={`Deployed by GitHub Actions: commit ${commit}${deployed ? `, ${deployed}` : ""}. The changelog.`} />
+        <Card node="actions" title="GitHub Actions" sub={deployed ? `${commit} · built ${deployed}` : commit} href="/changelog" label={`Built and deployed by GitHub Actions: commit ${commit}${deployed ? `, built ${deployed}` : ""}. The changelog.`} />
         <Card node="probes" title="Uptime checks" sub="3 regions · 1/min" href="/status" label="Google Cloud uptime checks from Singapore, Belgium and Oregon, every minute. The status page." />
         <Card node="monitoring" title="Cloud Monitoring" sub={avail} href="/status" label={`Cloud Monitoring: ${avail}. The status page.`} />
         {visit && (
@@ -348,10 +351,10 @@ export function LiveMap() {
 
       <figcaption className="mt-3 text-center text-[13px] leading-relaxed text-ink-3 md:mt-1">
         <span className="hidden md:inline">
-          This page, live: solid lines are the path your request just took, dashed ones what keeps watch over it, and every box opens a page.{" "}
+          This page, live: the bright lines are the path your request just took, the faint dashed ones what keeps watch over it, and every box opens a page.{" "}
         </span>
         <span className="md:hidden">Your request, live. Watched by uptime checks from three regions: {avail}. </span>
-        Deployed {deployed ?? "by GitHub Actions"}, commit {commit}.
+        {deployed ? `Built ${deployed}` : "Built and deployed by GitHub Actions"}, commit {commit}.
       </figcaption>
     </figure>
   );

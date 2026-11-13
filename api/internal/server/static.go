@@ -47,7 +47,7 @@ func staticHandler(dir string) http.Handler {
 			name += ".html"
 		}
 		if !exists(root, name) {
-			serve404(w, root)
+			serve404(w, r, root)
 			return
 		}
 
@@ -165,14 +165,27 @@ func exists(root fs.FS, name string) bool {
 	return err == nil && !st.IsDir()
 }
 
-func serve404(w http.ResponseWriter, root fs.FS) {
-	body, err := fs.ReadFile(root, "404.html")
+// serve404 answers with the site's 404 page, compressed when the client allows: unknown paths are
+// mostly bots and scanners, and data out is the one meter this site's bill is made of.
+func serve404(w http.ResponseWriter, r *http.Request, root fs.FS) {
+	name := "404.html"
+	variant, encoding, varies := precompressed(root, name, r)
+	if variant != "" {
+		name = variant
+	}
+	body, err := fs.ReadFile(root, name)
 	if err != nil {
 		http.NotFound(w, nil)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
+	if varies {
+		w.Header().Add("Vary", "Accept-Encoding")
+	}
+	if encoding != "" {
+		w.Header().Set("Content-Encoding", encoding)
+	}
 	w.WriteHeader(http.StatusNotFound)
 	_, _ = w.Write(body)
 }

@@ -90,7 +90,9 @@ func buckets(end time.Time, checks, passed map[time.Time]int64) []Day {
 	}
 	for t, n := range passed {
 		if i := slot(t); i >= 0 {
-			days[i].Passed += n
+			// Hour by hour: an hour that gained passes between the two reads must not cover for
+			// another hour's failures on the same day.
+			days[i].Passed += min(n, checks[t])
 		}
 	}
 	for i := range days {

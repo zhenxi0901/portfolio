@@ -40,7 +40,7 @@ function Body({ blocks }: { blocks: Block[] }) {
           case "code":
             return (
               <figure key={i} className="mt-6">
-                <pre className="overflow-x-auto rounded-2xl border border-line bg-surface p-4 font-mono text-sm text-ink">
+                <pre tabIndex={0} role="region" aria-label={b.caption ? `Code: ${b.caption}` : "Code"} className="overflow-x-auto rounded-2xl border border-line bg-surface p-4 font-mono text-sm text-ink">
                   <code>{b.text}</code>
                 </pre>
                 {b.caption && <figcaption className="mt-2 font-mono text-xs text-ink-3">{b.caption}</figcaption>}

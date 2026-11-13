@@ -1,5 +1,6 @@
 "use client";
 
+import { money, printed } from "@/lib/money";
 import { count, usd, useCost, useServerStatus } from "./use-cost";
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -23,15 +24,18 @@ export function CostInsights() {
   if (!report?.available) {
     return (
       <ul className="grid content-start gap-3" aria-busy={!report || undefined}>
-        <Card title="Where the money goes">
-          On the live site this part reads the month&apos;s meters and says where the time and money went: how much of the traffic is the site
+        <Card title="Waiting for the meters">
+          Once the month&apos;s meters can be read, this part reads them and says where the time and money went: how much of the traffic is the site
           watching itself, what Cloud Run&apos;s 100 ms billing step does to a fast server, and what the free tier does not cover.
         </Card>
       </ul>
     );
   }
   const r = report;
-  const compute = r.lines.slice(0, 3).reduce((sum, l) => sum + l.cost, 0);
+  // The same printed figures as the receipt, so the two agree to the last digit.
+  const p = printed(r);
+  const cash = (x: number) => money(x, p.d);
+  const compute = p.lines.slice(0, 3).reduce((sum, x) => sum + x, 0);
   const egress = r.lines[3];
   const billedMs = r.billed_seconds_per_request * 1000;
   const p50 = status?.latency_ms.p50;
@@ -47,16 +51,16 @@ export function CostInsights() {
         {Math.round(r.probe_billed_share * 100)}% of the billed time is the site answering its own checks
         {p50 === undefined ? "" : p50 < 1 ? "; the median request takes the server well under a millisecond" : `; the median request takes the server ${work}`}.
       </Card>
-      {r.free_tier >= compute - 1e-9 ? (
+      {p.free >= compute - 1e-9 ? (
         <Card title="The free tier pays for the compute">
-          CPU, memory and requests list at {usd(compute)} so far, inside a free tier worth {usd(r.prices.free_credit_vcpu)} a month in CPU
+          CPU, memory and requests list at {cash(compute)} so far, inside a free tier worth {usd(r.prices.free_credit_vcpu)} a month in CPU
           alone. Data leaving Google&apos;s network has no free allowance from Singapore, so the {egress.quantity.toFixed(2)} GiB sent is the{" "}
-          {usd(r.bill)} left to pay.
+          {cash(p.bill)} left to pay.
         </Card>
       ) : (
         <Card title="A busy month: past the free tier">
-          CPU, memory and requests list at {usd(compute)} so far, and the free tier covers {usd(r.free_tier)} of it. Data leaving
-          Google&apos;s network ({egress.quantity.toFixed(2)} GiB, {usd(egress.cost)}) has no free allowance from Singapore.
+          CPU, memory and requests list at {cash(compute)} so far, and the free tier covers {cash(p.free)} of it. Data leaving
+          Google&apos;s network ({egress.quantity.toFixed(2)} GiB, {cash(p.lines[3])}) has no free allowance from Singapore.
         </Card>
       )}
     </ul>
