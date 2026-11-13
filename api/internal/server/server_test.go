@@ -77,6 +77,24 @@ func TestAPanicIsCountedAndLogged(t *testing.T) {
 	}
 }
 
+// The live map for the GitHub profile: an SVG of the request path with this instance's commit, in
+// both themes, cacheable by the image proxy in front of it.
+func TestMapSVG(t *testing.T) {
+	ts, _ := newTestServer(t)
+	for _, q := range []string{"", "?theme=light"} {
+		resp, err := http.Get(ts.URL + "/api/map.svg" + q)
+		must(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != 200 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "image/svg+xml") || resp.Header.Get("Cache-Control") != "public, max-age=300" {
+			t.Fatalf("GET /api/map.svg%s: %d %v", q, resp.StatusCode, resp.Header)
+		}
+		if s := string(body); !strings.Contains(s, "abcdef1") || !strings.Contains(s, "<animateMotion") {
+			t.Errorf("map%s lacks the commit or its motion", q)
+		}
+	}
+}
+
 func TestHealthAndStatic(t *testing.T) {
 	ts, _ := newTestServer(t)
 	for path, want := range map[string]int{"/healthz": 200, "/readyz": 200, "/api/health": 200, "/": 200, "/nope": 404, "/api/nope": 404} {

@@ -51,7 +51,7 @@ server with one bug planted in it, real traffic, and a check that grades the fix
 
 ```
 Browser ──> Cloud Run: one Go binary ──> Next.js static export  (/, /_next/*, /work/*, /oncall, ...)
-                                    ├──> JSON API               (/api/status, /api/slo, /api/cost, /api/ask, /api/lab/echo, /api/contact, /api/badge/uptime, /api/card.svg)
+                                    ├──> JSON API               (/api/status, /api/slo, /api/cost, /api/ask, /api/lab/echo, /api/contact, /api/badge/uptime, /api/card.svg, /api/map.svg)
                                     ├──> MCP server             (/mcp: five read-only tools for AI agents)
                                     ├──> plain text             (/llms.txt, /md/*.md; a text card when the home page is asked for with curl)
                                     ├──> OpenTelemetry spans    (/api/ask) ──> Cloud Trace
