@@ -115,10 +115,13 @@ export function estimate(i: Inputs): Result {
   const compute = i.gpu.bf16TFlops * 1e12 * a.computeEfficiency;
   const prefill = (tokens: number, context: number) => (tokens * (2 * params + 4 * i.model.layers * context * qDim)) / compute;
   let prefillTotal = 0;
-  for (let t = 0; t < i.turns; t++) prefillTotal += prefill((1 - i.cacheHit) * prompt(t), prompt(t));
+  // The tokens the cache misses are the prompt's tail, from h·p to p, so on average each attends over
+  // p·(1+h)/2 of context (p/2 when nothing hits, as in a full prefill).
+  const uncached = (p: number) => prefill((1 - i.cacheHit) * p, (p * (1 + i.cacheHit)) / 2);
+  for (let t = 0; t < i.turns; t++) prefillTotal += uncached(prompt(t));
   const prefillPerTurn = prefillTotal / i.turns;
   const last = prompt(i.turns - 1);
-  const hitLastTurn = prefill((1 - i.cacheHit) * last, last);
+  const hitLastTurn = uncached(last);
   const missLastTurn = prefill(last, last / 2);
 
   const turnModel = (n: number) => prefillPerTurn + i.reply * step(n);

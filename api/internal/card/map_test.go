@@ -28,12 +28,12 @@ func TestMapShowsTheLiveNumbers(t *testing.T) {
 		Commit: "37580e6", Region: "asia-southeast1", SLOAvailable: true, Availability: 0.99999,
 		Delivery: &Delivery{WindowDays: 30, Deploys: 56}, Now: time.Date(2026, 11, 13, 3, 51, 0, 0, time.UTC),
 	}
-	l := Live{P50: 0.288, P95: 0.843, Up: 15*time.Hour + 20*time.Minute, Served: 4419}
+	l := Live{P50: 0.288, P95: 0.843, Up: 15*time.Hour + 20*time.Minute}
 	dark, light := string(Map(d, l, true)), string(Map(d, l, false))
 	for _, s := range []string{dark, light} {
 		parses(t, s)
 		for _, want := range []string{
-			"37580e6 · 56 deploys", "p50 0.3 · p95 0.8 ms", "instance up 15 h", "99.999% up", "asia-southeast1",
+			"37580e6 · 56 deploys", "p50 0.3 · p95 0.8 ms", "instance up 15 h", "99.99% up", "asia-southeast1",
 			"drawn 03:51 UTC", "<animateMotion", "prefers-reduced-motion", `role="img"`, "56 deploys in 30 days",
 		} {
 			if !strings.Contains(s, want) {
@@ -54,7 +54,8 @@ func TestMapWithNothingMeasured(t *testing.T) {
 			t.Errorf("map lacks %q", want)
 		}
 	}
-	if strings.Contains(s, "deploys") && !strings.Contains(s, ">deploys<") {
+	// With no delivery numbers the GitHub Actions box shows the commit alone ("local"), no count.
+	if !strings.Contains(s, ">local<") || strings.Contains(s, " deploys<") {
 		t.Error("no delivery numbers, yet the map claims some deploys")
 	}
 }

@@ -128,7 +128,7 @@ func Badge(r Report) ShieldsBadge {
 		return b
 	}
 	b.Label = r.UptimeLabel()
-	b.Message = fmt.Sprintf("%.2f%%", FloorPct(r.Availability, 2))
+	b.Message = Uptime(r.Availability)
 	switch {
 	case r.Availability >= Target:
 		b.Color = "brightgreen"
@@ -147,6 +147,16 @@ func (r Report) UptimeLabel() string {
 		return fmt.Sprintf("uptime, %d days", WindowDays)
 	}
 	return "uptime since " + r.Since.UTC().Format("2 Jan")
+}
+
+// Uptime is availability as the site writes it everywhere: two decimals, rounded down so it never
+// claims more than was measured, and a plain "100%" when no check failed rather than a "100.00%"
+// that looks made up. The web's lib/uptime.ts is the same rule.
+func Uptime(x float64) string {
+	if x >= 1 {
+		return "100%"
+	}
+	return fmt.Sprintf("%.2f%%", FloorPct(x, 2))
 }
 
 // FloorPct is x as a percentage rounded down to the given decimals, so a display never claims more

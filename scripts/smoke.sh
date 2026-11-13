@@ -20,8 +20,20 @@ check "unknown page is 404"         "test \$(curl -s -o /dev/null -w '%{http_cod
 check "SLO JSON"                    "curl -fsS $BASE/api/slo | grep '\"target\":0.999'"
 check "status JSON"                 "curl -fsS $BASE/api/status | grep '\"status\":\"ok\"'"
 check "cost JSON has the price list" "curl -fsS $BASE/api/cost | grep '\"vcpu_second\":0.0000336'"
-# 429 is the lab at its cap on requests held at once, with visitors' runs in flight: still working.
-check "lab answers without faults"   "curl -sS -w ' %{http_code}' $BASE/api/lab/echo | tr -d '\n' | grep -E '\"fault\":\"none\".* 200\$| 429\$'"
+# The lab must answer 200 with no fault. A 429 means it is at its cap with visitors' runs in flight,
+# which frees within its longest hold (1.5 s): wait and ask again rather than pass or fail on it.
+lab_ok() {
+  for _ in 1 2 3 4; do
+    out=$(curl -sS -w ' %{http_code}' "$BASE/api/lab/echo" | tr -d '\n')
+    case "$out" in
+      *'"fault":"none"'*' 200') return 0 ;;
+      *' 429') sleep 2 ;;
+      *) return 1 ;;
+    esac
+  done
+  return 1
+}
+check "lab answers without faults"   "lab_ok"
 check "ask answers from facts"      "curl -fsS -X POST $BASE/api/ask -H 'Content-Type: application/json' -d '{\"question\":\"How did you cut the cloud bill?\"}' | grep 15%"
 check "ask rejects bad input"       "test \$(curl -s -o /dev/null -w '%{http_code}' -X POST $BASE/api/ask -H 'Content-Type: application/json' -d '{\"question\":\"x\"}') = 400"
 # 429 also counts: the contact limit is 3 per 10 minutes, so back-to-back runs hit it first.

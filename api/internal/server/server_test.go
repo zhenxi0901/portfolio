@@ -646,7 +646,7 @@ func TestSLOSummary(t *testing.T) {
 	since := read.Add(-48 * time.Hour)
 	fresh := slo.Report{Available: true, Availability: 0.9999, BudgetRemaining: 0.9, Releases: "open", Updated: read, Since: &since}
 	text, data := sloSummary(fresh)
-	if !strings.Contains(text, "99.990%") || strings.Contains(text, "last good") || data["updated"] != "2026-10-19T06:00:00Z" {
+	if !strings.Contains(text, "Availability 99.99% against") || strings.Contains(text, "last good") || data["updated"] != "2026-10-19T06:00:00Z" {
 		t.Errorf("fresh: %s %v", text, data)
 	}
 	stale := fresh

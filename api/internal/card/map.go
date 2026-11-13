@@ -14,7 +14,6 @@ import (
 type Live struct {
 	P50, P95 float64       // ms, over this instance's recent visitor requests (probes and the lab left out)
 	Up       time.Duration // how long this instance has been running
-	Served   uint64        // visitor requests this instance has answered
 }
 
 // A box on the map: its two lines, and whether it is on the visitor's own path.
@@ -85,7 +84,7 @@ func Map(d Data, l Live, darkTheme bool) []byte {
 	}
 	watched := fmt.Sprintf("objective %.1f%%", slo.Target*100)
 	if d.SLOAvailable {
-		watched = fmt.Sprintf("%.3f%% up", slo.FloorPct(d.Availability, 3))
+		watched = slo.Uptime(d.Availability) + " up"
 	}
 	shipped := d.Commit
 	if d.Delivery != nil && d.Delivery.Deploys > 0 {
