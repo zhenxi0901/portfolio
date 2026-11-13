@@ -26,14 +26,21 @@ func NewMonitoring(meta *gcp.Metadata) *Monitoring {
 
 const filter = `metric.type = "monitoring.googleapis.com/uptime_check/check_passed" AND resource.type = "uptime_url"`
 
-// Days returns WindowDays 24-hour buckets ending at end, oldest first (empty buckets are zero),
-// and the start of the first hour with a check in it. Counts are read hourly so that start is
-// accurate to the hour, then summed into days.
-func (m *Monitoring) Days(ctx context.Context, end time.Time) ([]Day, time.Time, error) {
+// lateResults is how long a check's result can take to reach Monitoring.
+const lateResults = 5 * time.Minute
+
+// Days returns WindowDays 24-hour buckets, oldest first (empty buckets are zero), and the start of
+// the first hour with a check in it. Counts are read hourly so that start is accurate to the hour,
+// then summed into days.
+//
+// They end at the last whole hour before now, a few minutes back: checks and passes are two reads,
+// one after the other, and an hour still filling up would gain results between them.
+func (m *Monitoring) Days(ctx context.Context, now time.Time) ([]Day, time.Time, error) {
 	project, token, err := m.meta.Credentials(ctx)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
+	end := now.Add(-lateResults).Truncate(time.Hour)
 	start := end.Add(-WindowDays * day)
 	checks, err := m.counts(ctx, project, token, start, end, "ALIGN_COUNT")
 	if err != nil {
@@ -85,6 +92,9 @@ func buckets(end time.Time, checks, passed map[time.Time]int64) []Day {
 		if i := slot(t); i >= 0 {
 			days[i].Passed += n
 		}
+	}
+	for i := range days {
+		days[i].Passed = min(days[i].Passed, days[i].Checks) // never better than every check passing
 	}
 	return days
 }

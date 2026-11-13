@@ -179,7 +179,8 @@ export function SystemMap() {
           <p className="text-[15px] leading-relaxed text-ink">{journey.about}</p>
         </div>
 
-        <div ref={panRef} className="overflow-x-auto px-2 pb-2 pt-3 sm:px-4">
+        {/* Wider than a phone: focusable, so it can be scrolled from the keyboard too. */}
+        <div ref={panRef} tabIndex={0} role="region" aria-label="Map of the AI products (scrolls sideways on small screens)" className="overflow-x-auto px-2 pb-2 pt-3 sm:px-4">
           <svg
             viewBox="0 0 1000 640"
             className="block w-full min-w-[720px] font-sans"

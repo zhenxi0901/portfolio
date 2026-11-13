@@ -22,9 +22,12 @@ const (
 	PricePerMillionRequests = 0.40
 
 	// Premium Tier internet data transfer out of Singapore to North America, Europe and most of Asia,
-	// first TiB: https://cloud.google.com/vpc/network-pricing. Cloud Run's free GiB of egress is
-	// within North America only, so none of it applies to a service in Singapore.
-	PricePerGiBEgress = 0.12
+	// tiered by the month's volume: the first TiB, the next 9 TiB, then the rest
+	// (https://cloud.google.com/vpc/network-pricing). Cloud Run's free GiB of egress is within North
+	// America only, so none of it applies to a service in Singapore.
+	PricePerGiBEgress      = 0.12
+	PricePerGiBEgress10TiB = 0.11
+	PricePerGiBEgressAbove = 0.085
 
 	// The free tier is per billing account per month and is applied as a spending discount at Tier 1
 	// prices (us-central1), so it is worth the same in dollars in every region.
@@ -52,8 +55,35 @@ const (
 const (
 	cacheFor   = time.Hour // usage metrics arrive minutes late; an hour keeps API reads rare
 	retryAfter = time.Minute
+	readFor    = 10 * time.Second // well inside the page's own 20 s wait
 	gib        = 1 << 30
 )
+
+// EgressTier is one band of the month's egress: up to UpToGiB (zero for the last band, which has
+// no end) at PerGiB.
+type EgressTier struct {
+	UpToGiB float64 `json:"up_to_gib,omitempty"`
+	PerGiB  float64 `json:"per_gib"`
+}
+
+var egressTiers = []EgressTier{
+	{UpToGiB: 1024, PerGiB: PricePerGiBEgress},
+	{UpToGiB: 10 * 1024, PerGiB: PricePerGiBEgress10TiB},
+	{PerGiB: PricePerGiBEgressAbove},
+}
+
+// EgressCost is what g GiB sent to the internet in one month costs, band by band.
+func EgressCost(g float64) float64 {
+	cost, from := 0.0, 0.0
+	for _, t := range egressTiers {
+		if t.UpToGiB == 0 || g <= t.UpToGiB {
+			return cost + math.Max(0, g-from)*t.PerGiB
+		}
+		cost += (t.UpToGiB - from) * t.PerGiB
+		from = t.UpToGiB
+	}
+	return cost
+}
 
 // Usage is what the service consumed in a period, as Cloud Monitoring counts it.
 type Usage struct {
@@ -77,25 +107,26 @@ type Line struct {
 // Prices is the price list and the service's limits, so the page can price a what-if with the
 // same numbers the receipt uses.
 type Prices struct {
-	AsOf                    string  `json:"as_of"`
-	VCPUSecond              float64 `json:"vcpu_second"`
-	GiBSecond               float64 `json:"gib_second"`
-	PerMillionRequests      float64 `json:"per_million_requests"`
-	PerGiBEgress            float64 `json:"per_gib_egress"`
-	FreeVCPUSeconds         float64 `json:"free_vcpu_seconds"`
-	FreeGiBSeconds          float64 `json:"free_gib_seconds"`
-	FreeRequests            float64 `json:"free_requests"`
-	FreeCreditVCPU          float64 `json:"free_credit_vcpu"` // the free tier's CPU allowance, in USD
-	FreeCreditMemory        float64 `json:"free_credit_memory"`
-	FreeCreditRequests      float64 `json:"free_credit_requests"`
-	BillingStepSeconds      float64 `json:"billing_step_seconds"`
-	VCPU                    float64 `json:"vcpu"`
-	MemoryGiB               float64 `json:"memory_gib"`
-	MaxInstances            int     `json:"max_instances"`
-	Concurrency             int     `json:"concurrency"`
-	ProbesPerMinute         int     `json:"probes_per_minute"`
-	CeilingPerMonth         float64 `json:"ceiling_per_month"` // compute if every instance were busy for 30 days
-	InstanceSecondListPrice float64 `json:"instance_second"`   // one instance busy for a second
+	AsOf                    string       `json:"as_of"`
+	VCPUSecond              float64      `json:"vcpu_second"`
+	GiBSecond               float64      `json:"gib_second"`
+	PerMillionRequests      float64      `json:"per_million_requests"`
+	PerGiBEgress            float64      `json:"per_gib_egress"` // the first TiB's price
+	EgressTiers             []EgressTier `json:"egress_tiers"`
+	FreeVCPUSeconds         float64      `json:"free_vcpu_seconds"`
+	FreeGiBSeconds          float64      `json:"free_gib_seconds"`
+	FreeRequests            float64      `json:"free_requests"`
+	FreeCreditVCPU          float64      `json:"free_credit_vcpu"` // the free tier's CPU allowance, in USD
+	FreeCreditMemory        float64      `json:"free_credit_memory"`
+	FreeCreditRequests      float64      `json:"free_credit_requests"`
+	BillingStepSeconds      float64      `json:"billing_step_seconds"`
+	VCPU                    float64      `json:"vcpu"`
+	MemoryGiB               float64      `json:"memory_gib"`
+	MaxInstances            int          `json:"max_instances"`
+	Concurrency             int          `json:"concurrency"`
+	ProbesPerMinute         int          `json:"probes_per_minute"`
+	CeilingPerMonth         float64      `json:"ceiling_per_month"` // compute if every instance were busy for 30 days
+	InstanceSecondListPrice float64      `json:"instance_second"`   // one instance busy for a second
 }
 
 // PriceList is the current price list.
@@ -107,6 +138,7 @@ func PriceList() Prices {
 		GiBSecond:               PriceGiBSecond,
 		PerMillionRequests:      PricePerMillionRequests,
 		PerGiBEgress:            PricePerGiBEgress,
+		EgressTiers:             egressTiers,
 		FreeVCPUSeconds:         FreeVCPUSeconds,
 		FreeGiBSeconds:          FreeGiBSeconds,
 		FreeRequests:            FreeRequests,
@@ -205,11 +237,17 @@ func lines(u Usage) []Line {
 	mem := u.GiBSeconds * PriceGiBSecond
 	req := float64(u.Requests) / 1e6 * PricePerMillionRequests
 	egressGiB := float64(u.EgressBytes) / gib
+	egress := EgressCost(egressGiB)
+	// The receipt's price per GiB: the first band's, or the average once past it.
+	egressPrice := PricePerGiBEgress
+	if egressGiB > egressTiers[0].UpToGiB {
+		egressPrice = egress / egressGiB
+	}
 	return []Line{
 		{Item: "CPU", Quantity: u.VCPUSeconds, Unit: "vCPU-seconds", Price: PriceVCPUSecond, Cost: cpu, Free: math.Min(cpu, p.FreeCreditVCPU)},
 		{Item: "Memory", Quantity: u.GiBSeconds, Unit: "GiB-seconds", Price: PriceGiBSecond, Cost: mem, Free: math.Min(mem, p.FreeCreditMemory)},
 		{Item: "Requests", Quantity: float64(u.Requests), Unit: "requests", Price: PricePerMillionRequests / 1e6, Cost: req, Free: math.Min(req, p.FreeCreditRequests)},
-		{Item: "Data to the internet", Quantity: egressGiB, Unit: "GiB", Price: PricePerGiBEgress, Cost: egressGiB * PricePerGiBEgress},
+		{Item: "Data to the internet", Quantity: egressGiB, Unit: "GiB", Price: egressPrice, Cost: egress},
 	}
 }
 
@@ -237,9 +275,10 @@ type Service struct {
 	log *slog.Logger
 	now func() time.Time
 
-	mu   sync.Mutex
-	last Report
-	next time.Time
+	mu      sync.Mutex
+	last    Report
+	next    time.Time
+	reading chan struct{} // set while one request reads the API, closed when the read ends
 }
 
 // New returns a service that reads from src; a nil src means there is nothing to measure here
@@ -252,22 +291,50 @@ func unavailable(reason string) Report {
 	return Report{Reason: reason, Lines: []Line{}, Prices: PriceList()}
 }
 
+// Report is the month so far. One request at a time reads the API, and does it inside its own
+// request so Cloud Run gives it CPU (with request-based billing, work after a response is
+// throttled). Everyone else gets the last report meanwhile, and waits only when there is none yet.
 func (s *Service) Report(ctx context.Context) Report {
 	if s.src == nil {
 		return unavailable("Measured on the live site only.")
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	now := s.now()
 	if now.Before(s.next) {
+		defer s.mu.Unlock()
 		return s.last
 	}
-	// Shared by every caller waiting on it, so it gets its own deadline rather than the first
-	// caller's.
-	fctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+	if wait := s.reading; wait != nil {
+		if s.last.Available {
+			defer s.mu.Unlock()
+			return s.last
+		}
+		s.mu.Unlock()
+		select {
+		case <-wait:
+		case <-ctx.Done():
+		}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if !s.last.Available && s.last.Reason == "" {
+			return unavailable("Still reading this month's usage.")
+		}
+		return s.last
+	}
+	done := make(chan struct{})
+	s.reading = done
+	s.mu.Unlock()
+
+	// A deadline of its own: the visitor who started the read may leave while others wait on it.
+	rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), readFor)
 	defer cancel()
 	start := MonthStart(now)
-	u, err := s.src.Usage(fctx, start, now)
+	u, err := s.src.Usage(rctx, start, now)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	defer close(done)
+	s.reading = nil
 	if err != nil {
 		s.log.Warn("cost: could not read usage", "err", err)
 		s.next = now.Add(retryAfter)

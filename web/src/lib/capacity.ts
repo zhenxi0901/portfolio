@@ -5,7 +5,8 @@
 //   prefill  compute-bound: 2 FLOPs per parameter per token, plus attention over the context
 // Real servers (SGLang, vLLM) batch, chunk and overlap far more cleverly; this is for the shape of
 // the answer, not its third digit. Model shapes are from each model's config.json; GPU numbers are
-// from NVIDIA's spec pages (dense BF16, half the "with sparsity" figure).
+// from NVIDIA's spec pages (dense BF16, half the "with sparsity" figure), with memory as nvidia-smi
+// reports it. Memory is in GiB throughout.
 
 export type Model = {
   id: string;
@@ -18,7 +19,7 @@ export type Model = {
   maxContext: number;
 };
 
-export type Gpu = { id: string; name: string; memGB: number; bandwidthGBs: number; bf16TFlops: number };
+export type Gpu = { id: string; name: string; memGiB: number; bandwidthGBs: number; bf16TFlops: number };
 
 export const models: Model[] = [
   { id: "qwen3-4b", name: "Qwen3-4B", paramsB: 4.0, layers: 36, heads: 32, kvHeads: 8, headDim: 128, maxContext: 40_960 },
@@ -29,15 +30,15 @@ export const models: Model[] = [
 ];
 
 export const gpus: Gpu[] = [
-  { id: "a100-80", name: "A100 80GB SXM", memGB: 80, bandwidthGBs: 2039, bf16TFlops: 312 },
-  { id: "h100", name: "H100 SXM", memGB: 80, bandwidthGBs: 3350, bf16TFlops: 989.5 },
-  { id: "l4", name: "L4", memGB: 24, bandwidthGBs: 300, bf16TFlops: 121 },
+  { id: "a100-80", name: "A100 80GB SXM", memGiB: 80, bandwidthGBs: 2039, bf16TFlops: 312 }, // 81,920 MiB
+  { id: "h100", name: "H100 SXM", memGiB: 79.6, bandwidthGBs: 3350, bf16TFlops: 989.5 }, // 81,559 MiB
+  { id: "l4", name: "L4", memGiB: 22.5, bandwidthGBs: 300, bf16TFlops: 121 }, // 23,034 MiB of the "24GB"
 ];
 
 /** The assumptions, named so the page can print them. */
 export const assumptions = {
   memoryFraction: 0.9, // share of GPU memory a server gives to weights and KV cache
-  activationsGB: 1, // set aside for activations and buffers
+  activationsGiB: 1, // set aside for activations and buffers
   bandwidthEfficiency: 0.75, // share of peak memory bandwidth a decode step achieves
   computeEfficiency: 0.5, // share of peak BF16 compute a prefill achieves
   kvBytes: 2, // KV cache in BF16
@@ -58,14 +59,15 @@ export type Inputs = {
 };
 
 export type Result = {
-  weightsGB: number;
-  kvPerTokenKB: number;
+  weightsGiB: number;
+  kvPerTokenKiB: number;
   finalContext: number;
   outgrowsWindowAtTurn: number | null; // the turn whose prompt no longer fits the model's window
-  kvPerAgentGB: number; // at the end of a task
-  kvBudgetGB: number; // what is left for KV cache after the weights; negative if the weights don't fit
+  kvPerAgentGiB: number; // at the end of a task
+  usableGiB: number; // what the server gives to weights and KV cache
+  kvBudgetGiB: number; // what is left for KV cache after the weights; negative if the weights don't fit
   agentsThatFit: number;
-  kvInUseGB: number; // every agent at the end of its task: the worst case
+  kvInUseGiB: number; // every agent at the end of its task: the worst case
   fits: boolean; // the weights fit at all
   overBudget: boolean; // the agents' histories outgrow the cache: it evicts, and hits fall
   decodeStepMs: number; // one decode step with every agent in the batch
@@ -73,16 +75,18 @@ export type Result = {
   tokPerSecTotal: number;
   aloneTokPerSec: number; // one agent on its own
   prefillPerTurnMs: number; // average turn, with the cache hitting at cacheHit
+  hitLastTurnMs: number; // the last turn, with the cache hitting at cacheHit
   missLastTurnMs: number; // the last turn if the cache had nothing
-  modelSecondsPerTurn: number; // what one agent waits for the model each turn
+  modelSecondsPerTurn: number; // what one agent waits for the model each turn, queueing included
   taskSeconds: number; // one task, wall clock
+  gpuBound: boolean; // the agents need more GPU time than their own pace leaves: they queue for it
   gpuBusyShare: number; // share of the time the GPU is working, with this many agents
   aloneBusyShare: number; // the same with one agent at a time
   tasksPerHour: number;
   costPerTask: number;
 };
 
-const GB = 1e9;
+const GiB = 2 ** 30;
 
 export function estimate(i: Inputs): Result {
   const a = assumptions;
@@ -95,12 +99,13 @@ export function estimate(i: Inputs): Result {
   const overflow = Array.from({ length: i.turns }, (_, t) => t).find((t) => prompt(t) > i.model.maxContext);
 
   const kvPerAgent = finalContext * kvPerToken;
-  const kvBudget = i.gpu.memGB * GB * a.memoryFraction - a.activationsGB * GB - weights;
+  const usable = i.gpu.memGiB * GiB * a.memoryFraction - a.activationsGiB * GiB;
+  const kvBudget = usable - weights;
   const agentsThatFit = kvBudget > 0 ? Math.floor(kvBudget / kvPerAgent) : 0;
 
   // Decode: a step reads the weights once and each agent's cache once. Agents are spread across
   // their tasks, so on average a cache is half its final size.
-  const bandwidth = i.gpu.bandwidthGBs * GB * a.bandwidthEfficiency;
+  const bandwidth = i.gpu.bandwidthGBs * 1e9 * a.bandwidthEfficiency;
   const avgContext = i.head + (i.turns * i.perTurn) / 2;
   const step = (n: number) => (weights + n * avgContext * kvPerToken) / bandwidth;
   const stepAll = step(i.agents);
@@ -112,24 +117,30 @@ export function estimate(i: Inputs): Result {
   let prefillTotal = 0;
   for (let t = 0; t < i.turns; t++) prefillTotal += prefill((1 - i.cacheHit) * prompt(t), prompt(t));
   const prefillPerTurn = prefillTotal / i.turns;
-  const missLastTurn = prefill(prompt(i.turns - 1), prompt(i.turns - 1) / 2);
+  const last = prompt(i.turns - 1);
+  const hitLastTurn = prefill((1 - i.cacheHit) * last, last);
+  const missLastTurn = prefill(last, last / 2);
 
   const turnModel = (n: number) => prefillPerTurn + i.reply * step(n);
-  const taskSeconds = i.turns * (turnModel(i.agents) + i.outsideSeconds);
   // GPU work a task causes: its prefills, and its share of each batched decode step.
   const gpuWork = (n: number) => i.turns * (prefillPerTurn + (i.reply * step(n)) / n);
-  const busy = (n: number) => Math.min(1, (n * gpuWork(n)) / (i.turns * (turnModel(n) + i.outsideSeconds)));
+  // A task takes as long as its own turns, or, once n tasks need more GPU time than that, as long
+  // as the GPU takes to do all of their work: prefills are compute-bound and queue behind each other.
+  const task = (n: number) => Math.max(i.turns * (turnModel(n) + i.outsideSeconds), n * gpuWork(n));
+  const busy = (n: number) => (n * gpuWork(n)) / task(n);
+  const taskSeconds = task(i.agents);
   const tasksPerHour = (i.agents * 3600) / taskSeconds;
 
   return {
-    weightsGB: weights / GB,
-    kvPerTokenKB: kvPerToken / 1024,
+    weightsGiB: weights / GiB,
+    kvPerTokenKiB: kvPerToken / 1024,
     finalContext,
     outgrowsWindowAtTurn: overflow === undefined ? null : overflow + 1,
-    kvPerAgentGB: kvPerAgent / GB,
-    kvBudgetGB: kvBudget / GB,
+    kvPerAgentGiB: kvPerAgent / GiB,
+    usableGiB: usable / GiB,
+    kvBudgetGiB: kvBudget / GiB,
     agentsThatFit,
-    kvInUseGB: (i.agents * kvPerAgent) / GB,
+    kvInUseGiB: (i.agents * kvPerAgent) / GiB,
     fits: kvBudget > 0,
     overBudget: kvBudget <= 0 || i.agents * kvPerAgent > kvBudget,
     decodeStepMs: stepAll * 1000,
@@ -137,9 +148,11 @@ export function estimate(i: Inputs): Result {
     tokPerSecTotal: i.agents / stepAll,
     aloneTokPerSec: 1 / step(1),
     prefillPerTurnMs: prefillPerTurn * 1000,
+    hitLastTurnMs: hitLastTurn * 1000,
     missLastTurnMs: missLastTurn * 1000,
-    modelSecondsPerTurn: turnModel(i.agents),
+    modelSecondsPerTurn: taskSeconds / i.turns - i.outsideSeconds,
     taskSeconds,
+    gpuBound: i.agents * gpuWork(i.agents) > i.turns * (turnModel(i.agents) + i.outsideSeconds),
     gpuBusyShare: busy(i.agents),
     aloneBusyShare: busy(1),
     tasksPerHour,

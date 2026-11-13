@@ -2,17 +2,24 @@
 
 import { useEffect, useId, useState } from "react";
 import type { CostPrices, CostReport } from "@/lib/api";
-import { bytes, count, usd, useCost } from "./use-cost";
+import { bytes, count, egressCost, usd, useCost, useServerStatus } from "./use-cost";
 
-/** One visit's load on the server, measured from this page's own requests. */
-type Footprint = { requests: number; bytes: number; busy: number; avgRequest: number; measured: boolean };
+/** One visit's load on the server: its requests and bytes, measured from this page's own requests. */
+type Footprint = { requests: number; bytes: number; measured: boolean };
 
-const typical: Footprint = { requests: 20, bytes: 400 * 1024, busy: 1, avgRequest: 0.05, measured: false };
+const typical: Footprint = { requests: 20, bytes: 400 * 1024, measured: false };
 
 /**
- * Same-origin requests this page made, as Resource Timing reports them: how many, how many bytes
- * (the compressed body even when it came from the cache, so this prices a first visit), and how
- * long at least one of them was in flight, in 100 ms steps the way Cloud Run bills.
+ * Instance time a visit keeps billed, in seconds: a page arrives in about three bursts (the page,
+ * its files, its API calls), and each keeps an instance busy for at least one 100 ms billing step.
+ * Modelled, not timed from this visit: a browser's timings include the reader's own network, which
+ * the server never bills.
+ */
+const BUSY_PER_VISIT = 0.3;
+
+/**
+ * Same-origin requests this page made, as Resource Timing reports them: how many, and how many
+ * bytes (the compressed body even when it came from the cache, so this prices a first visit).
  */
 function measure(): Footprint {
   if (typeof performance === "undefined" || !performance.getEntriesByType) return typical;
@@ -23,35 +30,12 @@ function measure(): Footprint {
   ];
   if (!entries.length) return typical;
   const size = entries.reduce((sum, e) => sum + Math.max(e.transferSize || 0, e.encodedBodySize || 0), 0);
-  const spans = entries
-    .map((e) => [e.requestStart || e.startTime, e.responseEnd] as const)
-    .filter(([a, b]) => b > a)
-    .sort((x, y) => x[0] - y[0]);
-  let busy = 0;
-  let total = 0;
-  if (spans.length) {
-    let [start, end] = spans[0];
-    for (const [a, b] of spans.slice(1)) {
-      if (a <= end) end = Math.max(end, b);
-      else {
-        busy += Math.ceil((end - start) / 100) * 0.1;
-        [start, end] = [a, b];
-      }
-    }
-    busy += Math.ceil((end - start) / 100) * 0.1;
-    total = spans.reduce((sum, [a, b]) => sum + (b - a), 0) / spans.length / 1000;
-  }
-  return {
-    requests: entries.length,
-    bytes: size || typical.bytes,
-    busy: Math.min(10, Math.max(0.1, busy)),
-    avgRequest: Math.min(2, Math.max(0.005, total || typical.avgRequest)),
-    measured: true,
-  };
+  return { requests: entries.length, bytes: size || typical.bytes, measured: true };
 }
 
-function useFootprint(): Footprint {
-  const [f, setF] = useState<Footprint>(typical);
+/** null until the visit has been measured, so "this month's pace" doesn't jump once it is. */
+function useFootprint(): Footprint | null {
+  const [f, setF] = useState<Footprint | null>(null);
   useEffect(() => {
     // After load and the page's own API calls, so they count as part of the visit.
     const run = () => window.setTimeout(() => setF(measure()), 2500);
@@ -73,8 +57,9 @@ function useFootprint(): Footprint {
 }
 
 const DAY = 86_400;
-const MONTH_DAYS = 30;
 const PEAK = 5; // the busiest hour, as a multiple of the day's average rate
+// The server's own time per request when /api/status can't say: a static file takes it well under a millisecond.
+const SERVER_SECONDS = 0.001;
 
 type Month = {
   requests: number;
@@ -91,11 +76,13 @@ type Month = {
  * A month of days with `visits` visitors each. A single instance is billed while any request is in
  * flight; with visits and uptime checks arriving at random, that is 1 - e^(-load) of the day. When
  * this month has been measured, the model is anchored to it: the meters at this month's pace, plus
- * the model's difference for more or fewer visitors.
+ * the model's difference for more or fewer visitors. The cap is CPU: each instance has one vCPU,
+ * and a request takes the server about `perRequest` seconds of it.
  */
-function month(p: CostPrices, visits: number, f: Footprint, report: CostReport | null): Month {
+function month(p: CostPrices, visits: number, f: Footprint, report: CostReport | null, perRequest: number): Month {
   const probesPerDay = p.probes_per_minute * 1440;
-  const busyPerDay = (v: number) => DAY * (1 - Math.exp(-((v / DAY) * f.busy + (p.probes_per_minute / 60) * p.billing_step_seconds)));
+  const days = report?.available ? report.month_days : 30;
+  const busyPerDay = (v: number) => DAY * (1 - Math.exp(-((v / DAY) * BUSY_PER_VISIT + (p.probes_per_minute / 60) * p.billing_step_seconds)));
   let billed = busyPerDay(visits);
   let requests = probesPerDay + visits * f.requests;
   let egress = visits * f.bytes;
@@ -106,17 +93,17 @@ function month(p: CostPrices, visits: number, f: Footprint, report: CostReport |
     requests = Math.max(probesPerDay, perDay(report.usage.requests) + (visits - v0) * f.requests);
     egress = Math.max(0, perDay(report.usage.egress_bytes) + (visits - v0) * f.bytes);
   }
-  const m = { billed: billed * MONTH_DAYS, requests: requests * MONTH_DAYS, egress: egress * MONTH_DAYS };
+  const m = { billed: billed * days, requests: requests * days, egress: egress * days };
   // vCPU-seconds per billed second: a little over one, because startup CPU boost doubles the CPU
   // while an instance starts. Measured when there is a month to measure.
   const vcpu = report?.available && report.usage.billable_seconds > 0 ? report.usage.vcpu_seconds / report.usage.billable_seconds : p.vcpu;
   const cpu = m.billed * vcpu * p.vcpu_second;
   const mem = m.billed * p.memory_gib * p.gib_second;
   const req = (m.requests / 1e6) * p.per_million_requests;
-  const out = (m.egress / 2 ** 30) * p.per_gib_egress;
+  const out = egressCost(m.egress / 2 ** 30, p);
   const free = Math.min(cpu, p.free_credit_vcpu) + Math.min(mem, p.free_credit_memory) + Math.min(req, p.free_credit_requests);
   const list = cpu + mem + req + out;
-  const cap = (p.max_instances * p.concurrency) / (f.requests * f.avgRequest);
+  const cap = (p.max_instances * Math.min(p.vcpu / perRequest, p.concurrency / perRequest)) / f.requests;
   const peak = (PEAK * visits) / DAY;
   return {
     requests: m.requests,
@@ -150,22 +137,33 @@ function Stat({ label, value, strong = false }: { label: string; value: string; 
 /** What a busier month would cost, priced with the receipt's own list and this visit's footprint. */
 export function WhatIf() {
   const { report, failed } = useCost();
-  const f = useFootprint();
+  const measured = useFootprint();
+  const status = useServerStatus();
   const id = useId();
+  const f = measured ?? typical;
   // Kept unrounded, so "this month's pace" reproduces the receipt's projection to the cent.
   const pace = report?.available && report.days >= 1 ? Math.max(1, paceOf(report, f)) : null;
   const [visits, setVisits] = useState<number | null>(null);
   const v = visits ?? pace ?? 100;
+  // The server's median time on a request, from its own status (never the reader's network).
+  const p50 = status?.latency_ms.p50;
+  const perRequest = p50 && p50 > 0 ? Math.max(0.0002, p50 / 1000) : SERVER_SECONDS;
 
-  if (!report) {
+  if (!report || !measured) {
     return (
       <p className="rounded-3xl border border-line bg-surface p-6 text-ink-2" role="status">
-        {failed ? "The what-if prices with the live price list, which this copy of the site can't reach." : "Loading the price list…"}
+        {failed === "absent"
+          ? "The what-if prices with the live price list, which this copy of the site can't reach."
+          : failed === "down"
+            ? "The what-if needs the live price list, which didn't load just now. Try again in a minute."
+            : "Loading the price list…"}
       </p>
     );
   }
   const p = report.prices;
-  const m = month(p, v, f, report);
+  const m = month(p, v, f, report, perRequest);
+  const visitors = (x: number) => `${count(x)} ${x === 1 ? "visitor" : "visitors"} a day`;
+  const headroom = m.headroom >= 10 ? count(m.headroom) : m.headroom.toFixed(1);
   const presets = [
     ...(pace ? [{ label: "This month's pace", visits: pace }] : []),
     { label: "A good day", visits: 1_000 },
@@ -188,7 +186,7 @@ export function WhatIf() {
           step={1}
           value={toSlider(v)}
           onChange={(e) => setVisits(fromSlider(Number(e.target.value)))}
-          aria-valuetext={`${count(v)} visitors a day`}
+          aria-valuetext={`${visitors(v)}: ${usd(m.bill)} a month to pay`}
           className="mt-4 w-full accent-[var(--accent-ink)]"
         />
         <div className="mt-1 flex justify-between font-mono text-[11px] text-ink-3" aria-hidden>
@@ -213,11 +211,11 @@ export function WhatIf() {
         <p className="mt-5 text-sm leading-relaxed text-ink-2">
           {f.measured ? (
             <>
-              Each visitor is priced like your visit to this page: {f.requests} requests, {bytes(f.bytes)} over the wire, an instance busy for{" "}
-              {f.busy.toFixed(1)} s.
+              Each visitor is priced like your visit to this page: {f.requests} requests and {bytes(f.bytes)} over the wire. An instance stays
+              billed for about {BUSY_PER_VISIT} s of it: three bursts of requests, each at least one 100 ms step.
             </>
           ) : (
-            <>Each visitor is priced as a typical visit: 20 requests, 400 KiB, an instance busy for a second.</>
+            <>Each visitor is priced as a typical visit: 20 requests, 400 KiB, an instance billed for about {BUSY_PER_VISIT} s.</>
           )}{" "}
           The Hacker News number is a guess at a front-page day, not a measurement.
         </p>
@@ -231,11 +229,11 @@ export function WhatIf() {
           <Stat label="sent to the internet" value={bytes(m.egress)} />
           <Stat label="requests" value={count(m.requests)} />
           <Stat label="instance time billed" value={hours >= 10 ? `${count(hours)} h` : `${hours.toFixed(1)} h`} />
-          <Stat label="busiest hour vs the cap" value={Number.isFinite(m.headroom) ? (m.headroom >= 1 ? `${count(m.headroom)}× under` : "over") : "–"} />
+          <Stat label="busiest hour vs the cap" value={Number.isFinite(m.headroom) ? (m.headroom >= 1 ? `${headroom}× under` : "over") : "–"} />
         </dl>
         <p className="mt-6 text-sm leading-relaxed text-ink-2" aria-live="polite">
           {m.headroom >= 1
-            ? `The ${p.max_instances}-instance cap would only bind at about ${count(m.capVisitsPerSecond)} visits a second, so at this traffic it is a cost guard, not a limit.`
+            ? `The ${p.max_instances}-instance cap would only bind at about ${count(m.capVisitsPerSecond)} visits a second (one vCPU each, at the server's own ${(perRequest * 1000).toFixed(1)} ms a request), so at this traffic it is a cost guard, not a limit.`
             : `At this traffic the busiest hour would pass the ${p.max_instances}-instance cap: Cloud Run would queue requests and turn some away.`}{" "}
           {m.bill > 0.01 && m.egressCost / m.bill > 0.8
             ? m.egressCost / m.bill >= 0.995

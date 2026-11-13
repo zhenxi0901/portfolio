@@ -27,6 +27,18 @@ export function CostGuardrails() {
       how: "Ask answers 8 questions a minute per client, the contact form takes 3 messages per 10 minutes, and the MCP server 60 requests a minute.",
     },
     {
+      what: "The fault-injection lab's own limits",
+      how: (
+        <>
+          <a href="/break" className="underline underline-offset-4 hover:text-ink">
+            Break it yourself
+          </a>{" "}
+          is the one page where a visitor can make the server hold requests open, so it has its own caps: 1.5 s a hold, 24 held at once on
+          an instance, 240 requests a minute per visitor.
+        </>
+      ),
+    },
+    {
       what: "A S$1 budget alert",
       how: "On the billing account, so a surprise reaches my inbox before it reaches an invoice.",
     },

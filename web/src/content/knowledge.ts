@@ -282,7 +282,49 @@ export function buildKnowledge(): Fact[] {
       "The deploy releases that exact digest without rebuilding: it verifies the attestations, holds the release if the site's error budget is spent, " +
       "starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back on its own if that fails. " +
       "A rollback drill rehearses this in production; the first one had traffic back on the old revision 20 seconds after the switch. " +
-      "Every release becomes a GitHub release, and the changelog page lists each one with the commits it shipped.",
+      "Every release becomes a GitHub release, and the changelog page lists each one with the commits it shipped. " +
+      "Its four DORA metrics come from the deploy workflow's own history, a calculation I extracted into dora-card, a GitHub Action any repository can use for a README card.",
+  });
+
+  facts.push({
+    id: "cost",
+    href: "/cost",
+    title: "What this site costs to run",
+    anchor: "cost",
+    lead: "The /cost page prints what this site costs to run this month, as a receipt from the service's own meters.",
+    text:
+      "The Go server reads the month's usage from Cloud Monitoring (requests, billed instance time, CPU and memory, bytes sent to the internet) at most once an hour " +
+      "and prices it at Google's list prices for Cloud Run with request-based billing in Singapore. " +
+      "The free tier covers the compute, so what is left to pay, so far well under a US dollar a month, is almost all data leaving Google's network. " +
+      "Most requests are the site's own uptime checks, and Cloud Run bills in 100 ms steps, so a check is billed far longer than the server spends on it. " +
+      "A what-if prices a busier month, from a good day to a viral one, and the page lists what caps the bill: scale to zero, at most three instances, rate limits and a budget alert. " +
+      "The terminal's cost command prints the same receipt.",
+  });
+
+  facts.push({
+    id: "break",
+    href: "/break",
+    title: "Break it yourself: fault injection on the live site",
+    anchor: "break",
+    lead: "At /break you can inject faults into this site's live server and watch four client strategies cope with them.",
+    text:
+      "Choose how many requests the server answers with a 503 and how many it holds before answering, then send real requests to /api/lab/echo and see every attempt on a timeline. " +
+      "The clients: give up after one attempt, retry with exponential backoff and full jitter, retry behind a circuit breaker that fails fast after four failures in a row, and hedge, sending a second copy when the first is slow. " +
+      "The faults land on your own requests only, within limits (60% errors, 1.5 s holds, 24 held at once, 240 requests a minute), and never touch the site's SLO, which uptime checks measure on another endpoint. " +
+      "To debug the real server instead, a break-fix drill on the repository's drill/01 branch opens in GitHub Codespaces with one bug planted in it.",
+  });
+
+  facts.push({
+    id: "capacity",
+    href: "/research#capacity",
+    title: "Capacity lab: sizing a GPU for AI agents",
+    anchor: "capacity",
+    lead: "The research chapter has a capacity lab that sizes a GPU for long-running AI agents.",
+    text:
+      "Pick a model (Qwen3 or Llama 3.1), a GPU (A100, H100 or L4) and an agent's task, and it estimates the GPU memory the weights and each agent's KV cache need, " +
+      "how many agents' histories fit, how fast they decode, how busy the GPU really is and what a task costs. " +
+      "It starts from my FYP's setup: Qwen3-4B on an A100, four agents at once and a 96% prefix-cache hit rate. " +
+      "Decoding is memory-bound and prefill compute-bound; the arithmetic is first-order, and the page says what it leaves out.",
   });
 
   facts.push({

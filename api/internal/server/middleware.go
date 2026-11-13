@@ -26,40 +26,54 @@ func (r *statusRecorder) WriteHeader(code int) {
 func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
 
 // observe records Prometheus metrics, the status-page latency window and one structured log line.
+// A handler that panics is recorded as the 500 recoverer will answer, then the panic carries on to
+// it; otherwise it would unwind past here and leave no metric and no access log line.
 func (s *Server) observe(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, code: http.StatusOK}
+		defer func() {
+			v := recover()
+			if v != nil {
+				rec.code = http.StatusInternalServerError
+			}
+			s.record(w, r, rec.code, time.Since(start))
+			if v != nil {
+				panic(v)
+			}
+		}()
 		next.ServeHTTP(rec, r)
-		elapsed := time.Since(start)
-
-		route := routeLabel(r)
-		s.metrics.Requests.WithLabelValues(route, methodLabel(r.Method), strconv.Itoa(rec.code)).Inc()
-		s.metrics.Duration.WithLabelValues(route).Observe(elapsed.Seconds())
-		// Probes, uptime checks and scrapes would drown out real traffic on the status page and in
-		// the logs (the uptime checks alone are about 4,300 requests a day). The lab's delays are
-		// ones a visitor asked for, so they stay out of the live latency figures too.
-		probe := machineRoutes[route]
-		if !probe && route != labRoute {
-			s.metrics.Window.Add(float64(elapsed.Microseconds()) / 1000)
-		}
-		// A machine route that fails is worth seeing, though: an MCP client that keeps getting 4xx
-		// would otherwise never show up in the logs.
-		level := slog.LevelInfo
-		if probe && rec.code < 400 {
-			level = slog.LevelDebug
-		}
-		if rec.code >= 500 {
-			level = slog.LevelError
-		}
-		// A 503 the lab injected on request is the lab working, not the server failing.
-		if route == labRoute && strings.Contains(w.Header().Get("X-Fault"), "error") {
-			level = slog.LevelDebug
-		}
-		s.log.Log(r.Context(), level, "request",
-			"method", r.Method, "path", r.URL.Path, "route", route, "status", rec.code,
-			"duration_ms", float64(elapsed.Microseconds())/1000, "request_id", w.Header().Get("X-Request-Id"))
 	})
+}
+
+// record counts, times and logs one request.
+func (s *Server) record(w http.ResponseWriter, r *http.Request, code int, elapsed time.Duration) {
+	route := routeLabel(r)
+	s.metrics.Requests.WithLabelValues(route, methodLabel(r.Method), strconv.Itoa(code)).Inc()
+	s.metrics.Duration.WithLabelValues(route).Observe(elapsed.Seconds())
+	// Probes, uptime checks and scrapes would drown out real traffic on the status page and in
+	// the logs (the uptime checks alone are about 4,300 requests a day). The lab's delays are
+	// ones a visitor asked for, so they stay out of the live latency figures too.
+	probe := machineRoutes[route]
+	if !probe && route != labRoute {
+		s.metrics.Window.Add(float64(elapsed.Microseconds()) / 1000)
+	}
+	// A machine route that fails is worth seeing, though: an MCP client that keeps getting 4xx
+	// would otherwise never show up in the logs.
+	level := slog.LevelInfo
+	if probe && code < 400 {
+		level = slog.LevelDebug
+	}
+	if code >= 500 {
+		level = slog.LevelError
+	}
+	// A 503 the lab injected on request is the lab working, not the server failing.
+	if route == labRoute && strings.Contains(w.Header().Get("X-Fault"), "error") {
+		level = slog.LevelDebug
+	}
+	s.log.Log(r.Context(), level, "request",
+		"method", r.Method, "path", r.URL.Path, "route", route, "status", code,
+		"duration_ms", float64(elapsed.Microseconds())/1000, "request_id", w.Header().Get("X-Request-Id"))
 }
 
 // machineRoutes are requested by machines, not visitors: probes, uptime checks, scrapes, the image
@@ -134,6 +148,7 @@ func cors(allowed []string, next http.Handler) http.Handler {
 			h.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 			h.Set("Access-Control-Allow-Headers", "Content-Type, MCP-Protocol-Version, Mcp-Method, Mcp-Name")
 			h.Set("Access-Control-Max-Age", "600")
+			h.Set("Access-Control-Expose-Headers", "Retry-After, X-Fault, X-Request-Id")
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return

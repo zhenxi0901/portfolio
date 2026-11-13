@@ -22,7 +22,7 @@ const STOPS: Stop[] = [
   {
     id: "explore",
     title: "This site runs like production",
-    text: "An SLO, a deploy pipeline with rollbacks, postmortems, an MCP server, and incident drills you can play.",
+    text: "An SLO, a deploy pipeline with rollbacks, postmortems and an MCP server. Break it yourself with real faults, or read this month's bill on the cost page.",
   },
   {
     id: "latest",

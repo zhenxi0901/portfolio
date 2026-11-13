@@ -21,7 +21,7 @@ const checks: Record<Kind, () => Promise<string>> = {
     const r = await api.slo();
     if (!r.available) return `No availability figures right now: ${r.reason ?? "no reason given"}`;
     const read = r.stale ? ` These are the last good numbers, read ${r.updated.slice(11, 16)} UTC.` : "";
-    return `${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} checks passed: ${pct(r.availability, 3)} against ${pct(r.target, 1)}. ${pct(Math.max(r.budget_remaining, 0), 1)} of the error budget is left.${read}`;
+    return `${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} uptime-check results passed: ${pct(r.availability, 3)} against ${pct(r.target, 1)}. ${pct(Math.max(r.budget_remaining, 0), 1)} of the error budget is left.${read}`;
   },
   status: async () => {
     const r = await api.status();

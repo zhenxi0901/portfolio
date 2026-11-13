@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -51,6 +52,29 @@ func startServer(t *testing.T, cfg Config) *httptest.Server {
 	ts := httptest.NewServer(s.Handler())
 	t.Cleanup(ts.Close)
 	return ts
+}
+
+// A handler that panics is still a request: counted as a 500, timed and logged, not lost on its
+// way out to recoverer.
+func TestAPanicIsCountedAndLogged(t *testing.T) {
+	var logs bytes.Buffer
+	log := slog.New(slog.NewTextHandler(&logs, nil))
+	s, err := New(testConfig(t), log)
+	must(t, err)
+	h := recoverer(log, s.observe(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { panic("boom") })))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/anything", nil))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status %d, want 500", rec.Code)
+	}
+	if out := logs.String(); !strings.Contains(out, "msg=request") || !strings.Contains(out, "status=500") || !strings.Contains(out, "msg=panic") {
+		t.Errorf("want the panic and an access log line for it, got:\n%s", out)
+	}
+	m := httptest.NewRecorder()
+	s.Handler().ServeHTTP(m, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	if !strings.Contains(m.Body.String(), `http_requests_total{code="500",method="GET",route="unmatched"} 1`) {
+		t.Errorf("the panic is not in the request metrics")
+	}
 }
 
 func TestHealthAndStatic(t *testing.T) {
