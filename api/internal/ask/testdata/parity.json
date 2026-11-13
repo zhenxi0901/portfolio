@@ -18,7 +18,7 @@
     "answer": "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. CI/CD: GitHub Actions, Jenkins, Cloud Build. AI infrastructure: LLM serving with SGLang, LLM benchmarking, A100 GPUs, Vertex AI, RAG, MCP, PyTorch.",
     "sources": [
       "skills",
-      "ai-ask-documents"
+      "capacity"
     ]
   },
   {
@@ -146,7 +146,7 @@
     "answer": "This site is a Next.js static export served by a small Go server on Cloud Run, which also runs the API behind the Ask console, the contact form and the live status panel. It exposes Prometheus metrics; GitHub Actions builds and deploys it, and its infrastructure is in Terraform. Its own SLO is 99.9% availability over 30 days, measured from outside: Google Cloud uptime checks request /api/health every minute from Singapore, Belgium and Oregon, and the status page shows the real availability and error budget left.",
     "sources": [
       "site",
-      "agents"
+      "cost"
     ]
   },
   {
