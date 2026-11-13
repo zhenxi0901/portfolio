@@ -79,7 +79,7 @@ func Map(d Data, l Live, darkTheme bool) []byte {
 	if l.P50 > 0 || l.P95 > 0 {
 		latency = fmt.Sprintf("p50 %s · p95 %s ms", mapMs(l.P50), mapMs(l.P95))
 	}
-	instance := "asia-southeast1"
+	instance := "instance starting"
 	if l.Up > 0 {
 		instance = "instance up " + upFor(l.Up)
 	}
@@ -92,11 +92,12 @@ func Map(d Data, l Live, darkTheme bool) []byte {
 		shipped = fmt.Sprintf("%s · %d deploys", d.Commit, d.Delivery.Deploys)
 	}
 	nodes := map[string]node{
-		"you":        {title: "You", sub: "any browser", accent: true},
-		"gfe":        {title: "Google front end", sub: "terminates TLS"},
-		"run":        {title: "Cloud Run · Go", sub: instance, accent: true},
+		"you": {title: "You", sub: "any browser", accent: true},
+		"gfe": {title: "Google front end", sub: "terminates TLS"},
+		// The latency is the Go server's, over every visitor request (pages and API alike).
+		"run":        {title: "Cloud Run · Go", sub: latency, accent: true},
 		"page":       {title: "This page", sub: "static export", accent: true},
-		"api":        {title: "/api", sub: latency},
+		"api":        {title: "/api", sub: "status · slo · cost"},
 		"actions":    {title: "GitHub Actions", sub: shipped},
 		"probes":     {title: "Uptime checks", sub: "3 regions · 1/min"},
 		"monitoring": {title: "Cloud Monitoring", sub: watched},
@@ -123,7 +124,7 @@ func Map(d Data, l Live, darkTheme bool) []byte {
 	// Header: what this is, with a live light that breathes.
 	w(`<circle cx="26" cy="24" r="4" fill="%s"><animate attributeName="opacity" values="1;0.35;1" dur="2s" repeatCount="indefinite"/></circle>`+"\n", p.good)
 	w(`<text x="38" y="28" font-size="13" font-weight="600" fill="%s" font-family="%s">portfolio, live</text>`+"\n", p.text, sans)
-	w(`<text x="%d" y="28" font-size="11" fill="%s" font-family="%s" text-anchor="end">%s</text>`+"\n", mapW-20, p.muted, mono, esc(d.Region))
+	w(`<text x="%d" y="28" font-size="11" fill="%s" font-family="%s" text-anchor="end">%s</text>`+"\n", mapW-20, p.muted, mono, esc(d.Region+" · "+instance))
 
 	// Edges first, so the boxes cover their ends and the dots slip under them.
 	edge := func(a, z string, stroke string, dashed bool) {
