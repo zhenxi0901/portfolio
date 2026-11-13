@@ -43,6 +43,7 @@ export type CostLine = { item: string; quantity: number; unit: string; price: nu
 /** The price list and the service's limits, so a what-if is priced the same way as the receipt. */
 export type CostPrices = {
   as_of: string;
+  egress_tiers?: { up_to_gib?: number; per_gib: number }[]; // absent from servers before 2026-11-13
   vcpu_second: number;
   gib_second: number;
   per_million_requests: number;

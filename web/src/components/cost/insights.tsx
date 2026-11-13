@@ -35,16 +35,17 @@ export function CostInsights() {
   const egress = r.lines[3];
   const billedMs = r.billed_seconds_per_request * 1000;
   const p50 = status?.latency_ms.p50;
+  const work = p50 === undefined ? "" : p50 < 0.1 ? "under 0.1 ms" : `${p50.toFixed(1)} ms`;
   return (
     <ul className="grid content-start gap-3">
       <Card title={`${share(r.probe_share)} requests are the site checking on itself`}>
         Uptime checks call /api/health once a minute from three regions: about {count(r.probe_requests)} of this month&apos;s{" "}
         {count(r.usage.requests)} requests. Knowing the site is up is most of its traffic.
       </Card>
-      <Card title={`Billed ${Math.round(billedMs)} ms a request${p50 !== undefined ? `, for ${p50.toFixed(1)} ms of work` : ""}`}>
+      <Card title={`Billed ${Math.round(billedMs)} ms a request${work ? `, for ${work} of work` : ""}`}>
         Cloud Run bills an instance&apos;s busy time in 100 ms steps, and a lone uptime check keeps an instance busy for a whole step. About{" "}
         {Math.round(r.probe_billed_share * 100)}% of the billed time is the site answering its own checks
-        {p50 !== undefined ? "; the median request takes the server well under a millisecond" : ""}.
+        {p50 === undefined ? "" : p50 < 1 ? "; the median request takes the server well under a millisecond" : `; the median request takes the server ${work}`}.
       </Card>
       {r.free_tier >= compute - 1e-9 ? (
         <Card title="The free tier pays for the compute">

@@ -15,6 +15,23 @@ function price(l: CostLine): string {
   return `US$${l.price < 0.01 ? l.price.toFixed(7).replace(/0+$/, "") : l.price.toFixed(2)} each`;
 }
 
+/**
+ * Rounds each line to d decimals so that the lines add up to the total rounded the same way
+ * (largest remainder first), the way a printed receipt has to.
+ */
+function roundToTotal(values: number[], total: number, d: number): number[] {
+  const k = 10 ** d;
+  const out = values.map((v) => Math.floor(v * k));
+  let left = Math.round(total * k) - out.reduce((a, b) => a + b, 0);
+  const order = values.map((v, i) => [v * k - out[i], i] as const).sort((a, b) => b[0] - a[0]);
+  for (const [, i] of order) {
+    if (left <= 0) break;
+    out[i]++;
+    left--;
+  }
+  return out.map((v) => v / k);
+}
+
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
 /** Bars drawn from the month's request count: decoration, so every receipt looks a little different. */
@@ -82,7 +99,11 @@ export function CostReceipt() {
         <Header report={null} />
         <hr className={rule} />
         <p role="status" className="py-10 text-center text-ink-2">
-          {failed ? "The meters aren't reachable from this copy of the site. On the live site this receipt is printed from Cloud Monitoring." : "Reading this month's meters…"}
+          {failed === "absent"
+            ? "The meters aren't reachable from this copy of the site. On the live site this receipt is printed from Cloud Monitoring."
+            : failed === "down"
+              ? "The meters didn't answer just now. Try again in a minute."
+              : "Reading this month's meters…"}
         </p>
       </Paper>
     );
@@ -101,7 +122,7 @@ export function CostReceipt() {
             <Row label="CPU" value={`US$${p.vcpu_second}`} sub="per vCPU-second" />
             <Row label="Memory" value={`US$${p.gib_second}`} sub="per GiB-second" />
             <Row label="Requests" value={`US$${p.per_million_requests.toFixed(2)}`} sub="per million" />
-            <Row label="Data to the internet" value={`US$${p.per_gib_egress.toFixed(2)}`} sub="per GiB" />
+            <Row label="Data to the internet" value={`US$${p.per_gib_egress.toFixed(2)}`} sub="per GiB, the month's first TiB" />
           </tbody>
         </table>
         <p className="mt-4 text-center text-[11px] text-ink-3">List prices as of {p.as_of}</p>
@@ -109,6 +130,18 @@ export function CostReceipt() {
     );
   }
 
+  // Money to four places while the bill is under a dollar, two above; the free tier is whatever
+  // takes the list price, as shown, to the bill, as shown.
+  const d = report.list_price >= 1 ? 2 : 4;
+  const k = 10 ** d;
+  const money = (x: number) => `${x < 0 ? "−" : ""}US$${Math.abs(x).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+  const lineCosts = roundToTotal(
+    report.lines.map((l) => l.cost),
+    report.list_price,
+    d,
+  );
+  const list = Math.round(report.list_price * k) / k;
+  const bill = Math.round(report.bill * k) / k;
   return (
     <Paper>
       <Header report={report} />
@@ -122,16 +155,16 @@ export function CostReceipt() {
           </tr>
         </thead>
         <tbody>
-          {report.lines.map((l) => (
-            <Row key={l.item} label={l.item} value={usd(l.cost)} sub={`${quantity(l)} × ${price(l)}`} />
+          {report.lines.map((l, i) => (
+            <Row key={l.item} label={l.item} value={money(lineCosts[i])} sub={`${quantity(l)} × ${price(l)}`} />
           ))}
         </tbody>
         <tbody className="border-t border-dashed border-line-strong">
-          <Row label="List price" value={usd(report.list_price)} />
-          <Row label="Free tier" value={usd(-report.free_tier)} sub="CPU, memory and requests, per billing account" />
+          <Row label="List price" value={money(list)} />
+          <Row label="Free tier" value={money(bill - list)} sub="CPU, memory and requests, per billing account" />
         </tbody>
         <tfoot className="border-t-4 border-double border-line-strong">
-          <Row label="To pay, estimated" value={usd(report.bill)} strong />
+          <Row label="To pay, estimated" value={money(bill)} strong />
         </tfoot>
       </table>
       <hr className={rule} />

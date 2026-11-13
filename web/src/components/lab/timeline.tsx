@@ -1,8 +1,10 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import type { Attempt, Outcome, RequestResult } from "@/lib/resilience";
 
 const LANE = 16;
 const GUTTER = 34;
-const WIDTH = 1000;
 
 /** How each outcome is drawn, and what the legend calls it. */
 export const looks: Record<Outcome, { label: string; className: string }> = {
@@ -11,7 +13,7 @@ export const looks: Record<Outcome, { label: string; className: string }> = {
   error: { label: "503 from the server", className: "fill-critical" },
   timeout: { label: "timed out (1 s)", className: "fill-none stroke-critical" },
   busy: { label: "lab busy (429)", className: "fill-p-aries" },
-  cancelled: { label: "hedge hung up on", className: "fill-ink-3 opacity-40" },
+  cancelled: { label: "lost the race, hung up on", className: "fill-ink-3 opacity-40" },
   rejected: { label: "not sent: breaker open", className: "stroke-ink-2" },
 };
 
@@ -45,15 +47,30 @@ function bar(a: Attempt, x: (t: number) => number, y: number, key: string) {
 
 /** Every attempt of every request on one time axis: a lane per request, retries and hedges in it. */
 export function Timeline({ results, lanes, label }: { results: RequestResult[]; lanes: number; label: string }) {
+  // Drawn at the width it is shown at, so the labels are real 10 and 11 px text on a phone too.
+  const box = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(1000);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => setWidth(Math.max(280, Math.round(el.clientWidth)));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   // The axis fits the run (at least 300 ms), so a fast run is not a row of slivers on the left.
   const end = Math.max(300, ...results.map((r) => r.end)) * 1.04;
-  const x = (t: number) => GUTTER + (t / end) * (WIDTH - GUTTER - 8);
-  const step = end > 6000 ? 2000 : end > 3000 ? 1000 : end > 1500 ? 500 : end > 600 ? 250 : 100;
+  const span = width - GUTTER - 8;
+  const x = (t: number) => GUTTER + (t / end) * span;
+  // A tick every 100 ms to 5 s, whichever leaves room for its label (about 56 px).
+  const step = [100, 250, 500, 1000, 2000, 5000].find((s) => (s / end) * span >= 56) ?? 10_000;
   const ticks = Array.from({ length: Math.floor(end / step) + 1 }, (_, i) => i * step);
   const tick = (t: number) => (step < 1000 && t % 1000 !== 0 ? `${t} ms` : `${t / 1000} s`);
   const height = lanes * LANE + 22;
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${height}`} className="w-full" role="img" aria-label={label}>
+    <div ref={box}>
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label={label}>
       {ticks.map((t) => (
         <g key={t}>
           <line x1={x(t)} x2={x(t)} y1={0} y2={lanes * LANE} className="stroke-line" strokeWidth={1} />
@@ -93,5 +110,6 @@ export function Timeline({ results, lanes, label }: { results: RequestResult[]; 
         );
       })}
     </svg>
+    </div>
   );
 }

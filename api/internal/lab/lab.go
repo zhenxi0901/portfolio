@@ -3,7 +3,7 @@
 // retries, circuit breaker and hedging can be watched against a real server instead of a mock.
 //
 // It never touches what the site's SLO measures: the uptime checks call /api/health, and lab
-// requests are kept out of the live latency figures on /status (server.machineRoutes).
+// requests are kept out of the live latency figures on /status (labRoute in internal/server).
 package lab
 
 import (
@@ -24,6 +24,10 @@ const (
 	// instance billed while it waits, so this bounds what a crowd of slow requests can cost.
 	MaxInFlight = 24
 )
+
+// StatusClientClosed is what a request the client hung up on is logged as (nginx's 499): nobody
+// is left to read it, but a 200 in the logs would say the server answered.
+const StatusClientClosed = 499
 
 // Reply is the body of every answer, failed or not.
 type Reply struct {
@@ -94,7 +98,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	slow := f.Delay > 0 && h.rand() < f.Slow
 	if slow {
 		if err := h.sleep(r.Context(), f.Delay); err != nil {
-			return // the client gave up waiting; nobody is left to answer
+			w.WriteHeader(StatusClientClosed) // the client gave up waiting
+			return
 		}
 	}
 	failed := h.rand() < f.Fail

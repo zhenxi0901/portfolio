@@ -23,7 +23,14 @@ const name = (s: Strategy) => strategies.find((x) => x.id === s)!.name;
 const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`);
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const describe = (f: Faults) =>
-  f.fail === 0 && f.slow === 0 ? "no faults" : [f.fail > 0 && `${pct(f.fail)} errors`, f.slow > 0 && f.delayMs > 0 && `${pct(f.slow)} slow by ${ms(f.delayMs)}`].filter(Boolean).join(", ");
+  [f.fail > 0 && `${pct(f.fail)} errors`, f.slow > 0 && f.delayMs > 0 && `${pct(f.slow)} slow by ${ms(f.delayMs)}`].filter(Boolean).join(", ") || "no faults";
+
+/** One request's attempts in the order they went out: one after another, or side by side for a hedge. */
+const attemptsOf = (r: RequestResult, s: Strategy) =>
+  [...r.attempts]
+    .sort((a, b) => a.start - b.start)
+    .map((a) => `${looks[a.outcome].label} ${a.outcome === "rejected" ? "" : ms(a.end - a.start)}`.trim())
+    .join(s === "hedge" ? " + " : " → ");
 
 /** What a run showed, in a sentence or two, from its own numbers. */
 function takeaway(r: Run): string {
@@ -80,6 +87,7 @@ export function Lab() {
   const [current, setCurrent] = useState<Run | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [verdict, setVerdict] = useState<string | null>(null);
   const ids = useRef(0);
   const radioName = useId();
 
@@ -87,6 +95,7 @@ export function Lab() {
     if (busy) return;
     const f = { ...faults };
     const done: Run[] = [];
+    setVerdict(null);
     for (const s of list) {
       setBusy(list.length > 1 ? `Running ${name(s)}…` : "Sending…");
       setResults([]);
@@ -96,6 +105,13 @@ export function Lab() {
       done.push(r);
       setCurrent(r);
       setResults(res);
+    }
+    if (done.length > 1) {
+      setVerdict(
+        `Compared against ${describe(f)}: ` +
+          done.map((r) => `${name(r.strategy)} ${summarise(r.results).ok} of ${count}`).join(", ") +
+          " succeeded for the user. All four are side by side below.",
+      );
     }
     setRuns((old) => [...done.reverse(), ...old].slice(0, 12));
     setBusy(null);
@@ -183,7 +199,7 @@ export function Lab() {
           <Scales /> Compare all four
         </Button>
         <p role="status" className="text-sm text-ink-2">
-          {busy ?? (finished ? `Done: ${name(current!.strategy)}, ${describe(current!.faults)}.` : "")}
+          {busy ?? (finished ? (verdict ?? `Done: ${name(current!.strategy)}, ${describe(current!.faults)}.`) : "")}
         </p>
       </div>
 
@@ -271,7 +287,7 @@ export function Lab() {
                     {current.results.map((r) => (
                       <tr key={r.id} className="border-t border-line">
                         <td className="py-1.5 pr-3">{r.id + 1}</td>
-                        <td className="py-1.5 pr-3">{r.attempts.map((a) => `${looks[a.outcome].label} ${a.outcome === "rejected" ? "" : ms(a.end - a.start)}`.trim()).join(" → ")}</td>
+                        <td className="py-1.5 pr-3">{attemptsOf(r, current.strategy)}</td>
                         <td className="py-1.5 pr-3">{r.ok ? "succeeded" : "failed"}</td>
                         <td className="py-1.5">{ms(r.end - r.start)}</td>
                       </tr>
@@ -289,7 +305,8 @@ export function Lab() {
           <h2 id="lab-runs" className="text-lg font-semibold tracking-[-0.02em]">
             Your runs, side by side
           </h2>
-          <div className="mt-4 overflow-x-auto">
+          {/* Focusable, so the columns past a phone's edge can be scrolled to from the keyboard. */}
+          <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="The runs table, which scrolls sideways on small screens">
             <table className="w-full min-w-[560px] text-left text-sm">
               <caption className="sr-only">Every run so far, newest first</caption>
               <thead className="text-ink-3">

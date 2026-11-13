@@ -6,6 +6,10 @@
 //   retry    up to 3 more attempts, exponential backoff with full jitter
 //   breaker  retry, plus a circuit breaker that fails fast after 4 failures in a row
 //   hedge    a second copy if the first has not answered in 300 ms; the first success wins
+//
+// Requests arrive on a schedule, one every ARRIVAL_MS, whatever happened to the ones before: the
+// way visitors keep arriving at a struggling service. That is what makes retries pile up and what
+// a circuit breaker is for.
 
 import { API_BASE } from "@/lib/api";
 
@@ -16,10 +20,10 @@ export type Faults = { fail: number; slow: number; delayMs: number };
 export type Outcome =
   | "ok" // answered 200 in time
   | "slow" // answered 200, after a delay the server injected
-  | "error" // answered 503 (injected) or another 5xx
+  | "error" // answered 503 (injected) or another error status, or the network failed
   | "timeout" // no answer in time; the client hung up
   | "busy" // 429: the lab's rate limit or its cap on requests held at once
-  | "cancelled" // a hedge that lost the race, hung up on
+  | "cancelled" // a hedge copy that lost the race, hung up on
   | "rejected"; // never sent: the circuit breaker was open
 
 export type Attempt = { start: number; end: number; outcome: Outcome };
@@ -27,6 +31,7 @@ export type Attempt = { start: number; end: number; outcome: Outcome };
 export type RequestResult = { id: number; start: number; end: number; ok: boolean; attempts: Attempt[] };
 
 export const TIMEOUT_MS = 1000;
+export const ARRIVAL_MS = 200;
 const RETRIES = 3;
 const BACKOFF_BASE_MS = 100;
 const BACKOFF_CAP_MS = 1000;
@@ -37,9 +42,9 @@ const HEDGE_AFTER_MS = 300;
 /** What each strategy is, in a line, for the page and its legend. */
 export const strategies: { id: Strategy; name: string; detail: string }[] = [
   { id: "give-up", name: "Give up", detail: "One attempt, a 1 s timeout. Whatever goes wrong, the user sees." },
-  { id: "retry", name: "Retry", detail: "Up to 3 more attempts, waiting a random 0 to 100·2ⁿ ms (capped at 1 s) between them." },
+  { id: "retry", name: "Retry", detail: "Up to 3 more attempts, after a random wait of up to 100, 200, then 400 ms: exponential backoff with full jitter." },
   { id: "breaker", name: "Retry + circuit breaker", detail: "Retries, but after 4 failures in a row it stops calling for 2 s and fails fast, then lets one call through to test." },
-  { id: "hedge", name: "Hedge", detail: "If no answer in 300 ms, sends a second copy; the first success wins and the other is hung up on." },
+  { id: "hedge", name: "Hedge", detail: "If there is no answer in 300 ms, sends a second copy; the first success wins and the other is hung up on. A quick error is final: hedging is for slowness." },
 ];
 
 type Clock = () => number;
@@ -59,7 +64,9 @@ async function attempt(f: Faults, clock: Clock, signal?: AbortSignal): Promise<A
     const outcome: Outcome = res.status === 429 ? "busy" : res.ok ? (fault.startsWith("slow") ? "slow" : "ok") : "error";
     return { start, end: clock(), outcome };
   } catch {
-    return { start, end: clock(), outcome: ctrl.signal.reason === "cancelled" ? "cancelled" : "timeout" };
+    // Hung up on by the timer or by a winning hedge; anything else is the network failing.
+    const why = ctrl.signal.reason;
+    return { start, end: clock(), outcome: why === "cancelled" ? "cancelled" : why === "timeout" ? "timeout" : "error" };
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener("abort", onAbort);
@@ -67,7 +74,7 @@ async function attempt(f: Faults, clock: Clock, signal?: AbortSignal): Promise<A
 }
 
 const succeeded = (a: Attempt) => a.outcome === "ok" || a.outcome === "slow";
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const wait = (ms: number) => new Promise((r) => setTimeout(r, Math.max(0, ms)));
 /** Full jitter: a random wait between 0 and the exponential backoff for this retry. */
 const backoff = (retry: number) => Math.random() * Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** retry);
 
@@ -75,21 +82,20 @@ const backoff = (retry: number) => Math.random() * Math.min(BACKOFF_CAP_MS, BACK
 class Breaker {
   private failures = 0;
   private openUntil = -Infinity;
-  private trial = false;
+  private trialOut = false;
   constructor(private clock: Clock) {}
-  /** Whether a call may go out now. */
-  allow(): boolean {
-    const now = this.clock();
-    if (now < this.openUntil) return false;
-    if (this.failures >= BREAKER_THRESHOLD) {
-      // Half-open: one trial call at a time.
-      if (this.trial) return false;
-      this.trial = true;
-    }
-    return true;
+  /** Whether a call may go out now: as usual, as the half-open trial, or not at all. */
+  allow(): "call" | "trial" | null {
+    if (this.clock() < this.openUntil) return null;
+    if (this.failures < BREAKER_THRESHOLD) return "call";
+    if (this.trialOut) return null;
+    this.trialOut = true;
+    return "trial";
   }
-  record(ok: boolean) {
-    this.trial = false;
+  record(ok: boolean, trial: boolean) {
+    if (trial) this.trialOut = false;
+    // Calls that were already out when it opened come back while it is open; they don't move it.
+    else if (this.clock() < this.openUntil) return;
     if (ok) {
       this.failures = 0;
       this.openUntil = -Infinity;
@@ -102,14 +108,15 @@ class Breaker {
 
 async function withRetries(f: Faults, clock: Clock, retries: number, breaker: Breaker | null, onAttempt: (a: Attempt) => void): Promise<boolean> {
   for (let retry = 0; ; retry++) {
-    if (breaker && !breaker.allow()) {
+    const permit = breaker ? breaker.allow() : "call";
+    if (!permit) {
       const now = clock();
       onAttempt({ start: now, end: now, outcome: "rejected" });
       return false; // fail fast: an open breaker is the answer
     }
     const a = await attempt(f, clock);
+    breaker?.record(succeeded(a), permit === "trial");
     onAttempt(a);
-    breaker?.record(succeeded(a));
     if (succeeded(a)) return true;
     if (retry >= retries) return false;
     await wait(backoff(retry));
@@ -128,9 +135,9 @@ async function hedged(f: Faults, clock: Clock, onAttempt: (a: Attempt) => void):
     return p;
   };
   const first = launch();
-  const settledEarly = await Promise.race([first.then(() => true), wait(HEDGE_AFTER_MS).then(() => false)]);
-  if (settledEarly && succeeded(await first)) return true;
-  // No answer in 300 ms, or the first failed fast: the second copy goes out.
+  const answeredEarly = await Promise.race([first.then(() => true), wait(HEDGE_AFTER_MS).then(() => false)]);
+  // An answer inside 300 ms, good or bad, is the answer: a hedge covers slowness, not errors.
+  if (answeredEarly) return succeeded(await first);
   launch();
   // The first success wins and the other copy is hung up on; if both fail, so does the request.
   return new Promise<boolean>((resolve) => {
@@ -147,43 +154,34 @@ async function hedged(f: Faults, clock: Clock, onAttempt: (a: Attempt) => void):
 }
 
 /**
- * Sends `count` requests, `parallel` at a time, with one strategy against the chosen faults.
- * `onUpdate` gets the results so far after every attempt, for drawing as it happens.
+ * Sends `count` requests with one strategy against the chosen faults, one arriving every
+ * ARRIVAL_MS. `onUpdate` gets the results so far after every attempt, for drawing as it happens.
  */
-export async function run(
-  strategy: Strategy,
-  faults: Faults,
-  count: number,
-  onUpdate: (results: RequestResult[]) => void,
-  parallel = 4,
-): Promise<RequestResult[]> {
+export async function run(strategy: Strategy, faults: Faults, count: number, onUpdate: (results: RequestResult[]) => void): Promise<RequestResult[]> {
   const t0 = performance.now();
   const clock = () => performance.now() - t0;
   const breaker = strategy === "breaker" ? new Breaker(clock) : null;
   const results: RequestResult[] = [];
-  let next = 0;
-  const one = async () => {
-    while (next < count) {
-      const id = next++;
-      const r: RequestResult = { id, start: clock(), end: clock(), ok: false, attempts: [] };
-      results.push(r);
-      let done = false;
-      const record = (a: Attempt) => {
-        r.attempts.push(a);
-        // A hedge hung up on after the winner answered does not make the user wait longer.
-        if (!done) r.end = Math.max(r.end, a.end);
-        onUpdate([...results]);
-      };
-      r.ok =
-        strategy === "hedge"
-          ? await hedged(faults, clock, record)
-          : await withRetries(faults, clock, strategy === "give-up" ? 0 : RETRIES, breaker, record);
-      done = true;
-      r.end = clock();
+  const one = async (id: number) => {
+    await wait(id * ARRIVAL_MS - clock());
+    const r: RequestResult = { id, start: clock(), end: clock(), ok: false, attempts: [] };
+    results.push(r);
+    let done = false;
+    const record = (a: Attempt) => {
+      r.attempts.push(a);
+      // A hedge copy hung up on after the winner answered does not make the user wait longer.
+      if (!done) r.end = Math.max(r.end, a.end);
       onUpdate([...results]);
-    }
+    };
+    r.ok =
+      strategy === "hedge"
+        ? await hedged(faults, clock, record)
+        : await withRetries(faults, clock, strategy === "give-up" ? 0 : RETRIES, breaker, record);
+    done = true;
+    r.end = clock();
+    onUpdate([...results]);
   };
-  await Promise.all(Array.from({ length: parallel }, one));
+  await Promise.all(Array.from({ length: count }, (_, id) => one(id)));
   return results.sort((a, b) => a.id - b.id);
 }
 

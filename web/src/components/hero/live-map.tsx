@@ -13,10 +13,14 @@ import { cn } from "@/lib/utils";
  * The uptime checks are drawn on their real cadence, three a minute, one region at a time.
  */
 
-type Visit = { tls: number | null; ttfb: number; server: number | null; cold: boolean; download: number; total: number; bytes: number; protocol: string | null };
+// connect: TCP and TLS, when this page opened its own connection. setup: time before the request
+// went out when the connection was opened outside the timed phase (a browser preconnect), so it is
+// neither a measured handshake nor a reused connection.
+type Visit = { connect: number | null; setup: number | null; ttfb: number; server: number | null; cold: boolean; download: number; total: number; bytes: number; protocol: string | null };
 type Delivery = { generated: string; head: { sha: string } | null };
 
 const COLD_START_MS = 10_000;
+const POLL_MS = 30_000;
 const PROTOCOL: Record<string, string> = { h3: "HTTP/3", h2: "HTTP/2", "http/1.1": "HTTP/1.1" };
 
 function readVisit(): Visit | null {
@@ -24,9 +28,11 @@ function readVisit(): Visit | null {
   if (!nav || !nav.responseStart || !nav.responseEnd) return null;
   const st = new Map((nav.serverTiming ?? []).map((e) => [e.name, e]));
   const connect = nav.connectEnd - nav.connectStart;
+  const before = nav.requestStart - nav.fetchStart;
   const age = st.get("cold")?.duration;
   return {
-    tls: connect >= 0.5 ? connect : null,
+    connect: connect >= 0.5 ? connect : null,
+    setup: connect < 0.5 && before >= 20 ? before : null,
     ttfb: nav.responseStart - nav.requestStart,
     server: st.get("app")?.duration ?? null,
     cold: age !== undefined && age < COLD_START_MS,
@@ -58,6 +64,10 @@ const city = () => {
   return tzCity;
 };
 const never = () => () => {};
+/** "connect 41 ms", "setup 150 ms", or "connection reused": only claimed when nothing was set up. */
+const link = (v: Visit) => (v.connect !== null ? `connect ${ms(v.connect)}` : v.setup !== null ? `setup ${ms(v.setup)}` : "connection reused");
+/** Short commits from /api/status and full ones from delivery.json name the same build. */
+const sameCommit = (a: string, b: string) => !!a && !!b && (a.startsWith(b) || b.startsWith(a));
 
 /** Live data for the map: this visit, the instance, the SLO, the last deploy. */
 function useLive(on: boolean) {
@@ -69,15 +79,27 @@ function useLive(on: boolean) {
   const place = useSyncExternalStore(never, city, () => null);
 
   useEffect(() => {
+    let alive = true;
+    let t = 0;
     // After load, so the navigation entry is complete.
-    const read = () => window.setTimeout(() => setVisit(readVisit()), 0);
+    const read = () => {
+      t = window.setTimeout(() => alive && setVisit(readVisit()), 0);
+    };
     if (document.readyState === "complete") read();
     else window.addEventListener("load", read, { once: true });
-    api.slo().then(setSlo).catch(() => {});
+    api
+      .slo()
+      .then((r) => alive && setSlo(r))
+      .catch(() => {});
     fetch("/delivery.json")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setDelivery(d))
+      .then((d) => alive && d && setDelivery(d))
       .catch(() => {});
+    return () => {
+      alive = false;
+      window.removeEventListener("load", read);
+      window.clearTimeout(t);
+    };
   }, []);
 
   useEffect(() => {
@@ -95,7 +117,7 @@ function useLive(on: boolean) {
         .catch(() => {});
     };
     poll();
-    const t = window.setInterval(poll, 10_000);
+    const t = window.setInterval(poll, POLL_MS);
     return () => {
       alive = false;
       window.clearInterval(t);
@@ -108,11 +130,11 @@ function useLive(on: boolean) {
 // Nodes in a 100 x 80 box: the request runs left to right through the middle, delivery comes in
 // from the top, and the watchers sit along the bottom.
 const N = {
-  you: [8, 40],
+  you: [10, 40],
   gfe: [35, 40],
   run: [63, 40],
-  page: [90, 22],
-  api: [90, 58],
+  page: [86, 22],
+  api: [86, 58],
   actions: [63, 11],
   probes: [35, 69],
   monitoring: [63, 69],
@@ -146,12 +168,12 @@ function Card({ node, title, sub, href, label, accent = false }: { node: Node; t
       href={href}
       style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }}
       className={cn(
-        "absolute z-10 w-max max-w-[9.5rem] -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-surface px-2.5 py-1.5 text-center shadow-soft transition-colors hover:border-accent-ink focus-visible:border-accent-ink",
+        "absolute z-10 w-max max-w-[min(9.5rem,30%)] -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-surface px-2 py-1 text-center shadow-soft transition-colors hover:border-accent-ink focus-visible:border-accent-ink @lg:px-2.5 @lg:py-1.5",
         accent ? "border-accent-ink" : "border-line",
       )}
     >
-      <span className="block text-[12px] font-semibold leading-tight text-ink">{title}</span>
-      <span className="mt-0.5 block font-mono text-[10.5px] leading-tight text-ink-2">{sub}</span>
+      <span className="block text-[11px] font-semibold leading-tight text-ink @lg:text-[12px]">{title}</span>
+      <span className="mt-0.5 block font-mono text-[9.5px] leading-tight text-ink-2 @lg:text-[10.5px]">{sub}</span>
       <span className="sr-only">. {label}</span>
     </a>
   );
@@ -162,7 +184,7 @@ function EdgeLabel({ from, to, children, dy = -5.5 }: { from: Node; to: Node; ch
   const x = (N[from][0] + N[to][0]) / 2;
   const y = (N[from][1] + N[to][1]) / 2 + dy;
   return (
-    <span style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[10px] text-ink-3" aria-hidden>
+    <span style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9px] text-ink-3 @lg:text-[10px]" aria-hidden>
       {children}
     </span>
   );
@@ -220,13 +242,19 @@ export function LiveMap() {
   }, [onScreen]);
 
   const { visit, status, slo, delivery, place } = live;
-  const avail = slo?.available ? `${(Math.floor(slo.availability * 1e5) / 1e3).toFixed(3)}% up` : "measured live";
+  // Only a measured figure is shown as one; until there is one, the objective it is measured against.
+  const avail = slo?.available ? `${(Math.floor(slo.availability * 1e5) / 1e3).toFixed(3)}% up` : "99.9% objective";
   const commit = status?.commit ?? delivery?.head?.sha ?? "…";
-  const instance = status ? `${visit?.cold ? "cold start · " : ""}up ${up(status.uptime_seconds)}` : "asia-southeast1";
+  // delivery.json is written by the build; its time is the deploy's only if that build is what's live.
+  const deployed = delivery?.head && status && sameCommit(status.commit, delivery.head.sha) ? ago(delivery.generated) : null;
+  // The instance a poll reached; the cold start belongs to the one that served this page.
+  const instance = status ? `up ${up(status.uptime_seconds)}` : "asia-southeast1";
+  const page = visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB · ${ms(visit.total)}${visit.cold ? " · cold start" : ""}` : "static export";
 
   return (
     <figure ref={box} className="w-full">
-      <div className="relative hidden aspect-[5/4] w-full md:block">
+      {/* A container: in a narrow column (two columns on a 1024 px screen) the type steps down. */}
+      <div className="@container relative hidden aspect-[5/4] w-full md:block">
         <div className="dot-grid absolute inset-[4%] rounded-[2rem] opacity-70 [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" aria-hidden />
         <svg viewBox="0 0 100 80" className="absolute inset-0 size-full" aria-hidden>
           {EDGES.map(([a, b]) => {
@@ -265,15 +293,15 @@ export function LiveMap() {
         </svg>
         <Card node="you" title="You" sub={place ?? "this browser"} href="/status#visit-trace" label={`You${place ? `, in ${place} time` : ""}. Your visit's trace is on the status page.`} accent />
         <Card node="gfe" title="Google front end" sub={visit?.protocol ?? "TLS · HTTP"} href="/decisions" label="Google's front end terminates TLS. Why the site runs this way: the decision records." />
-        <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1, instance ${instance}. The status page.`} accent />
-        <Card node="page" title="This page" sub={visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB · ${ms(visit.total)}` : "static export"} href="/cost" label="This page, served from the static export. What the site costs." accent />
+        <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} accent />
+        <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} accent />
         <Card node="api" title="/api" sub="status · slo · cost" href="/agents" label="The JSON API and the MCP server: for agents." />
-        <Card node="actions" title="GitHub Actions" sub={delivery ? `${commit} · ${ago(delivery.generated)}` : commit} href="/changelog" label={`Deployed by GitHub Actions: commit ${commit}. The changelog.`} />
+        <Card node="actions" title="GitHub Actions" sub={deployed ? `${commit} · ${deployed}` : commit} href="/changelog" label={`Deployed by GitHub Actions: commit ${commit}${deployed ? `, ${deployed}` : ""}. The changelog.`} />
         <Card node="probes" title="Uptime checks" sub="3 regions · 1/min" href="/status" label="Google Cloud uptime checks from Singapore, Belgium and Oregon, every minute. The status page." />
         <Card node="monitoring" title="Cloud Monitoring" sub={avail} href="/status" label={`Cloud Monitoring: ${avail}. The status page.`} />
         {visit && (
           <>
-            <EdgeLabel from="you" to="gfe">{visit.tls !== null ? `TLS ${ms(visit.tls)}` : "TLS reused"}</EdgeLabel>
+            <EdgeLabel from="you" to="gfe">{link(visit)}</EdgeLabel>
             <EdgeLabel from="gfe" to="run">{`1st byte ${ms(visit.ttfb)}`}</EdgeLabel>
             {visit.server !== null && (
               <EdgeLabel from="run" to="page" dy={-3}>
@@ -287,31 +315,43 @@ export function LiveMap() {
             <span className="rounded-full bg-p-aries px-1.5 py-0.5 text-[10px] text-white">new release</span>
           </EdgeLabel>
         )}
+        {/* The edge timings are drawn for the eye; this is them for a screen reader. */}
+        {visit && (
+          <p className="sr-only">
+            {`Your request: ${link(visit)}, first byte after ${ms(visit.ttfb)}${visit.server !== null ? `, ${ms(visit.server)} in the Go server` : ""}, the whole page in ${ms(visit.total)}${visit.cold ? ", from an instance that had just started" : ""}.`}
+          </p>
+        )}
       </div>
 
       {/* Phones: the same live numbers as a path, top to bottom. */}
       <ol className="space-y-2 md:hidden" aria-label="Your request, step by step">
         {[
-          ["You", place ? `${place} · ${visit?.protocol ?? "HTTP"}` : (visit?.protocol ?? "this browser"), visit ? (visit.tls !== null ? `TLS ${ms(visit.tls)}` : "connection reused") : ""],
-          ["Google front end", "terminates TLS", visit ? `first byte ${ms(visit.ttfb)}` : ""],
-          ["Cloud Run · Go server", status ? `asia-southeast1 · ${instance}` : "asia-southeast1", visit?.server != null ? `Go ${ms(visit.server)}` : ""],
-          ["This page", visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB` : "static export", visit ? `${ms(visit.total)} end to end` : ""],
-        ].map(([title, sub, time], i) => (
-          <li key={title} className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-3.5 py-2.5">
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent font-mono text-[11px] text-on-accent">{i + 1}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">{title}</span>
-              <span className="block truncate font-mono text-[11px] text-ink-2">{sub}</span>
-            </span>
-            <span className="shrink-0 font-mono text-[11px] text-ink-3">{time}</span>
+          ["You", place ? `${place} · ${visit?.protocol ?? "HTTP"}` : (visit?.protocol ?? "this browser"), visit ? link(visit) : "", "/status#visit-trace"],
+          ["Google front end", "terminates TLS", visit ? `first byte ${ms(visit.ttfb)}` : "", "/decisions"],
+          ["Cloud Run · Go server", status ? `asia-southeast1 · ${instance}` : "asia-southeast1", visit?.server != null ? `Go ${ms(visit.server)}` : "", "/status"],
+          ["This page", visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB${visit.cold ? " · cold start" : ""}` : "static export", visit ? `${ms(visit.total)} end to end` : "", "/cost"],
+        ].map(([title, sub, time, href], i) => (
+          <li key={title}>
+            <a href={href} className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-3.5 py-2.5 transition-colors hover:border-accent-ink focus-visible:border-accent-ink">
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent font-mono text-[11px] text-on-accent" aria-hidden>
+                {i + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">{title}</span>
+                <span className="block truncate font-mono text-[11px] text-ink-2">{sub}</span>
+              </span>
+              <span className="shrink-0 font-mono text-[11px] text-ink-3">{time}</span>
+            </a>
           </li>
         ))}
       </ol>
 
       <figcaption className="mt-3 text-center text-[13px] leading-relaxed text-ink-3 md:mt-1">
-        <span className="hidden md:inline">This page, live: the path your request just took, and what keeps watch over it. </span>
+        <span className="hidden md:inline">
+          This page, live: solid lines are the path your request just took, dashed ones what keeps watch over it, and every box opens a page.{" "}
+        </span>
         <span className="md:hidden">Your request, live. Watched by uptime checks from three regions: {avail}. </span>
-        Deployed {delivery ? ago(delivery.generated) : "by GitHub Actions"}, commit {commit}.
+        Deployed {deployed ?? "by GitHub Actions"}, commit {commit}.
       </figcaption>
     </figure>
   );

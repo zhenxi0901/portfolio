@@ -41,16 +41,17 @@ export default function BreakPage() {
           <p>
             <strong className="font-medium text-ink">The server</strong> answers <code className="font-mono text-sm">/api/lab/echo</code>, holding
             or failing each request with the odds you chose. It has limits of its own: at most 60% errors, 1.5 s holds, 24 requests held at once on
-            an instance, and 240 requests a minute from one visitor. Those limits are what keep a page like this from costing money or hurting the
-            site: a held request keeps an instance billed while it waits. Lab requests stay out of the live latency on{" "}
+            an instance, and 240 requests a minute from one visitor. They bound what a page like this can cost and what it can take from the rest
+            of the site: a held request keeps an instance billed while it waits. Lab requests stay out of the live latency on{" "}
             <a href="/status" className="underline underline-offset-4 hover:text-ink">
               the status page
             </a>
-            , and the injected errors out of the error logs. The 503s are real, so your browser&apos;s developer console lists them as failed
-            requests. <Ext href={`${REPO}/tree/main/api/internal/lab`}>The server code</Ext>
+            , and the server logs the 503s it injected at debug level rather than as errors (Cloud Run&apos;s own request log still lists them,
+            as it lists every request). They are real 503s, so your browser&apos;s developer console shows them as failed requests. <Ext href={`${REPO}/tree/main/api/internal/lab`}>The server code</Ext>
           </p>
           <p>
-            <strong className="font-medium text-ink">The client</strong> runs in your browser: four requests at a time, a 1 s timeout per attempt.{" "}
+            <strong className="font-medium text-ink">The client</strong> runs in your browser: a new request every 200 ms whatever happened to the
+            ones before, the way visitors keep arriving at a struggling service, and a 1 s timeout per attempt.{" "}
             <Ext href={`${REPO}/blob/main/web/src/lib/resilience.ts`}>The strategies fit on one screen</Ext>.
           </p>
           <p>

@@ -96,8 +96,8 @@ func TestAClientThatGivesUpGetsNothing(t *testing.T) {
 	h, _ := handler(0)
 	h.sleep = func(context.Context, time.Duration) error { return context.Canceled }
 	rec, _ := get(h, "slow=1&delay=1000")
-	if rec.Body.Len() != 0 {
-		t.Errorf("wrote %q after the client left", rec.Body.String())
+	if rec.Body.Len() != 0 || rec.Code != StatusClientClosed {
+		t.Errorf("after the client left: status %d, body %q", rec.Code, rec.Body.String())
 	}
 }
 

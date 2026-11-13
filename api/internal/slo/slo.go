@@ -60,10 +60,10 @@ const (
 	ReleasesUnknown = "unknown"
 )
 
-// Source returns per-day check counts for the WindowDays days ending at end, oldest first, and
-// when the first check in the window ran (zero if none did).
+// Source returns per-day check counts for the WindowDays days up to now, oldest first, and when
+// the first check in the window ran (zero if none did).
 type Source interface {
-	Days(ctx context.Context, end time.Time) ([]Day, time.Time, error)
+	Days(ctx context.Context, now time.Time) ([]Day, time.Time, error)
 }
 
 type Service struct {

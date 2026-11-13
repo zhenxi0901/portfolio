@@ -144,7 +144,7 @@ func TestMonitoringReadsCounts(t *testing.T) {
 		}
 	}))
 	defer meta.Close()
-	var aligners []string
+	var aligners, ends []string
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer tok" || r.URL.Path != "/projects/demo-project/timeSeries" {
 			http.Error(w, "bad request", http.StatusUnauthorized)
@@ -156,6 +156,7 @@ func TestMonitoringReadsCounts(t *testing.T) {
 			return
 		}
 		aligners = append(aligners, q.Get("aggregation.perSeriesAligner"))
+		ends = append(ends, q.Get("interval.endTime"))
 		n := map[string]string{"ALIGN_COUNT": "4320", "ALIGN_COUNT_TRUE": "4318"}[q.Get("aggregation.perSeriesAligner")]
 		// Hourly points: one this morning, one yesterday morning.
 		_, _ = io.WriteString(w, `{"timeSeries":[{"points":[
@@ -182,6 +183,22 @@ func TestMonitoringReadsCounts(t *testing.T) {
 	}
 	if len(aligners) != 2 {
 		t.Errorf("aligners asked for: %v", aligners)
+	}
+	// 06:30: both reads stop at 06:00, so neither counts the hour still filling up.
+	for _, e := range ends {
+		if e != "2026-10-19T06:00:00Z" {
+			t.Errorf("read up to %s, want the last whole hour", e)
+		}
+	}
+}
+
+// Results that land between the two reads can leave a day with more passes than checks; it must
+// never read as better than every check passing.
+func TestBucketsNeverPassMoreThanTheyCheck(t *testing.T) {
+	end := time.Date(2026, 10, 19, 6, 0, 0, 0, time.UTC)
+	days := buckets(end, map[time.Time]int64{end: 100}, map[time.Time]int64{end: 103})
+	if d := days[WindowDays-1]; d.Checks != 100 || d.Passed != 100 {
+		t.Errorf("today %+v, want 100 of 100", d)
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -116,6 +117,28 @@ func TestPriceList(t *testing.T) {
 	}
 }
 
+func TestEgressIsTiered(t *testing.T) {
+	for _, c := range []struct{ gib, want float64 }{
+		{0, 0},
+		{0.39, 0.39 * 0.12},
+		{1024, 1024 * 0.12},
+		{2048, 1024*0.12 + 1024*0.11},
+		{20 * 1024, 1024*0.12 + 9*1024*0.11 + 10*1024*0.085},
+	} {
+		if got := EgressCost(c.gib); !near(got, c.want) {
+			t.Errorf("EgressCost(%v) = %v, want %v", c.gib, got, c.want)
+		}
+	}
+	// Past the first TiB the receipt shows the average price, so its line still adds up.
+	r := Estimate(Usage{EgressBytes: 2048 * gib}, nov1, nov12)
+	if l := r.Lines[3]; !near(l.Cost, 1024*0.12+1024*0.11) || !near(l.Price*l.Quantity, l.Cost) {
+		t.Errorf("2 TiB: %+v", l)
+	}
+	if p := PriceList(); len(p.EgressTiers) != 3 || p.EgressTiers[0].PerGiB != p.PerGiBEgress || p.EgressTiers[2].UpToGiB != 0 {
+		t.Errorf("tiers %+v", p.EgressTiers)
+	}
+}
+
 func TestMonthStart(t *testing.T) {
 	sgt := time.FixedZone("SGT", 8*3600)
 	for _, c := range []struct{ now, want time.Time }{
@@ -173,6 +196,109 @@ func TestServiceCachesAndKeepsTheLastGoodReport(t *testing.T) {
 	if s.Report(context.Background()); src.calls != 2 {
 		t.Errorf("retried at once: %d calls", src.calls)
 	}
+}
+
+// slowSource answers once release is closed, unless the read's context ends first.
+type slowSource struct {
+	calls   atomic.Int32
+	started chan struct{}
+	release chan struct{}
+}
+
+func (f *slowSource) Usage(ctx context.Context, _, _ time.Time) (Usage, error) {
+	f.calls.Add(1)
+	if err := ctx.Err(); err != nil {
+		return Usage{}, err
+	}
+	if d, ok := ctx.Deadline(); !ok || time.Until(d) > readFor {
+		return Usage{}, errors.New("the read has no deadline of its own")
+	}
+	f.started <- struct{}{}
+	select {
+	case <-f.release:
+		return november, nil
+	case <-ctx.Done():
+		return Usage{}, ctx.Err()
+	}
+}
+
+func newSlowSource() *slowSource {
+	return &slowSource{started: make(chan struct{}, 16), release: make(chan struct{})}
+}
+
+func TestServiceFirstVisitorsShareOneRead(t *testing.T) {
+	src := newSlowSource()
+	s := New(src, quiet)
+	s.now = func() time.Time { return nov12 }
+	const n = 5
+	reports := make(chan Report, n)
+	for range n {
+		go func() { reports <- s.Report(context.Background()) }()
+	}
+	<-src.started
+	close(src.release)
+	for range n {
+		if r := <-reports; !r.Available || r.Usage != november {
+			t.Errorf("a first visitor got %+v", r)
+		}
+	}
+	if c := src.calls.Load(); c != 1 {
+		t.Errorf("%d reads for %d visitors arriving together, want 1", c, n)
+	}
+}
+
+func TestServiceNeverQueuesVisitorsBehindARead(t *testing.T) {
+	src := newSlowSource()
+	s := New(src, quiet)
+	s.now = func() time.Time { return nov12 }
+	old := Estimate(november, nov1, nov12.Add(-time.Hour))
+	s.last, s.next = old, nov12 // an hour old, so the next visitor reads the API again
+
+	reading := make(chan Report, 1)
+	go func() { reading <- s.Report(context.Background()) }()
+	<-src.started
+	served := make(chan Report, 1)
+	go func() { served <- s.Report(context.Background()) }()
+	select {
+	case r := <-served:
+		if !r.Available || !r.Updated.Equal(old.Updated) {
+			t.Errorf("served %+v while the read ran, want the last report", r)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("a visitor waited behind another visitor's read")
+	}
+	close(src.release)
+	if r := <-reading; !r.Updated.Equal(nov12) {
+		t.Errorf("the reader got a report from %v, want %v", r.Updated, nov12)
+	}
+	if c := src.calls.Load(); c != 1 {
+		t.Errorf("%d reads, want 1", c)
+	}
+}
+
+func TestServiceReadOutlivesTheVisitorWhoStartedIt(t *testing.T) {
+	src := newSlowSource()
+	close(src.release)
+	gone, cancel := context.WithCancel(context.Background())
+	cancel()
+	s := New(src, quiet)
+	s.now = func() time.Time { return nov12 }
+	if r := s.Report(gone); !r.Available {
+		t.Errorf("a visitor who left cancelled the read for everyone: %+v", r)
+	}
+
+	// And a first visitor who gives up waiting on someone else's read is answered at once.
+	src2 := newSlowSource()
+	s2 := New(src2, quiet)
+	s2.now = func() time.Time { return nov12 }
+	go s2.Report(context.Background())
+	<-src2.started
+	waiter, stop := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer stop()
+	if r := s2.Report(waiter); r.Available || r.Reason == "" {
+		t.Errorf("a visitor who gave up waiting got %+v", r)
+	}
+	close(src2.release)
 }
 
 func TestServiceWithoutASource(t *testing.T) {
@@ -247,13 +373,17 @@ func TestMonitoringReadsEachMetric(t *testing.T) {
 	if len(filters) != 5 {
 		t.Fatalf("%d reads, want 5", len(filters))
 	}
+	var sent string
 	for _, f := range filters {
 		if !strings.Contains(f, `resource.label.service_name = "portfolio"`) {
 			t.Errorf("filter not limited to the service: %s", f)
 		}
+		if strings.Contains(f, "sent_bytes_count") {
+			sent = f
+		}
 	}
-	if sent := filters[4]; !strings.Contains(sent, `metric.label.kind = "internet"`) {
-		t.Errorf("egress counts more than internet traffic: %s", sent)
+	if !strings.Contains(sent, `metric.label.kind = "internet"`) {
+		t.Errorf("egress counts more than internet traffic: %q", sent)
 	}
 }
 
@@ -284,6 +414,24 @@ func TestMonitoringErrors(t *testing.T) {
 			t.Errorf("%s: no error", name)
 		}
 		api.Close()
+	}
+}
+
+// The cost page says which day the prices were read; it has to be the day these constants were.
+func TestCostPageStatesWhenThePricesWereRead(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "src", "app", "cost", "page.tsx"))
+	if errors.Is(err, os.ErrNotExist) {
+		t.Skipf("web/ is not checked out next to api/ (%v)", err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := time.Parse(time.DateOnly, PricesAsOf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := d.Format("2 January 2006"); !strings.Contains(string(b), want) {
+		t.Errorf("web/src/app/cost/page.tsx does not give %s as the prices' date", want)
 	}
 }
 

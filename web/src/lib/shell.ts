@@ -484,7 +484,7 @@ const commands: Record<string, Command> = {
       const days: Seg[] = r.days.map((d) => (d.checks === 0 ? t("·", DIM) : d.passed === d.checks ? t("█", ACCENT) : t("▄", "text-p-ai")));
       return [
         row("objective", `${pct(r.target, 1)} over ${r.window_days} days`),
-        row("measured", t(pct(r.availability, 3), ACCENT), `  ${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} uptime checks passed`),
+        row("measured", t(pct(r.availability, 3), ACCENT), `  ${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} uptime-check results passed`),
         row("budget", `${pct(Math.max(r.budget_remaining, 0), 1)} left of ${r.budget_minutes.toFixed(1)} minutes; ${r.downtime_minutes.toFixed(1)} minutes spent`),
         row("releases", r.releases === "frozen" ? t("frozen: reliability fixes only", "text-p-ai") : (r.releases ?? "unknown")),
         row("by day", ...days),
@@ -641,7 +641,7 @@ const commands: Record<string, Command> = {
         ["kernel", `${s.go_version}, standard library net/http`],
         ["uptime", `${ago(s.uptime_seconds)} (this instance; it scales to zero)`],
         ["commit", s.commit.slice(0, 7)],
-        ["packages", "Next.js 16, React 19, Tailwind 4, three.js"],
+        ["packages", "Next.js 16, React 19, Tailwind 4, Go 1.27"],
         ["memory", `${s.heap_mb.toFixed(1)} MB heap of 256 MiB`],
       ];
       return [line(t(`  visitor@${new URL(SITE_URL).host}`, BOLD)), ...logo.map((l, i) => line(t(l, ACCENT), t(info[i][0].padEnd(9), DIM), info[i][1]))];

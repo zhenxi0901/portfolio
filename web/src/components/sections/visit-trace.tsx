@@ -45,7 +45,8 @@ function readTrace(): Trace | null {
     start: nav.connectStart,
     end: nav.connectEnd,
     tone: "net",
-    note: connect < 0.5 ? "connection reused" : undefined,
+    // Zero-length but late: the browser opened the connection before this page's timing began.
+    note: connect < 0.5 ? (nav.requestStart - nav.fetchStart >= 20 ? "opened before the page's timing began" : "connection reused") : undefined,
   });
   const revision = st.get("rev")?.description || undefined;
   spans.push({

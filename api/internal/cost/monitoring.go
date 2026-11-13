@@ -3,10 +3,12 @@ package cost
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/zhenxi0901/portfolio/api/internal/gcp"
@@ -38,31 +40,32 @@ func (m *Monitoring) Usage(ctx context.Context, start, end time.Time) (Usage, er
 	if err != nil {
 		return Usage{}, err
 	}
-	var u Usage
-	read := func(metric, extra string) (float64, error) {
-		return m.sum(ctx, project, token, metric, extra, start, end)
+	reads := []struct{ metric, extra string }{
+		{metricRequests, ""},
+		{metricBillable, ""},
+		{metricCPU, ""},
+		{metricMemory, ""},
+		// Only bytes to the internet are billed as egress; "google" and "private" traffic is not.
+		{metricSent, ` AND metric.label.kind = "internet"`},
 	}
-	n, err := read(metricRequests, "")
-	if err != nil {
+	// All at once: the read takes as long as the slowest metric, not the five added up.
+	vals := make([]float64, len(reads))
+	errs := make([]error, len(reads))
+	var wg sync.WaitGroup
+	for i, r := range reads {
+		wg.Go(func() { vals[i], errs[i] = m.sum(ctx, project, token, r.metric, r.extra, start, end) })
+	}
+	wg.Wait()
+	if err := errors.Join(errs...); err != nil {
 		return Usage{}, err
 	}
-	u.Requests = int64(math.Round(n))
-	if u.BillableSeconds, err = read(metricBillable, ""); err != nil {
-		return Usage{}, err
-	}
-	if u.VCPUSeconds, err = read(metricCPU, ""); err != nil {
-		return Usage{}, err
-	}
-	if u.GiBSeconds, err = read(metricMemory, ""); err != nil {
-		return Usage{}, err
-	}
-	// Only bytes to the internet are billed as egress; "google" and "private" traffic is not.
-	sent, err := read(metricSent, ` AND metric.label.kind = "internet"`)
-	if err != nil {
-		return Usage{}, err
-	}
-	u.EgressBytes = int64(math.Round(sent))
-	return u, nil
+	return Usage{
+		Requests:        int64(math.Round(vals[0])),
+		BillableSeconds: vals[1],
+		VCPUSeconds:     vals[2],
+		GiBSeconds:      vals[3],
+		EgressBytes:     int64(math.Round(vals[4])),
+	}, nil
 }
 
 // sum adds up one delta metric over [start, end] across every revision of the service: a single

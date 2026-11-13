@@ -20,7 +20,7 @@
       "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prom" },
       "fieldConfig": { "defaults": { "unit": "s", "decimals": 3 } },
-      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route!~\"/metrics|/healthz|/readyz\"}[5m])))" } ]
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route!~\"/metrics|/healthz|/readyz|/api/lab/echo\"}[5m])))" } ]
     },
     {
       "id": 3, "type": "stat", "title": "LLM tokens (1h)",
