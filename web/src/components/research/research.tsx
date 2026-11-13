@@ -76,10 +76,11 @@ export function Research() {
             <Reveal>
               <figure className="overflow-hidden rounded-3xl border border-line bg-surface">
                 <ZoomImage
-                  src="/img/aries-architecture.png"
+                  src="/img/aries-architecture.webp"
+                  fullSrc="/img/aries-architecture-full.webp"
                   alt="Architecture of the Toolathlon adapter in ARIES: runner, harness, task sandbox and per-run application copies"
-                  width={2244}
-                  height={1210}
+                  width={1400}
+                  height={755}
                   title="How a run is wired, from my report"
                 />
                 <figcaption className="flex items-center justify-between gap-4 border-t border-line px-5 py-3.5 text-sm">

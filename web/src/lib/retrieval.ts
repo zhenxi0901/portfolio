@@ -2,8 +2,10 @@ import type { Fact } from "@/content/knowledge";
 
 // Keep in sync with api/internal/ask/retrieval.go: same tokenizer, aliases, BM25 and sentence pick.
 
+// "much" and "any" say how much, not about what: "how much does it cost?" once went to the fact that
+// says "as much as", and "any blog posts?" to the one about "any MCP client".
 const STOP = new Set(
-  "a an and are as at be by did do does for from has have he her his how i in is it its me my of on or she so that the their them they this to was what when where which who why with you your zhenxi zhenxi's li about tell know please can could give describe explain".split(
+  "a an and are as at be by did do does for from has have he her his how i in is it its me my of on or she so that the their them they this to was what when where which who why with you your zhenxi zhenxi's li about tell know please can could give describe explain much any".split(
     " ",
   ),
 );
@@ -25,6 +27,9 @@ const ALIASES: Record<string, string[]> = {
   study: ["education", "university"],
   studied: ["education", "university"],
   job: ["intern", "role"],
+  experience: ["intern", "role"],
+  blog: ["writing"],
+  blogs: ["writing"],
   ci: ["pipeline", "build"],
   cd: ["pipeline", "deploy"],
   paper: ["iccv", "publication"],

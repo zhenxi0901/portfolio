@@ -48,14 +48,17 @@ func LoadFacts(path string) ([]Fact, error) {
 	return doc.Facts, nil
 }
 
-var stop = toSet(strings.Fields("a an and are as at be by did do does for from has have he her his how i in is it its me my of on or she so that the their them they this to was what when where which who why with you your zhenxi zhenxi's li about tell know please can could give describe explain"))
+// "much" and "any" say how much, not about what: "how much does it cost?" once went to the fact that
+// says "as much as", and "any blog posts?" to the one about "any MCP client".
+var stop = toSet(strings.Fields("a an and are as at be by did do does for from has have he her his how i in is it its me my of on or she so that the their them they this to was what when where which who why with you your zhenxi zhenxi's li about tell know please can could give describe explain much any"))
 
 var aliases = map[string][]string{
 	"k8s": {"kubernetes"}, "gcp": {"google", "cloud"}, "cost": {"spend", "bill"}, "money": {"spend", "bill"},
 	"save": {"spend", "cut"}, "saved": {"spend", "cut"}, "gpu": {"a100", "nvidia"}, "gpus": {"a100", "nvidia"},
 	"llm": {"agent", "llm"}, "ai": {"agent", "llm", "ai"}, "fyp": {"final-year", "project"},
 	"thesis": {"final-year", "project"}, "school": {"education", "university"}, "study": {"education", "university"},
-	"studied": {"education", "university"}, "job": {"intern", "role"}, "ci": {"pipeline", "build"},
+	"studied": {"education", "university"}, "job": {"intern", "role"}, "experience": {"intern", "role"},
+	"blog": {"writing"}, "blogs": {"writing"}, "ci": {"pipeline", "build"},
 	"cd": {"pipeline", "deploy"}, "paper": {"iccv", "publication"}, "monitoring": {"alerts", "grafana", "monitoring"},
 	"sre": {"reliability", "alerts", "sre"},
 }

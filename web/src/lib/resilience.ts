@@ -49,14 +49,22 @@ export const strategies: { id: Strategy; name: string; detail: string }[] = [
 
 type Clock = () => number;
 
+/**
+ * Names an attempt for the server's dice: the run's seed, the request and which attempt it is (0 the
+ * first, 1 a retry or a hedge's copy, and so on). The same key always meets the same fault, so runs
+ * that share a seed meet one schedule of faults.
+ */
+type Key = (attempt: number) => string | undefined;
+
 /** One real request to the lab, timed and classified. Never throws. */
-async function attempt(f: Faults, clock: Clock, signal?: AbortSignal): Promise<Attempt> {
+async function attempt(f: Faults, clock: Clock, key?: string, signal?: AbortSignal): Promise<Attempt> {
   const start = clock();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort("timeout"), TIMEOUT_MS);
   const onAbort = () => ctrl.abort("cancelled");
   signal?.addEventListener("abort", onAbort, { once: true });
   const q = new URLSearchParams({ fail: String(f.fail), slow: String(f.slow), delay: String(f.delayMs) });
+  if (key) q.set("key", key);
   try {
     const res = await fetch(`${API_BASE}/api/lab/echo?${q}`, { signal: ctrl.signal, cache: "no-store" });
     const fault = res.headers.get("X-Fault") ?? "";
@@ -106,7 +114,7 @@ class Breaker {
   }
 }
 
-async function withRetries(f: Faults, clock: Clock, retries: number, breaker: Breaker | null, onAttempt: (a: Attempt) => void): Promise<boolean> {
+async function withRetries(f: Faults, clock: Clock, key: Key, retries: number, breaker: Breaker | null, onAttempt: (a: Attempt) => void): Promise<boolean> {
   for (let retry = 0; ; retry++) {
     const permit = breaker ? breaker.allow() : "call";
     if (!permit) {
@@ -114,7 +122,7 @@ async function withRetries(f: Faults, clock: Clock, retries: number, breaker: Br
       onAttempt({ start: now, end: now, outcome: "rejected" });
       return false; // fail fast: an open breaker is the answer
     }
-    const a = await attempt(f, clock);
+    const a = await attempt(f, clock, key(retry));
     breaker?.record(succeeded(a), permit === "trial");
     onAttempt(a);
     if (succeeded(a)) return true;
@@ -123,11 +131,11 @@ async function withRetries(f: Faults, clock: Clock, retries: number, breaker: Br
   }
 }
 
-async function hedged(f: Faults, clock: Clock, onAttempt: (a: Attempt) => void): Promise<boolean> {
+async function hedged(f: Faults, clock: Clock, key: Key, onAttempt: (a: Attempt) => void): Promise<boolean> {
   const race = new AbortController();
   const tries: Promise<Attempt>[] = [];
   const launch = () => {
-    const p = attempt(f, clock, race.signal).then((a) => {
+    const p = attempt(f, clock, key(tries.length), race.signal).then((a) => {
       onAttempt(a);
       return a;
     });
@@ -156,8 +164,16 @@ async function hedged(f: Faults, clock: Clock, onAttempt: (a: Attempt) => void):
 /**
  * Sends `count` requests with one strategy against the chosen faults, one arriving every
  * ARRIVAL_MS. `onUpdate` gets the results so far after every attempt, for drawing as it happens.
+ * Runs given the same `seed` meet the same faults: request 3's first attempt fails for each of them
+ * or for none, so what differs between strategies is the strategy.
  */
-export async function run(strategy: Strategy, faults: Faults, count: number, onUpdate: (results: RequestResult[]) => void): Promise<RequestResult[]> {
+export async function run(
+  strategy: Strategy,
+  faults: Faults,
+  count: number,
+  onUpdate: (results: RequestResult[]) => void,
+  seed?: string,
+): Promise<RequestResult[]> {
   const t0 = performance.now();
   const clock = () => performance.now() - t0;
   const breaker = strategy === "breaker" ? new Breaker(clock) : null;
@@ -173,10 +189,11 @@ export async function run(strategy: Strategy, faults: Faults, count: number, onU
       if (!done) r.end = Math.max(r.end, a.end);
       onUpdate([...results]);
     };
+    const key: Key = (n) => (seed ? `${seed}-${id}-${n}` : undefined);
     r.ok =
       strategy === "hedge"
-        ? await hedged(faults, clock, record)
-        : await withRetries(faults, clock, strategy === "give-up" ? 0 : RETRIES, breaker, record);
+        ? await hedged(faults, clock, key, record)
+        : await withRetries(faults, clock, key, strategy === "give-up" ? 0 : RETRIES, breaker, record);
     done = true;
     r.end = clock();
     onUpdate([...results]);

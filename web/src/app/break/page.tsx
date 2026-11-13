@@ -51,7 +51,8 @@ export default function BreakPage() {
           </p>
           <p>
             <strong className="font-medium text-ink">The client</strong> runs in your browser: a new request every 200 ms whatever happened to the
-            ones before, the way visitors keep arriving at a struggling service, and a 1 s timeout per attempt.{" "}
+            ones before, the way visitors keep arriving at a struggling service, and a 1 s timeout per attempt. Compare all four meets every
+            strategy with the same faults, request by request, so what differs is the strategy, not luck.{" "}
             <Ext href={`${REPO}/blob/main/web/src/lib/resilience.ts`}>The strategies fit on one screen</Ext>.
           </p>
           <p>

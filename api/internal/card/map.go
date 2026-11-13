@@ -94,8 +94,9 @@ func Map(d Data, l Live, darkTheme bool) []byte {
 		"you": {title: "You", sub: "any browser", accent: true},
 		"gfe": {title: "Google front end", sub: "terminates TLS"},
 		// The latency is the Go server's, over every visitor request (pages and API alike).
-		"run":        {title: "Cloud Run · Go", sub: latency, accent: true},
-		"page":       {title: "This page", sub: "static export", accent: true},
+		"run": {title: "Cloud Run · Go", sub: latency, accent: true},
+		// Not "This page": the map is also drawn on the GitHub profile, where it isn't.
+		"page":       {title: "Web pages", sub: "static export", accent: true},
 		"api":        {title: "/api", sub: "status · slo · cost"},
 		"actions":    {title: "GitHub Actions", sub: shipped},
 		"probes":     {title: "Uptime checks", sub: "3 regions · 1/min"},

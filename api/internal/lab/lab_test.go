@@ -3,9 +3,12 @@ package lab
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -51,6 +54,8 @@ func TestParseClampsToTheLimits(t *testing.T) {
 		{"fail=0.3&slow=0.5&delay=800", Faults{Fail: 0.3, Slow: 0.5, Delay: 800 * time.Millisecond}},
 		{"fail=1&slow=7&delay=99999", Faults{Fail: MaxFailRate, Slow: 1, Delay: MaxDelay}},
 		{"fail=-1&slow=NaN&delay=abc", Faults{}},
+		{"fail=0.3&key=r7-3-0", Faults{Fail: 0.3, Key: "r7-3-0"}},
+		{"key=" + strings.Repeat("k", maxKey+1), Faults{}}, // too long: chance decides
 	} {
 		if got := Parse(q(c.query)); got != c.want {
 			t.Errorf("Parse(%q) = %+v, want %+v", c.query, got, c.want)
@@ -89,6 +94,46 @@ func TestASlowResponseWaitsTheDelay(t *testing.T) {
 	h, slept = handler(0.1, 0.1)
 	if rec, r := get(h, "slow=0.5&delay=99999&fail=1"); rec.Code != 503 || r.Fault != "slow+error" || (*slept)[0] != MaxDelay {
 		t.Errorf("slow and failed: status %d, reply %+v, slept %v", rec.Code, r, *slept)
+	}
+}
+
+// The comparison on /break runs four strategies against one schedule of faults: a key decides a
+// request's dice, the same key always meets the same fault, and over many keys the faults come out
+// at the shares asked for, the delay and the error independently.
+func TestAKeyFixesTheFault(t *testing.T) {
+	h, _ := handler() // chance would roll 0.99 every time, and nothing would go wrong
+	const n = 4000
+	errs, slows, both := 0, 0, 0
+	for i := range n {
+		q := fmt.Sprintf("fail=0.3&slow=0.5&delay=10&key=r7-%d-%d", i/4, i%4)
+		rec, a := get(h, q)
+		_, b := get(h, q)
+		if a.Fault != b.Fault || a.OK != b.OK {
+			t.Fatalf("key %q met %q, then %q", q, a.Fault, b.Fault)
+		}
+		if rec.Header().Get("X-Fault") != a.Fault {
+			t.Fatalf("header %q, body %q", rec.Header().Get("X-Fault"), a.Fault)
+		}
+		failed, slow := !a.OK, strings.HasPrefix(a.Fault, "slow")
+		if failed {
+			errs++
+		}
+		if slow {
+			slows++
+		}
+		if failed && slow {
+			both++
+		}
+	}
+	// Five standard deviations either side: a fair hash passes every time, a broken one doesn't.
+	for _, c := range []struct {
+		name      string
+		got, want float64
+	}{{"errors", float64(errs), 0.3 * n}, {"delays", float64(slows), 0.5 * n}, {"both", float64(both), 0.15 * n}} {
+		p := c.want / n
+		if sd := math.Sqrt(n * p * (1 - p)); math.Abs(c.got-c.want) > 5*sd {
+			t.Errorf("%s: %v of %d keys, want about %v", c.name, c.got, n, c.want)
+		}
 	}
 }
 

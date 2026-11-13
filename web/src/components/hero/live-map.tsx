@@ -355,6 +355,15 @@ export function LiveMap() {
         </span>
         <span className="md:hidden">Your request, live. Watched by uptime checks from three regions: {avail}. </span>
         {deployed ? `Built ${deployed}` : "Built and deployed by GitHub Actions"}, commit {commit}.
+        {newRelease && (
+          // The commit above is what's live now, but this page is still the build before it.
+          <>
+            {" "}It went out while you were here.{" "}
+            <button type="button" onClick={() => window.location.reload()} className="font-medium text-ink underline underline-offset-4">
+              Reload for it
+            </button>
+          </>
+        )}
       </figcaption>
     </figure>
   );

@@ -107,8 +107,7 @@
     "question": "SCADA and PLC experience",
     "answer": "Control Systems Intern at ENGIE South East Asia, May 2025 - Jan 2026. Configured BMS-room networks and firewalls for multi-building projects across sites. Mapped and validated 800+ BACnet/OPC points from DDCs and PLCs into SCADA. Programmed Siemens S7-1200 PLC logic and linked site data to central monitoring.",
     "sources": [
-      "role-engie-south-east-asia",
-      "skills"
+      "role-engie-south-east-asia"
     ]
   },
   {
@@ -151,9 +150,8 @@
   },
   {
     "question": "Have you written any blog posts?",
-    "answer": "An AI agent can use this site directly: it is a Model Context Protocol (MCP) server. POST /mcp is an MCP server over Streamable HTTP with five read-only tools: ask, search_facts, list_topics, get_status and get_delivery. Add the URL to Claude Code, Cursor or any MCP client and the agent can answer questions about my work from the site's own facts and read its live SLO and delivery numbers. It speaks the stateless 2026-07-28 revision of the protocol and still answers the initialize handshake of older clients, written in Go against the standard library.",
+    "answer": "Things I have written up at length: \"Running an agent benchmark on a supercomputer, without root\". \"What 320 agent runs taught me about serving LLM agents\". All are in the Writing section, with the measurements behind them.",
     "sources": [
-      "agents",
       "writing"
     ]
   },
