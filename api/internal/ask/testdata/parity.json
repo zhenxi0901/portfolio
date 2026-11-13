@@ -1,7 +1,7 @@
 [
   {
     "question": "How did ZhenXi cut the cloud bill?",
-    "answer": "How I cut cloud spend by about 15%: Drop metrics nobody reads (Monitoring, done): Turned off three GKE metric packages after confirming 0 of the 27 alerts then in place and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape. Right-size Cloud SQL (Database, done): 4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal. Size pods to need, scale nodes to load (Compute, done): Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter.",
+    "answer": "How I cut cloud spend by an estimated 15%: Drop metrics nobody reads (Monitoring, done): Turned off three GKE metric packages after confirming 0 of the 27 alerts then in place and 0 of 40 dashboard tiles used them: a 40% cut in samples per scrape. Right-size Cloud SQL (Database, done): 4 vCPU/16 GiB down to 2 vCPU/12 GiB from measured utilization, and regional HA moved to zonal. Size pods to need, scale nodes to load (Compute, done): Core API requests cut from 1 CPU/4 GiB to 0.5 CPU/3 GiB so pods pack tighter.",
     "sources": [
       "cost-review"
     ]

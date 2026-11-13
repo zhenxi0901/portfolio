@@ -22,7 +22,7 @@ export function CostReview() {
           ~15<span className="text-accent-ink">%</span>
         </p>
         <p className="max-w-[52ch] pb-1 text-sm leading-relaxed text-ink-2">
-          lower cloud spend from six moves, with a seventh in review: measure first, cut second, and write every trade-off down. Pick a move.
+          estimated saving on cloud spend from six moves, with a seventh in review: measure first, cut second, and write every trade-off down. Pick a move.
         </p>
       </div>
 

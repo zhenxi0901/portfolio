@@ -178,7 +178,7 @@ export const posts: Post[] = [
     stats: [
       { value: "914", label: "orphaned Kafka topics, 86% of all topics" },
       { value: "-40%", label: "samples per scrape from dropping unread metrics" },
-      { value: "~15%", label: "cloud spend cut, with no alert dropped" },
+      { value: "~15%", label: "estimated cut in cloud spend, with no alert dropped" },
     ],
     body: [
       {
@@ -224,7 +224,7 @@ export const posts: Post[] = [
       },
       {
         kind: "p",
-        text: "Together that cut cloud spend by about 15%, and no alert was dropped. Another US$29 or so a month (an unused VPN gateway and one more Cloud SQL step) is going through a reviewed Terraform plan.",
+        text: "Together that cut cloud spend by an estimated 15%, and no alert was dropped. Another US$29 or so a month (an unused VPN gateway and one more Cloud SQL step) is going through a reviewed Terraform plan.",
       },
       { kind: "h2", text: "What I took from it" },
       {

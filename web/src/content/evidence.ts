@@ -201,10 +201,10 @@ export const claimGroups: ClaimGroup[] = [
         proof: "Counted from the private repository's pull request history under my GitHub account.",
       },
       {
-        claim: "Cloud spend cut by about 15%, including 914 orphaned Kafka topics removed and 40% fewer monitoring samples.",
+        claim: "Cloud spend cut by an estimated 15%, including 914 orphaned Kafka topics removed and 40% fewer monitoring samples.",
         seen: { label: "Cutting cloud spend", href: "/work/reaper" },
         kind: "private",
-        proof: "The cost review I wrote for the platform records each cut and its trade-off: 914 orphaned topics removed, 40% fewer samples per scrape, the database and pods resized. The case study gives each move with its before and after.",
+        proof: "The cost review I wrote for the platform records each cut and its trade-off: 914 orphaned topics removed, 40% fewer samples per scrape, the database and pods resized. The 15% is the review's estimate of what those cuts save. The case study gives each move with its before and after.",
       },
       {
         claim: "Three remote-control lanes are measured against one written safety pattern of ten principles, and the bridge that drives them has 431 tests.",
