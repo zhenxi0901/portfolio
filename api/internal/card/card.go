@@ -181,11 +181,12 @@ func SVG(d Data, darkTheme bool) []byte {
 	fmt.Fprintf(&b, `<line x1="24" y1="174" x2="%d" y2="174" stroke="%s"/>`+"\n", W-24, p.border)
 	text(24, 197, 12, "400", p.muted, sans, "start", foot)
 	// The time the uptime numbers were read, which is older than now when Monitoring is unreachable.
+	// It says so: the delivery numbers beside them are the live release's own, counted at its build.
 	asOf := "as of " + d.Now.UTC().Format("15:04 UTC")
 	if up && !d.SLOUpdated.IsZero() {
-		asOf = "as of " + d.SLOUpdated.UTC().Format("15:04 UTC")
+		asOf = "uptime as of " + d.SLOUpdated.UTC().Format("15:04 UTC")
 		if d.SLOStale {
-			asOf = "last good reading " + d.SLOUpdated.UTC().Format("2 Jan 15:04 UTC")
+			asOf = "uptime: last good reading " + d.SLOUpdated.UTC().Format("2 Jan 15:04 UTC")
 		}
 	}
 	text(W-24, 197, 12, "400", p.accent, mono, "end", asOf)
