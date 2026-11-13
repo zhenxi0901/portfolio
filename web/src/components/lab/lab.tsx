@@ -94,13 +94,15 @@ export function Lab() {
   const go = async (list: Strategy[], count: number) => {
     if (busy) return;
     const f = { ...faults };
+    // One seed per click: in a comparison every strategy meets the same faults, request by request.
+    const seed = Math.random().toString(36).slice(2, 8);
     const done: Run[] = [];
     setVerdict(null);
     for (const s of list) {
       setBusy(list.length > 1 ? `Running ${name(s)}…` : "Sending…");
       setResults([]);
       setCurrent({ id: -1, strategy: s, faults: f, results: [] });
-      const res = await run(s, f, count, (r) => setResults(r));
+      const res = await run(s, f, count, (r) => setResults(r), seed);
       const r: Run = { id: ++ids.current, strategy: s, faults: f, results: res };
       done.push(r);
       setCurrent(r);
@@ -108,7 +110,7 @@ export function Lab() {
     }
     if (done.length > 1) {
       setVerdict(
-        `Compared against ${describe(f)}: ` +
+        `Compared against ${describe(f)}, the same faults for each: ` +
           done.map((r) => `${name(r.strategy)} ${summarise(r.results).ok} of ${count}`).join(", ") +
           " succeeded for the user. All four are side by side below.",
       );

@@ -152,7 +152,11 @@ export function WhatIf() {
 
   if (!report || !measured) {
     return (
-      <p className="rounded-3xl border border-line bg-surface p-6 text-ink-2" role="status">
+      // While loading, about as tall as the what-if it becomes (measured at 360 to 1350 px).
+      <p
+        className={`rounded-3xl border border-line bg-surface p-6 text-ink-2 ${failed ? "" : "flex min-h-[50rem] items-center justify-center sm:min-h-[38rem] lg:min-h-[23rem]"}`}
+        role="status"
+      >
         {failed === "absent"
           ? "The what-if prices with the live price list, which this copy of the site can't reach."
           : failed === "busy" || failed === "down"

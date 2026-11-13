@@ -105,8 +105,8 @@ export function PrefixCache() {
       </div>
 
       <p className="mt-5 rounded-2xl bg-surface-2 px-4 py-3 text-sm leading-relaxed text-ink-2">
-        <span className="font-semibold text-ink">Measured, not illustrated:</span> across 320 runs, 96% of input tokens came from
-        the prefix cache, on a hosted API and on self-hosted SGLang. This illustration reaches{" "}
+        <span className="font-semibold text-ink">Measured, not illustrated:</span> in the runs that measured it, 96% of input tokens
+        came from the prefix cache, on a hosted API and on self-hosted SGLang. This illustration reaches{" "}
         <span className="tabular-nums">{(share * 100).toFixed(0)}%</span> at {turns} {turns === 1 ? "turn" : "turns"}.
       </p>
     </figure>

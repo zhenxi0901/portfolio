@@ -62,10 +62,13 @@ function Header({ report }: { report: CostReport | null }) {
     <header className="text-center">
       <p className="text-sm font-semibold tracking-[0.18em]">PORTFOLIO · CLOUD RUN</p>
       <p className="text-ink-3">asia-southeast1 · request-based billing</p>
-      {report?.available && (
+      {report?.available ? (
         <p className="text-ink-3">
           {span(report.start, report.end)} · {report.days.toFixed(1)} days
         </p>
+      ) : (
+        // Holds the dates' line while the meters are read, so the receipt doesn't move when they arrive.
+        !report && <p aria-hidden>&nbsp;</p>
       )}
     </header>
   );
@@ -82,7 +85,9 @@ export function CostReceipt() {
       <Paper busy={!failed}>
         <Header report={null} />
         <hr className={rule} />
-        <p role="status" className="py-10 text-center text-ink-2">
+        {/* While reading, about as tall as the printed receipt (measured at 360 to 1350 px), so the
+            page below doesn't jump when it arrives. */}
+        <p role="status" className={`py-10 text-center text-ink-2 ${failed ? "" : "flex min-h-[36rem] items-center justify-center sm:min-h-[33rem]"}`}>
           {failed === "absent"
             ? "The meters aren't reachable from this copy of the site. On the live site this receipt is printed from Cloud Monitoring."
             : failed === "busy"

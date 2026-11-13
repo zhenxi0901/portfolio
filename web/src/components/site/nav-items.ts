@@ -13,7 +13,7 @@ export const pages = [
 
 // `keywords` let the palette find a section by what is in it, not only by its name.
 export const sections = [
-  { id: "top", label: "Home", keywords: ["start", "top", "intro", "home"] },
+  { id: "top", label: "Home", keywords: ["start", "top", "intro", "home", "map", "request path"] },
   {
     id: "work",
     label: "IoT platform: case studies",
@@ -24,7 +24,7 @@ export const sections = [
     label: "Inside the IoT platform",
     keywords: ["iot", "gke", "kubernetes", "traffic", "monitoring", "slo", "sli", "sla", "error budget", "alerts", "grafana", "cost", "finops"],
   },
-  { id: "ai", label: "AI agent platform", keywords: ["ai", "agents", "llm", "rag", "gpu", "langfuse", "milvus", "vertex", "inference", "trace"] },
+  { id: "ai", label: "AI agent platform", keywords: ["ai", "agents", "llm", "rag", "gpu", "langfuse", "milvus", "vertex", "inference", "trace", "map"] },
   { id: "research", label: "Research", keywords: ["fyp", "aries", "benchmark", "sglang", "a100", "prefix cache", "iccv", "pvchat", "paper"] },
   {
     id: "capacity",

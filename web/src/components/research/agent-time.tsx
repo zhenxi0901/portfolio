@@ -41,7 +41,8 @@ export function AgentTime() {
       <figcaption>
         <p className="font-semibold">Where an agent&apos;s time goes</p>
         <p className="mt-0.5 text-sm text-ink-2">
-          {fyp.agentTime.runs} runs with the agent&apos;s own spans switched on. The model&apos;s turns are most of it; MCP tool servers are{" "}
+          {fyp.agentTime.runs} later runs with the agent&apos;s own spans switched on, half of them on tasks whose MCP servers reach
+          the internet, where a call takes far longer. The model&apos;s turns are most of it; MCP tool servers are{" "}
           <span className="font-medium text-ink">{mcp.toFixed(1)}%</span> here.
         </p>
       </figcaption>
