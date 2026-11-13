@@ -41,7 +41,7 @@ export default function BreakPage() {
           <p>
             <strong className="font-medium text-ink">The server</strong> answers <code className="font-mono text-sm">/api/lab/echo</code>, holding
             or failing each request with the odds you chose. It has limits of its own: at most 60% errors, 1.5 s holds, 24 requests held at once on
-            an instance, and 240 requests a minute from one visitor. They bound what a page like this can cost and what it can take from the rest
+            an instance (8 of them per visitor), and 240 requests a minute from one visitor. They bound what a page like this can cost and what it can take from the rest
             of the site: a held request keeps an instance billed while it waits. Lab requests stay out of the live latency on{" "}
             <a href="/status" className="underline underline-offset-4 hover:text-ink">
               the status page
@@ -57,7 +57,7 @@ export default function BreakPage() {
           <p>
             <strong className="font-medium text-ink">Why these four.</strong> Retries hide errors but multiply load, which is why they wait a
             random, growing time between attempts:{" "}
-            <Ext href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">Timeouts, retries and backoff with jitter</Ext>
+            <Ext href="https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter">Timeouts, retries and backoff with jitter</Ext>
             . A circuit breaker stops a struggling service from being hammered by its own clients:{" "}
             <Ext href="https://martinfowler.com/bliki/CircuitBreaker.html">CircuitBreaker</Ext>. Hedging trades a few extra requests for a shorter
             tail: <Ext href="https://research.google/pubs/the-tail-at-scale/">The Tail at Scale</Ext>.

@@ -11,7 +11,7 @@ let statusRequest: Promise<Status> | null = null;
  * Why the report did not load: "absent" when this copy of the site has no API (a 404), "down"
  * when the live API answered with an error or not at all, so trying again later may work.
  */
-export type CostFailure = "absent" | "down";
+export type CostFailure = "absent" | "busy" | "down";
 export type CostState = { report: CostReport | null; failed: CostFailure | null };
 
 /** This month's cost report: null while it loads, with the reason if it could not be read. */
@@ -23,7 +23,7 @@ export function useCost(): CostState {
       .then((report) => alive && setState({ report, failed: null }))
       .catch((err: unknown) => {
         costRequest = null;
-        if (alive) setState({ report: null, failed: err instanceof ApiError && err.status === 404 ? "absent" : "down" });
+        if (alive) setState({ report: null, failed: err instanceof ApiError && err.status === 404 ? "absent" : err instanceof ApiError && err.status === 429 ? "busy" : "down" });
       });
     return () => {
       alive = false;

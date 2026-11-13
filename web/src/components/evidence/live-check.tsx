@@ -6,6 +6,8 @@ import { API_BASE, api, ApiError } from "@/lib/api";
 import { mcpRequest } from "@/lib/mcp-client";
 import { isTimeout, noAnswer, withTimeout } from "@/lib/signal";
 import { checkName, type LiveCheck as Kind } from "@/content/evidence";
+import { uptime } from "@/lib/uptime";
+import { money, printed } from "@/lib/money";
 
 // Rounded down, like every other availability figure on the site.
 const pct = (x: number, digits: number) => `${(Math.floor(x * 100 * 10 ** digits + 1e-6) / 10 ** digits).toFixed(digits)}%`;
@@ -14,15 +16,18 @@ const since = (seconds: number) => (seconds < 90 ? `${Math.round(seconds)} s` : 
 
 /** The server said "slow down": a different answer from "no answer", so it is told apart. */
 class RateLimited extends Error {}
+/** The lab is at its cap on requests held at once, shared with other visitors' runs. */
+class LabBusy extends Error {}
 
-const usd = (x: number) => `US$${x < 1 ? x.toFixed(4) : x.toFixed(2)}`;
 
 /** One request to the lab: its status, whether it said how long to wait, and how long it took. */
 async function lab(query: string) {
   const t0 = performance.now();
   const res = await fetch(`${API_BASE}/api/lab/echo?${query}`, { cache: "no-store", signal: withTimeout(undefined, 8000) });
   await res.body?.cancel().catch(() => {});
-  if (res.status === 429) throw new RateLimited();
+  if (res.status === 429) throw new LabBusy();
+  // The lab answers 200, or a 503 it injected; anything else (a copy with no API, a server error) is no proof.
+  if (res.status !== 200 && res.status !== 503) throw new Error(`HTTP ${res.status}`);
   return { status: res.status, fault: res.headers.get("X-Fault") ?? "", retryAfter: res.headers.has("Retry-After"), ms: performance.now() - t0 };
 }
 
@@ -32,7 +37,7 @@ const checks: Record<Kind, () => Promise<string>> = {
     const r = await api.slo();
     if (!r.available) return `No availability figures right now: ${r.reason ?? "no reason given"}`;
     const read = r.stale ? ` These are the last good numbers, read ${r.updated.slice(11, 16)} UTC.` : "";
-    return `${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} uptime-check results passed: ${pct(r.availability, 3)} against ${pct(r.target, 1)}. ${pct(Math.max(r.budget_remaining, 0), 1)} of the error budget is left.${read}`;
+    return `${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} uptime-check results passed (Monitoring keeps several per check): ${uptime(r.availability)} against ${pct(r.target, 1)}. ${pct(Math.max(r.budget_remaining, 0), 1)} of the error budget is left.${read}`;
   },
   status: async () => {
     const r = await api.status();
@@ -51,11 +56,13 @@ const checks: Record<Kind, () => Promise<string>> = {
     const r = await api.cost();
     if (!r.available) return `No meters to read here: ${r.reason ?? "no reason given"} Its price list is dated ${r.prices.as_of}.`;
     const read = r.stale ? `the last good reading, from ${r.updated.slice(11, 16)} UTC` : `meters read ${r.updated.slice(11, 16)} UTC`;
-    return `${r.usage.requests.toLocaleString("en-GB")} requests so far this month: ${usd(r.list_price)} at list price, ${usd(r.bill)} to pay after the free tier (${read}).`;
+    const p = printed(r);
+    return `${r.usage.requests.toLocaleString("en-GB")} requests so far this month: ${money(p.list, p.d)} at list price, ${money(p.bill, p.d)} to pay after the free tier (${read}).`;
   },
   lab: async () => {
     // One request held on purpose, then five at the lab's highest odds of a 503 (60%).
     const held = await lab("slow=1&delay=500");
+    if (held.status !== 200 || !held.fault.startsWith("slow")) throw new Error("the lab did not hold the request");
     const tries = 5;
     let failed = 0;
     for (let i = 0; i < tries; i++) {
@@ -67,6 +74,7 @@ const checks: Record<Kind, () => Promise<string>> = {
 };
 
 function explain(e: unknown): string {
+  if (e instanceof LabBusy) return "The lab is busy with other visitors' runs right now. Try again in a few seconds.";
   if (e instanceof RateLimited || (e instanceof ApiError && e.status === 429)) return "The server is rate limiting this browser. Wait a minute and check again.";
   if (isTimeout(e)) {
     const said = noAnswer(e);

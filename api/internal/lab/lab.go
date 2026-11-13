@@ -13,6 +13,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,9 @@ const (
 	// Requests held open at once on one instance, across every visitor. A delayed request keeps an
 	// instance billed while it waits, so this bounds what a crowd of slow requests can cost.
 	MaxInFlight = 24
+	// How many of those one visitor may hold at once, so a single heavy run can't take the whole
+	// instance's share and turn everyone else away.
+	MaxPerVisitor = 8
 )
 
 // StatusClientClosed is what a request the client hung up on is logged as (nginx's 499): nobody
@@ -43,10 +47,37 @@ type Handler struct {
 	inflight chan struct{}
 	rand     func() float64
 	sleep    func(context.Context, time.Duration) error
+	visitor  func(*http.Request) string // who is asking: the server's rate-limit key
+
+	mu   sync.Mutex
+	held map[string]int // requests each visitor has in the lab right now
 }
 
-func New() *Handler {
-	return &Handler{inflight: make(chan struct{}, MaxInFlight), rand: rand.Float64, sleep: sleep}
+// New returns the lab; visitor tells one visitor from another (nil treats everyone as one).
+func New(visitor func(*http.Request) string) *Handler {
+	if visitor == nil {
+		visitor = func(*http.Request) string { return "" }
+	}
+	return &Handler{inflight: make(chan struct{}, MaxInFlight), rand: rand.Float64, sleep: sleep, visitor: visitor, held: map[string]int{}}
+}
+
+// hold takes one of a visitor's places, or says they have none left.
+func (h *Handler) hold(v string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.held[v] >= MaxPerVisitor {
+		return false
+	}
+	h.held[v]++
+	return true
+}
+
+func (h *Handler) release(v string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.held[v]--; h.held[v] <= 0 {
+		delete(h.held, v)
+	}
 }
 
 // sleep waits for d, or until the client gives up.
@@ -88,6 +119,13 @@ func Parse(q func(string) string) Faults {
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	f := Parse(r.URL.Query().Get)
+	v := h.visitor(r)
+	if !h.hold(v) {
+		w.Header().Set("Retry-After", "1")
+		write(w, http.StatusTooManyRequests, map[string]string{"error": "You already have " + strconv.Itoa(MaxPerVisitor) + " requests held in the lab. Try again in a second."})
+		return
+	}
+	defer h.release(v)
 	select {
 	case h.inflight <- struct{}{}:
 		defer func() { <-h.inflight }()

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type SloReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { uptime } from "@/lib/uptime";
 
 // Rounded down, as the badge and the profile card do (slo.FloorPct in Go), so the three always agree
 // and none of them shows 100% while some of the budget is spent. The nudge absorbs float error.
@@ -82,7 +83,7 @@ export function SloPanel() {
             <div className="flex flex-col-reverse justify-end">
               {/* Monitoring stores several samples per probe, so the counts are not shown as "checks". */}
               <dt className="mt-1 text-sm text-ink-2">availability over {r.since ? span(r.since, r.updated) : "the window"}</dt>
-              <dd className="text-3xl font-semibold tracking-[-0.03em]">{pct(r.availability)}</dd>
+              <dd className="text-3xl font-semibold tracking-[-0.03em]">{uptime(r.availability)}</dd>
             </div>
             <div className="flex flex-col-reverse justify-end">
               <dt className="mt-1 text-sm text-ink-2">

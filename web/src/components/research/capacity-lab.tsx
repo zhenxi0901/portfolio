@@ -69,6 +69,8 @@ const n = (v: number, d = 0) => v.toLocaleString("en-US", { maximumFractionDigit
 const gib = (v: number) => `${v >= 10 ? n(v) : n(v, 1)} GiB`;
 const secs = (v: number) => (v >= 120 ? `${n(v / 60, 1)} min` : v >= 1 ? `${n(v, 1)} s` : `${n(v * 1000)} ms`);
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+// One decimal under 10, so a near tie reads 1.3, not 1.
+const ratio = (v: number) => (v < 10 ? n(v, 1) : n(v));
 const usd = (v: number) => (v >= 1 ? `US$${v.toFixed(2)}` : v >= 0.01 ? `US$${v.toFixed(3)}` : `US$${v.toFixed(4)}`);
 
 function Slider({ label, value, min, max, step, show, onChange, hint }: { label: string; value: number; min: number; max: number; step: number; show: string; onChange: (v: number) => void; hint?: string }) {
@@ -149,8 +151,10 @@ export function CapacityLab() {
   const decodeShare = (r.modelSecondsPerTurn - r.prefillPerTurnMs / 1000) / turnTotal;
 
   const status = !r.fits
-    ? `The weights alone (${gib(r.weightsGiB)}) don't fit in the ${gib(usable)} the ${gpu.name} leaves for them. Try FP8, a smaller model, or several GPUs, which this model doesn't cover.`
-    : r.overBudget
+    ? `The weights alone (${gib(r.weightsGiB)}) don't fit in the ${gib(usable)} the ${gpu.name} leaves for them. Try ${!s.fp8 && r.weightsGiB / 2 < usable ? "FP8, " : ""}a smaller model, or several GPUs, which this calculator doesn't cover.`
+    : r.agentsThatFit === 0
+      ? `Not even one agent's full history fits: it needs ${gib(r.kvPerAgentGiB)} of cache and the weights leave ${gib(r.kvBudgetGiB)}. Every agent would lose its oldest turns, and the ${pct(s.cacheHit)} hit rate with them.`
+      : r.overBudget
       ? `Over: ${s.agents} agents' full histories need ${gib(r.kvInUseGiB)} of cache and there is ${gib(r.kvBudgetGiB)}. The server would evict old prefixes, and the ${pct(s.cacheHit)} hit rate would fall.`
       : `Fits: the cache holds ${n(r.agentsThatFit)} agents' full histories, and ${s.agents === 1 ? "one is" : `${s.agents} are`} running.`;
   const alone = `With one agent at a time the GPU works ${pct(r.aloneBusyShare)} of the time${r.aloneBusyShare < 0.995 && s.outsideSeconds > 0 ? ": the rest it waits for tools and commands" : ""}.`;
@@ -249,7 +253,7 @@ export function CapacityLab() {
             role="img"
             aria-label={
               r.fits
-                ? `Of ${gib(usable)} usable: weights ${gib(r.weightsGiB)}, KV cache for ${s.agents} agents ${gib(r.kvInUseGiB)}, ${free >= 0 ? `${gib(free)} free` : `${gib(-free)} over`}.`
+                ? `Of ${gib(usable)} usable: weights ${gib(r.weightsGiB)}, KV cache for ${s.agents} ${s.agents === 1 ? "agent" : "agents"} ${gib(r.kvInUseGiB)}, ${free >= 0 ? `${gib(free)} free` : `${gib(-free)} over`}.`
                 : `Weights ${gib(r.weightsGiB)}, over the ${gib(usable)} usable by ${gib(-free)}.`
             }
           >
@@ -276,7 +280,7 @@ export function CapacityLab() {
           </p>
           <p className={cn("mt-3 text-[15px] leading-relaxed", r.overBudget ? "text-critical" : "text-ink")} aria-live="polite">
             {status}
-            {r.outgrowsWindowAtTurn !== null && ` The history also outgrows ${model.name}'s ${n(model.maxContext)}-token window at turn ${r.outgrowsWindowAtTurn}.`}
+            {r.outgrowsWindowAtTurn !== null && ` The history also outgrows ${model.name}'s ${n(model.maxContext)}-token window at turn ${r.outgrowsWindowAtTurn}, so the numbers below assume a window it doesn't have.`}
           </p>
 
           {!r.fits ? (
@@ -314,7 +318,7 @@ export function CapacityLab() {
             {[
               ["decoding, each agent", `${n(r.tokPerSecEach)} tok/s`, `${n(r.tokPerSecTotal)} tok/s together`],
               ["a turn's prefill, cache hitting", secs(r.prefillPerTurnMs / 1000), `KV: ${n(r.kvPerTokenKiB)} KiB a token`],
-              ["the last turn on a cache miss", secs(r.missLastTurnMs / 1000), `${n(r.missLastTurnMs / Math.max(r.hitLastTurnMs, 0.001))}× the same turn hitting`],
+              ["the last turn on a cache miss", secs(r.missLastTurnMs / 1000), `${ratio(r.missLastTurnMs / Math.max(r.hitLastTurnMs, 0.001))}× the same turn hitting`],
               ["one task, start to finish", secs(r.taskSeconds), `${n(r.finalContext)} tokens by the end`],
               ["GPU busy", pct(r.gpuBusyShare), r.gpuBound ? "GPU-bound: agents queue" : `${pct(r.aloneBusyShare)} with one agent`],
               ["per task", usd(r.costPerTask), `${n(r.tasksPerHour, 1)} tasks a GPU-hour`],
@@ -333,7 +337,7 @@ export function CapacityLab() {
             {alone}{" "}
             {r.aloneBusyShare < 0.5 && "That idle time is the shape behind my FYP finding that serving jobs held the A100 about seven times longer than the agents used it. "}
             {s.agents > 1
-              ? `${s.agents} agents at once raise that to ${pct(r.gpuBusyShare)} and bring a task to ${usd(r.costPerTask)}${r.overBudget ? ", but only if their caches fit" : ""}${r.gpuBound ? "; past that point more agents only lengthen the queue" : ""}.`
+              ? `${s.agents} agents at once ${r.aloneBusyShare >= 0.995 ? "keep it just as busy" : `raise that to ${pct(r.gpuBusyShare)}`} and bring a task to ${usd(r.costPerTask)}${r.overBudget ? ", but only if their caches fit" : ""}${r.gpuBound ? "; past that point more agents only lengthen the queue" : ""}.`
               : "More agents at once is the cheapest fix, as long as their caches fit."}
           </p>
             </>
@@ -353,7 +357,7 @@ export function CapacityLab() {
               <li>
                 Sources: each model&apos;s config.json on Hugging Face, NVIDIA&apos;s spec pages (dense BF16 is half the &ldquo;with sparsity&rdquo;
                 figure), and{" "}
-                <a href="https://kipp.ly/transformer-inference-arithmetic/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 underline underline-offset-4 hover:text-ink">
+                <a href="https://kipp.ly/p/transformer-inference-arithmetic" target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 underline underline-offset-4 hover:text-ink">
                   Transformer Inference Arithmetic
                   <ArrowUpRight size={12} aria-hidden />
                 </a>

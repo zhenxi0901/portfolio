@@ -10,6 +10,8 @@ import { cases, profile } from "@/content/profile";
 import { posts } from "@/content/writing";
 import { parseAnsi } from "@/lib/ansi";
 import { api, ApiError, API_BASE } from "@/lib/api";
+import { uptime } from "@/lib/uptime";
+import { money as cash, printed } from "@/lib/money";
 import { clock, debrief, lowerFirst, movesNow, paged, pct as budget, play, seen, spent, statusLabel, type DrillState } from "@/lib/drill";
 import { mcpRequest } from "@/lib/mcp-client";
 import { isTimeout, noAnswer, withTimeout } from "@/lib/signal";
@@ -484,7 +486,7 @@ const commands: Record<string, Command> = {
       const days: Seg[] = r.days.map((d) => (d.checks === 0 ? t("·", DIM) : d.passed === d.checks ? t("█", ACCENT) : t("▄", "text-p-ai")));
       return [
         row("objective", `${pct(r.target, 1)} over ${r.window_days} days`),
-        row("measured", t(pct(r.availability, 3), ACCENT), `  ${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} uptime-check results passed`),
+        row("measured", t(uptime(r.availability), ACCENT), `  ${r.passed.toLocaleString("en-GB")} of ${r.checks.toLocaleString("en-GB")} uptime-check results passed (several per check)`),
         row("budget", `${pct(Math.max(r.budget_remaining, 0), 1)} left of ${r.budget_minutes.toFixed(1)} minutes; ${r.downtime_minutes.toFixed(1)} minutes spent`),
         row("releases", r.releases === "frozen" ? t("frozen: reliability fixes only", "text-p-ai") : (r.releases ?? "unknown")),
         row("by day", ...days),
@@ -499,14 +501,16 @@ const commands: Record<string, Command> = {
     run: async () => {
       const r = await api.cost();
       if (!r.available) return [dim(`No receipt here: ${r.reason ?? "no reason given"}`), line(t("The page explains it: ", DIM), cmd("open cost"))];
+      // The same printed figures as the receipt, so the terminal agrees with the page to the last digit.
+      const p = printed(r);
       const money = (x: number) => (Math.abs(x) >= 1 ? `US$${x.toFixed(2)}` : `US$${x.toFixed(4)}`);
       const qty = (q: number, unit: string) => (unit === "GiB" ? `${q.toFixed(2)} GiB` : `${Math.round(q).toLocaleString("en-GB")} ${unit}`);
       return [
         row("period", `${r.start.slice(0, 10)} to ${r.end.slice(0, 16).replace("T", " ")} UTC, ${r.days.toFixed(1)} days`),
-        ...r.lines.map((l) => row(l.item.toLowerCase().replace("data to the internet", "egress"), t(money(l.cost), ACCENT), `  ${qty(l.quantity, l.unit)}`)),
-        row("list price", money(r.list_price)),
-        row("free tier", `-${money(r.free_tier)}`),
-        row("to pay", t(money(r.bill), ACCENT), "  estimated"),
+        ...r.lines.map((l, i) => row(l.item.toLowerCase().replace("data to the internet", "egress"), t(cash(p.lines[i], p.d), ACCENT), `  ${qty(l.quantity, l.unit)}`)),
+        row("list price", cash(p.list, p.d)),
+        row("free tier", cash(-p.free, p.d)),
+        row("to pay", t(cash(p.bill, p.d), ACCENT), "  estimated"),
         ...(r.projected_list_price > 0 ? [row("month", `${money(r.projected_list_price)} at list price, ${money(r.projected_bill)} to pay, at this pace`)] : []),
         row("checks", `${Math.round(r.probe_share * 100)}% of requests are the site's own uptime checks`),
         ...(r.stale ? [row("reading", t(`last good reading ${r.updated.slice(0, 16).replace("T", " ")} UTC; Cloud Monitoring is not answering`, "text-p-ai"))] : []),

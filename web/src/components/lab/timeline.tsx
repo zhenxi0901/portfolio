@@ -10,7 +10,7 @@ const GUTTER = 34;
 export const looks: Record<Outcome, { label: string; className: string }> = {
   ok: { label: "answered", className: "fill-good" },
   slow: { label: "answered slowly", className: "fill-p-ai" },
-  error: { label: "503 from the server", className: "fill-critical" },
+  error: { label: "error (503 or failed)", className: "fill-critical" },
   timeout: { label: "timed out (1 s)", className: "fill-none stroke-critical" },
   busy: { label: "lab busy (429)", className: "fill-p-aries" },
   cancelled: { label: "lost the race, hung up on", className: "fill-ink-3 opacity-40" },
@@ -66,7 +66,8 @@ export function Timeline({ results, lanes, label }: { results: RequestResult[]; 
   // A tick every 100 ms to 5 s, whichever leaves room for its label (about 56 px).
   const step = [100, 250, 500, 1000, 2000, 5000].find((s) => (s / end) * span >= 56) ?? 10_000;
   const ticks = Array.from({ length: Math.floor(end / step) + 1 }, (_, i) => i * step);
-  const tick = (t: number) => (step < 1000 && t % 1000 !== 0 ? `${t} ms` : `${t / 1000} s`);
+  // Seconds from 1 s up (1.25 s, not 1250 ms), milliseconds below.
+  const tick = (t: number) => (t >= 1000 ? `${t / 1000} s` : `${t} ms`);
   const height = lanes * LANE + 22;
   return (
     <div ref={box}>

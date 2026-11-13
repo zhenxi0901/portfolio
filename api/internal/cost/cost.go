@@ -5,6 +5,7 @@ package cost
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math"
 	"sync"
@@ -291,6 +292,18 @@ func unavailable(reason string) Report {
 	return Report{Reason: reason, Lines: []Line{}, Prices: PriceList()}
 }
 
+// read asks the source for the month's usage. A panic in it becomes an error like any other, so the
+// read is marked finished and retried a minute later: left as it was, the next visitor would wait on
+// a read that never ends.
+func (s *Service) read(ctx context.Context, start, now time.Time) (u Usage, err error) {
+	defer func() {
+		if v := recover(); v != nil {
+			err = fmt.Errorf("reading usage panicked: %v", v)
+		}
+	}()
+	return s.src.Usage(ctx, start, now)
+}
+
 // Report is the month so far. One request at a time reads the API, and does it inside its own
 // request so Cloud Run gives it CPU (with request-based billing, work after a response is
 // throttled). Everyone else gets the last report meanwhile, and waits only when there is none yet.
@@ -329,7 +342,7 @@ func (s *Service) Report(ctx context.Context) Report {
 	rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), readFor)
 	defer cancel()
 	start := MonthStart(now)
-	u, err := s.src.Usage(rctx, start, now)
+	u, err := s.read(rctx, start, now)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

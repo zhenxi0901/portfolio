@@ -167,6 +167,15 @@ func (s *Server) Handler() http.Handler {
 	})
 	// The same card as text, with ANSI colours: what `curl <site>` gets, at an address of its own.
 	mux.HandleFunc("GET /api/card.txt", s.handleTextCard)
+	// The live map on the GitHub profile: the request path, drawn with this instance's own numbers.
+	mux.HandleFunc("GET /api/map.svg", func(w http.ResponseWriter, r *http.Request) {
+		p50, p95, _ := s.metrics.Window.Percentiles()
+		live := card.Live{P50: p50, P95: p95, Up: time.Since(s.started)}
+		svg := card.Map(s.cardData(r.Context()), live, r.URL.Query().Get("theme") != "light")
+		w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		_, _ = w.Write(svg)
+	})
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)
@@ -176,11 +185,12 @@ func (s *Server) Handler() http.Handler {
 	// Break it yourself (/break): delays and 503s a visitor asks for, on their own requests only.
 	// 240 a minute per client covers comparing every client strategy in one go.
 	labLimit := ratelimit.New(240, time.Minute)
-	mux.Handle("GET "+labRoute, s.limit("lab", labLimit, lab.New()))
+	visitor := func(r *http.Request) string { return rateKey(clientIP(r, s.cfg.TrustProxy)) }
+	mux.Handle("GET "+labRoute, s.limit("lab", labLimit, lab.New(visitor)))
 	// The catch-all wins over a method-specific pattern, so a known path with the wrong method would
 	// read as 404; answer 405 with the allowed method instead.
 	apiMethods := map[string]string{
-		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/cost": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD", "/api/card.txt": "GET, HEAD",
+		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/cost": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD", "/api/card.txt": "GET, HEAD", "/api/map.svg": "GET, HEAD",
 		"/api/ask": "POST", "/api/contact": "POST", labRoute: "GET, HEAD",
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
@@ -291,10 +301,14 @@ func (s *Server) traced(route string, next http.Handler) http.Handler {
 // cardData is what the profile card and the terminal card both show.
 func (s *Server) cardData(ctx context.Context) card.Data {
 	rep := s.slo.Report(ctx)
+	var through time.Time
+	if n := len(rep.Days); n > 0 {
+		through = rep.Days[n-1].End
+	}
 	return card.Data{
 		Commit: short(s.cfg.Commit), Region: s.cfg.Region,
 		SLOAvailable: rep.Available, Availability: rep.Availability, BudgetRemaining: rep.BudgetRemaining, Releases: rep.Releases,
-		SLOUpdated: rep.Updated, SLOStale: rep.Stale, SLOReason: rep.Reason, UptimeLabel: rep.UptimeLabel(),
+		SLOUpdated: rep.Updated, SLOThrough: through, SLOStale: rep.Stale, SLOReason: rep.Reason, UptimeLabel: rep.UptimeLabel(),
 		Delivery: s.delivery, Now: time.Now(),
 	}
 }

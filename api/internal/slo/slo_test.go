@@ -192,6 +192,17 @@ func TestMonitoringReadsCounts(t *testing.T) {
 	}
 }
 
+// An hour with extra passes (results that landed between the two reads) can't hide another hour's
+// failures on the same day: 177 of 180 and 186 of 180 make 357 of 360, not 360.
+func TestBucketsCapEachHour(t *testing.T) {
+	end := time.Date(2026, 10, 19, 6, 0, 0, 0, time.UTC)
+	a, b := end.Add(-time.Hour), end
+	days := buckets(end, map[time.Time]int64{a: 180, b: 180}, map[time.Time]int64{a: 177, b: 186})
+	if d := days[WindowDays-1]; d.Checks != 360 || d.Passed != 357 {
+		t.Errorf("today %+v, want 357 of 360", d)
+	}
+}
+
 // Results that land between the two reads can leave a day with more passes than checks; it must
 // never read as better than every check passing.
 func TestBucketsNeverPassMoreThanTheyCheck(t *testing.T) {
@@ -229,7 +240,7 @@ func TestBadge(t *testing.T) {
 		message, colr string
 	}{
 		{Report{}, "measuring", "lightgrey"},
-		{Report{Available: true, Availability: 1}, "100.00%", "brightgreen"},
+		{Report{Available: true, Availability: 1}, "100%", "brightgreen"},
 		// Rounded down, so 99.899% never shows as meeting a 99.9% objective.
 		{Report{Available: true, Availability: 0.99899}, "99.89%", "yellow"},
 		{Report{Available: true, Availability: 0.95}, "95.00%", "red"},

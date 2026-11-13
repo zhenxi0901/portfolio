@@ -307,12 +307,12 @@ export function Lab() {
           </h2>
           {/* Focusable, so the columns past a phone's edge can be scrolled to from the keyboard. */}
           <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="The runs table, which scrolls sideways on small screens">
-            <table className="w-full min-w-[560px] text-left text-sm">
+            <table className="w-full text-left text-sm sm:min-w-[560px]">
               <caption className="sr-only">Every run so far, newest first</caption>
               <thead className="text-ink-3">
                 <tr>
                   {["Client", "Faults", "Succeeded", "Slowest 5%", "Calls each"].map((h) => (
-                    <th key={h} scope="col" className="py-2 pr-4 font-normal">
+                    <th key={h} scope="col" className={cn("py-2 pr-4 font-normal", h === "Faults" && "hidden sm:table-cell")}>
                       {h}
                     </th>
                   ))}
@@ -326,7 +326,7 @@ export function Lab() {
                       <th scope="row" className="py-2 pr-4 font-medium">
                         {name(r.strategy)}
                       </th>
-                      <td className="py-2 pr-4 text-ink-2">{describe(r.faults)}</td>
+                      <td className="hidden py-2 pr-4 text-ink-2 sm:table-cell">{describe(r.faults)}</td>
                       <td className="py-2 pr-4 tabular-nums">
                         {x.ok}/{x.requests}
                       </td>
