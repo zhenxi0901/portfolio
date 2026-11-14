@@ -164,7 +164,7 @@ const ROUTES = {
 type Route = keyof typeof ROUTES;
 
 /** A node: a link whose name is what it shows, plus where it goes for screen readers. */
-function Card({ node, title, sub, href, label, accent = false }: { node: Node; title: string; sub: string; href: string; label: string; accent?: boolean }) {
+function Card({ node, title, sub, href, label, accent = false }: { node: Node; title: string; sub: React.ReactNode; href: string; label: string; accent?: boolean }) {
   const [x, y] = N[node];
   return (
     <a
@@ -299,7 +299,8 @@ export function LiveMap() {
         <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} accent />
         <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} accent />
         <Card node="api" title="/api" sub="status · slo · cost" href="/agents" label="The JSON API and the MCP server: for agents." />
-        <Card node="actions" title="GitHub Actions" sub={deployed ? `${commit} · built ${deployed}` : commit} href="/changelog" label={`Built and deployed by GitHub Actions: commit ${commit}${deployed ? `, built ${deployed}` : ""}. The changelog.`} />
+        {/* Two lines on purpose: as one line the card's width cap broke "built 27 min ago" mid-phrase at every width. */}
+        <Card node="actions" title="GitHub Actions" sub={deployed ? <>{commit} <span className="block">built {deployed}</span></> : commit} href="/changelog" label={`Built and deployed by GitHub Actions: commit ${commit}${deployed ? `, built ${deployed}` : ""}. The changelog.`} />
         <Card node="probes" title="Uptime checks" sub="3 regions · 1/min" href="/status" label="Google Cloud uptime checks from Singapore, Belgium and Oregon, every minute. The status page." />
         <Card node="monitoring" title="Cloud Monitoring" sub={avail} href="/status" label={`Cloud Monitoring: ${avail}. The status page.`} />
         {visit && (
