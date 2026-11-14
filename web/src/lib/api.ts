@@ -106,6 +106,17 @@ export type AskResult = {
   trace?: AskTrace;
 };
 
+/** Recent public work on GitHub, for the home page's "Recently" list (see api/internal/activity). */
+export type ActivityItem = {
+  kind: "merged" | "review" | "release";
+  title: string;
+  repo: string;
+  number?: number;
+  url: string;
+  at: string;
+};
+export type ActivityFeed = { items: ActivityItem[]; updated: string; source: "live" | "snapshot" };
+
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
@@ -137,6 +148,8 @@ export const api = {
   slo: () => request<SloReport>("/api/slo", { timeoutMs: 15000 }),
   // Like slo, the first call after a cold start reads Cloud Monitoring (five metrics).
   cost: () => request<CostReport>("/api/cost", { timeoutMs: 20000 }),
+  // Once an hour, the request that refreshes the list waits on GitHub (8 s at most).
+  activity: () => request<ActivityFeed>("/api/activity", { timeoutMs: 10000 }),
   ask: (question: string) =>
     request<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }), timeoutMs: 20000 }),
   contact: (payload: { name: string; email: string; message: string; company: string }) =>
