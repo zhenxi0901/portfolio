@@ -326,7 +326,7 @@ export const experience: Role[] = [
   {
     org: "ENGIE South East Asia",
     role: "Control Systems Intern",
-    period: "May 2025 - Jan 2026",
+    period: "May 2025 - Feb 2026",
     place: "Singapore",
     points: [
       "Configured BMS-room networks and firewalls for multi-building projects across sites.",
@@ -337,7 +337,7 @@ export const experience: Role[] = [
   },
   {
     org: "Shanghai Jiao Tong University",
-    role: "Research Intern",
+    role: "Summer Research Intern",
     period: "May 2024 - Aug 2024",
     place: "Shanghai",
     points: ["Cut NeRF rendering time by 40% and raised image fidelity by 30% with CUDA and PyTorch."],

@@ -105,7 +105,7 @@
   },
   {
     "question": "SCADA and PLC experience",
-    "answer": "Control Systems Intern at ENGIE South East Asia, May 2025 - Jan 2026. Configured BMS-room networks and firewalls for multi-building projects across sites. Mapped and validated 800+ BACnet/OPC points from DDCs and PLCs into SCADA. Programmed Siemens S7-1200 PLC logic and linked site data to central monitoring.",
+    "answer": "Control Systems Intern at ENGIE South East Asia, May 2025 - Feb 2026. Configured BMS-room networks and firewalls for multi-building projects across sites. Mapped and validated 800+ BACnet/OPC points from DDCs and PLCs into SCADA. Programmed Siemens S7-1200 PLC logic and linked site data to central monitoring.",
     "sources": [
       "role-engie-south-east-asia"
     ]
