@@ -306,9 +306,11 @@ const newest = allDeploys.at(-1);
 const shippedTotal = !newest ? 0 : newest.sha === commits[0]?.sha ? commits.length : (await all(`/commits?sha=${newest.sha}`)).length;
 // The release this build becomes. It ships after this file is written, so no run lists it yet, but
 // the changelog page is part of it: whoever reads that page is being served by it. Its commits are
-// the ones since the newest deploy; its tag and deploy time come with the next build.
+// the ones since the newest deploy; its tag and deploy time come with the next build. Only in CI: a
+// run by hand refreshes the committed fallback copy, and a later build that fell back on it would
+// show that run's commit as serving.
 let serving = null;
-if (head && newest && head.sha !== newest.sha) {
+if (process.env.GITHUB_ACTIONS === "true" && head && newest && head.sha !== newest.sha) {
   const cmp = await gh(`/compare/${newest.sha}...${head.sha}`);
   if (cmp.status === "ahead")
     serving = {
