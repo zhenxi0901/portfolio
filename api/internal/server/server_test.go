@@ -391,6 +391,28 @@ func TestProfileCard(t *testing.T) {
 	}
 }
 
+// The Recently list comes from the static export's snapshot; tests never call GitHub.
+func TestActivityServesTheSnapshot(t *testing.T) {
+	cfg := testConfig(t)
+	must(t, os.WriteFile(filepath.Join(cfg.StaticDir, "activity.json"), []byte(`{"items":[{"kind":"release","title":"dora-card v1.1.0","repo":"zhenxi0901/dora-card","url":"https://github.com/zhenxi0901/dora-card/releases/tag/v1.1.0","at":"2026-11-13T08:37:54Z"}],"updated":"2026-11-14T00:00:00Z"}`), 0o644))
+	for name, ts := range map[string]*httptest.Server{"with": startServer(t, cfg), "without": startServer(t, testConfig(t))} {
+		resp, err := http.Get(ts.URL + "/api/activity")
+		must(t, err)
+		var out struct {
+			Items  []map[string]any `json:"items"`
+			Source string           `json:"source"`
+		}
+		must(t, json.NewDecoder(resp.Body).Decode(&out))
+		resp.Body.Close()
+		if resp.StatusCode != 200 || out.Source != "snapshot" || out.Items == nil {
+			t.Fatalf("%s activity.json: %d, source %q, items %v", name, resp.StatusCode, out.Source, out.Items)
+		}
+		if want := map[string]int{"with": 1, "without": 0}[name]; len(out.Items) != want {
+			t.Errorf("%s activity.json: %d items, want %d", name, len(out.Items), want)
+		}
+	}
+}
+
 func rpc(t *testing.T, url, body string, headers map[string]string) (int, map[string]any) {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodPost, url+"/mcp", strings.NewReader(body))

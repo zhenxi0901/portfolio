@@ -5,6 +5,7 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { now } from "@/content/profile";
 import { api, type SloReport } from "@/lib/api";
 import { sloPct, sloSpan } from "@/components/sections/slo-panel";
+import { Recently } from "@/components/home/recently";
 
 /**
  * The two things a visitor asks first: what am I doing now, and is this thing up. The first is
@@ -27,12 +28,13 @@ export function Now() {
 
   return (
     <section id="now" aria-labelledby="now-title" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 sm:px-8">
-      <div className="grid gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-10">
+      <div className="grid gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-start lg:gap-10">
         <div>
           <h2 id="now-title" className="font-mono text-xs text-ink-3">
             Now <span aria-hidden>·</span> <span className="sr-only">, </span>updated {now.updated}
           </h2>
           <p className="mt-2 max-w-[68ch] text-[17px] leading-relaxed">{now.text}</p>
+          <Recently />
         </div>
         <a
           href="/status"

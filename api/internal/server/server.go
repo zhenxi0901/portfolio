@@ -20,6 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/zhenxi0901/portfolio/api/internal/activity"
 	"github.com/zhenxi0901/portfolio/api/internal/ask"
 	"github.com/zhenxi0901/portfolio/api/internal/card"
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
@@ -48,6 +49,8 @@ type Server struct {
 	contact *contact.Service
 	slo     *slo.Service
 	cost    *cost.Service
+	// The home page's "Recently" list: the build's snapshot, refreshed from GitHub on Cloud Run.
+	activity *activity.Service
 	// Delivery numbers baked into the image (/delivery.json) for the profile card; nil if absent.
 	delivery *card.Delivery
 	started  time.Time
@@ -94,7 +97,16 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 		log.Error("card: delivery.json does not parse", "err", err)
 	}
 
+	recent, err := activity.LoadSnapshot(filepath.Join(cfg.StaticDir, "activity.json"))
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		log.Info("activity: no activity.json; the Recently list starts empty")
+	case err != nil:
+		log.Error("activity: activity.json does not parse", "err", err)
+	}
+
 	return &Server{
+		activity: activity.New(activity.Config{User: "zhenxi0901", Releases: []string{"zhenxi0901/dora-card"}}, recent, cfg.ActivityFromGitHub, log),
 		delivery: delivery,
 		cfg:      cfg,
 		log:      log,
@@ -152,6 +164,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/cost", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		writeJSON(w, http.StatusOK, s.cost.Report(r.Context()))
+	})
+	// Recent public work on GitHub for the home page's "Recently" list: pull requests merged or in
+	// review, and releases. GitHub is read at most hourly, on Cloud Run only.
+	mux.HandleFunc("GET /api/activity", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		writeJSON(w, http.StatusOK, s.activity.Feed(r.Context()))
 	})
 	// The same availability as a shields.io endpoint badge, for the GitHub profile.
 	mux.HandleFunc("GET /api/badge/uptime", func(w http.ResponseWriter, r *http.Request) {

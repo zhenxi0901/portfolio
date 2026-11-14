@@ -20,6 +20,7 @@ check "unknown page is 404"         "test \$(curl -s -o /dev/null -w '%{http_cod
 check "SLO JSON"                    "curl -fsS $BASE/api/slo | grep '\"target\":0.999'"
 check "status JSON"                 "curl -fsS $BASE/api/status | grep '\"status\":\"ok\"'"
 check "cost JSON has the price list" "curl -fsS $BASE/api/cost | grep '\"vcpu_second\":0.0000336'"
+check "activity list has entries"   "curl -fsS $BASE/api/activity | grep '\"items\":\[{'"
 # The lab must answer 200 with no fault. A 429 means it is at its cap with visitors' runs in flight,
 # which frees within its longest hold (1.5 s): wait and ask again rather than pass or fail on it.
 lab_ok() {

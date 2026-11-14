@@ -1,0 +1,69 @@
+{
+  "items": [
+    {
+      "kind": "release",
+      "title": "dora-card v1.1.0",
+      "repo": "zhenxi0901/dora-card",
+      "url": "https://github.com/zhenxi0901/dora-card/releases/tag/v1.1.0",
+      "at": "2026-11-13T08:37:54Z"
+    },
+    {
+      "kind": "review",
+      "title": "feat: add aries cleanup for what a crashed run left",
+      "repo": "hyscale-lab/ARIES",
+      "number": 104,
+      "url": "https://github.com/hyscale-lab/ARIES/pull/104",
+      "at": "2026-11-11T04:21:06Z"
+    },
+    {
+      "kind": "merged",
+      "title": "Add an Apptainer deployment backend",
+      "repo": "hyscale-lab/ARIES",
+      "number": 92,
+      "url": "https://github.com/hyscale-lab/ARIES/pull/92",
+      "at": "2026-11-10T04:03:44Z"
+    },
+    {
+      "kind": "review",
+      "title": "feat: portable plugins (skills and MCP servers) for OpenClaw and Hermes",
+      "repo": "hyscale-lab/ARIES",
+      "number": 96,
+      "url": "https://github.com/hyscale-lab/ARIES/pull/96",
+      "at": "2026-11-02T05:59:14Z"
+    },
+    {
+      "kind": "merged",
+      "title": "Task 2: keep board telemetry out of Status; say when the board will look again",
+      "repo": "whupdido/mdp",
+      "number": 44,
+      "url": "https://github.com/whupdido/mdp/pull/44",
+      "at": "2026-10-13T09:09:20Z"
+    },
+    {
+      "kind": "merged",
+      "title": "feat(benchmark): add the Toolathlon adapter",
+      "repo": "hyscale-lab/ARIES",
+      "number": 55,
+      "url": "https://github.com/hyscale-lab/ARIES/pull/55",
+      "at": "2026-10-12T05:49:28Z"
+    },
+    {
+      "kind": "merged",
+      "title": "Use the firmware's 07-Oct turn radii in the Android README and animation",
+      "repo": "whupdido/mdp",
+      "number": 43,
+      "url": "https://github.com/whupdido/mdp/pull/43",
+      "at": "2026-10-11T01:51:03Z"
+    },
+    {
+      "kind": "merged",
+      "title": "docs: Android README for Task 2",
+      "repo": "whupdido/mdp",
+      "number": 42,
+      "url": "https://github.com/whupdido/mdp/pull/42",
+      "at": "2026-10-11T01:43:23Z"
+    }
+  ],
+  "updated": "2026-11-14T02:50:55.419Z",
+  "source": "snapshot"
+}
