@@ -1,0 +1,30 @@
+{
+  "about": "Titles the site shows for these commits on /changelog, /status, the home page's Recently list, the terminal and the MCP get_delivery tool, written as release notes. Their own subject lines were notes to self: review jargon, a Dependabot branch name, a fix worded like a correction. Keyed by short sha; scripts/delivery-stats.mjs applies them, and each commit (linked from the changelog) keeps its original message. New commits are written as release notes in the first place, so this list should only shrink in relevance, not grow.",
+  "titles": {
+    "d3fc892": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
+    "ae7b75e": "README refreshed; the hero map's build time on a line of its own",
+    "c8ff875": "Experience: ENGIE dates and the SJTU role title updated",
+    "76637b5": "Cost figures: the ~15% saving labelled as an estimate on every page",
+    "9efe054": "Like-for-like comparisons, steadier page layouts, and figures that name their runs",
+    "1fd06df": "One format for money and uptime everywhere, sturdier API reads, clearer labels",
+    "79f06d1": "Map: the latency figure moved to the Go server's hop",
+    "c9baf5e": "Ask: answers for the new pages, with the Go parity fixtures regenerated",
+    "cba325a": "SLO counts, cost reads, the fault lab and the capacity model, tightened",
+    "9aacb41": "Dependency updates: npm packages",
+    "83e8752": "Dependency updates: Docker base images",
+    "e38aadb": "Dependency updates: GitHub Actions",
+    "07a8dc0": "Chapters follow-up: a 404 page, focus handling, chapter marks and the live panel",
+    "d6623c6": "Accessibility in every state, and bug fixes",
+    "d48410f": "Fixes across the MCP server, the text card, the terminal and the pages",
+    "efd3310": "Content: claims checked against their sources",
+    "97e64b4": "Housekeeping: a stray file removed",
+    "97ac23e": "Fixes to releases, the changelog, the profile card and claims",
+    "a1935b0": "Dependency updates: GitHub Actions",
+    "1669b2e": "Dependency updates: Go modules",
+    "7c4bf02": "Dependency updates: npm packages",
+    "3a3d9c5": "Focus, live regions, timers and facts: fixes across the site",
+    "2905b83": "API: error handling, limits, caching and traces tightened",
+    "3563c2f": "Work history: the AI agent platform gets its own section",
+    "86a24f1": "Work history: the AI platform described by what it does"
+  }
+}

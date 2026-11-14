@@ -140,7 +140,8 @@ export function DeliveryPanel() {
             ) : (
               <span className="font-mono text-xs text-ink-2">{r.sha}</span>
             )}
-            <span className="min-w-0 flex-1 truncate">{r.title}</span>
+            {/* One line from sm up; on a phone that cut most titles to a few words, so there they wrap. */}
+            <span className="min-w-0 flex-1 [overflow-wrap:anywhere] sm:truncate">{r.title}</span>
             <span className="font-mono text-xs text-ink-3">
               {r.leadMinutes !== null && `lead ${duration(r.leadMinutes)} · `}deploy {duration(r.minutes)}
             </span>

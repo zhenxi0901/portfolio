@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Command, TerminalWindow } from "@phosphor-icons/react";
 import { profile } from "@/content/profile";
 import { usePalette, useTerminal } from "@/components/providers";
@@ -7,6 +8,15 @@ import { ThemeToggle } from "@/components/site/theme-toggle";
 import { pages } from "@/components/site/nav-items";
 import { usePathname } from "next/navigation";
 import { chapterOf } from "@/lib/sections";
+import { cn } from "@/lib/utils";
+
+// Whether the page has scrolled at all: read from the browser, and "no" on the server and in the
+// first render, so the markup hydrates the same either way.
+const onScroll = (notify: () => void) => {
+  window.addEventListener("scroll", notify, { passive: true });
+  return () => window.removeEventListener("scroll", notify);
+};
+const scrolled = () => window.scrollY > 8;
 
 /** On the home page the name jumps to the top; on other pages (`home`) it goes back home. */
 export function TopBar({ home = false }: { home?: boolean }) {
@@ -15,8 +25,18 @@ export function TopBar({ home = false }: { home?: boolean }) {
   const path = usePathname();
   // A case study or a post belongs to a chapter: the menu marks that chapter too.
   const chapter = chapterOf(path);
+  const away = useSyncExternalStore(onScroll, scrolled, () => false);
   return (
     <header data-print-hide className="fixed inset-x-0 top-0 z-30">
+      {/* Once the page scrolls, a tinted strip behind the bar: otherwise the text scrolling under it
+          shows through the gaps between the pills (on a phone, right beside the LZ badge). */}
+      <div
+        aria-hidden
+        className={cn(
+          "absolute inset-0 -z-10 border-b border-line/70 bg-bg/80 backdrop-blur-md transition-opacity duration-200 motion-reduce:transition-none",
+          away ? "opacity-100" : "opacity-0",
+        )}
+      />
       <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-4 sm:px-8">
         <a
           href={home ? "/" : "#top"}

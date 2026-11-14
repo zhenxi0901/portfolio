@@ -1,11 +1,11 @@
 {
-  "generated": "2026-11-14T03:03:29.310Z",
+  "generated": "2026-11-14T07:52:50.699Z",
   "windowDays": 30,
-  "deploys": 65,
+  "deploys": 69,
   "daysWithDeploys": 6,
   "leadTimeMinutes": {
-    "median": 8.5,
-    "commits": 86
+    "median": 8.7,
+    "commits": 90
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -27,87 +27,87 @@
     }
   },
   "head": {
-    "sha": "6ffe387",
-    "title": "A Recently list on the home page, current between deploys",
-    "committed": "2026-11-14T03:00:52.000Z"
+    "sha": "d3fc892",
+    "title": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
+    "committed": "2026-11-14T07:34:08.000Z"
   },
   "lastDeploy": {
-    "sha": "c8ff875",
-    "title": "Experience matches LinkedIn: ENGIE to Feb 2026, SJTU a summer research internship",
-    "ended": "2026-11-14T02:34:12.000Z",
-    "seconds": 111,
-    "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43546864199",
+    "sha": "d3fc892",
+    "title": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
+    "ended": "2026-11-14T07:44:09.000Z",
+    "seconds": 107,
+    "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43572342146",
     "steps": [
       {
         "name": "Release only main's head",
         "start": 3,
-        "end": 3,
+        "end": 4,
         "result": "success"
       },
       {
         "name": "Sign in to Google Cloud, keyless",
-        "start": 11,
-        "end": 16,
+        "start": 12,
+        "end": 18,
         "result": "success"
       },
       {
         "name": "Find the image CI tested",
-        "start": 16,
-        "end": 21,
+        "start": 18,
+        "end": 22,
         "result": "success"
       },
       {
         "name": "Check the image's provenance and SBOM",
-        "start": 21,
-        "end": 37,
+        "start": 22,
+        "end": 36,
         "result": "success"
       },
       {
         "name": "Check the error budget",
-        "start": 37,
-        "end": 41,
+        "start": 36,
+        "end": 39,
         "result": "success"
       },
       {
         "name": "Note the revision serving now",
-        "start": 41,
-        "end": 44,
+        "start": 39,
+        "end": 41,
         "result": "success"
       },
       {
         "name": "Start the new revision with no traffic",
-        "start": 44,
-        "end": 63,
+        "start": 41,
+        "end": 59,
         "result": "success"
       },
       {
         "name": "Check the new revision before it takes traffic",
-        "start": 63,
+        "start": 59,
         "end": 74,
         "result": "success"
       },
       {
         "name": "Send traffic to the new revision",
         "start": 74,
-        "end": 83,
+        "end": 82,
         "result": "success"
       },
       {
         "name": "Verify",
-        "start": 83,
-        "end": 93,
+        "start": 82,
+        "end": 94,
         "result": "success"
       },
       {
         "name": "Roll back to the previous revision",
-        "start": 93,
-        "end": 93,
+        "start": 94,
+        "end": 94,
         "result": "skipped"
       },
       {
         "name": "Publish the release",
         "start": 100,
-        "end": 108,
+        "end": 106,
         "result": "success"
       }
     ]
@@ -231,57 +231,57 @@
     },
     {
       "date": "2026-11-14",
-      "deploys": 1
+      "deploys": 8
     }
   ],
   "recent": [
     {
-      "sha": "c8ff875",
-      "title": "Experience matches LinkedIn: ENGIE to Feb 2026, SJTU a summer research internship",
-      "ended": "2026-11-14T02:34:12.000Z",
+      "sha": "d3fc892",
+      "title": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
+      "ended": "2026-11-14T07:44:09.000Z",
+      "minutes": 1.8,
+      "leadMinutes": 10,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43572342146"
+    },
+    {
+      "sha": "260cec0",
+      "title": "Phone fixes, a stoppable deploy replay, deep links that land and a safer Recently",
+      "ended": "2026-11-14T07:22:18.000Z",
       "minutes": 1.9,
       "leadMinutes": 10.8,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43546864199"
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43570636474"
     },
     {
-      "sha": "76637b5",
-      "title": "The ~15% cloud saving is an estimate, and the site says so",
-      "ended": "2026-11-13T09:26:18.000Z",
+      "sha": "8a96ca9",
+      "title": "README: today's end-to-end results, and the hero as it looks now",
+      "ended": "2026-11-14T04:53:45.000Z",
       "minutes": 1.8,
-      "leadMinutes": 10.2,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43401060872"
-    },
-    {
-      "sha": "9efe054",
-      "title": "Third review: a fair comparison, steady pages, figures that name their runs",
-      "ended": "2026-11-13T06:45:57.000Z",
-      "minutes": 2.7,
-      "leadMinutes": 11.2,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43380655690"
-    },
-    {
-      "sha": "1fd06df",
-      "title": "Second full review: one way to print money and uptime, sturdier reads, honest labels",
-      "ended": "2026-11-13T05:57:40.000Z",
-      "minutes": 1.9,
-      "leadMinutes": 10.9,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43375203648"
-    },
-    {
-      "sha": "79f06d1",
-      "title": "Map: the latency belongs to the Go server, not to /api",
-      "ended": "2026-11-13T04:23:21.000Z",
-      "minutes": 1.9,
       "leadMinutes": 10.5,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43364984500"
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43558728795"
     },
     {
-      "sha": "cd58821",
-      "title": "/api/map.svg: the request path, live, for the GitHub profile",
-      "ended": "2026-11-13T04:12:04.000Z",
+      "sha": "ae7b75e",
+      "title": "README refreshed; the hero map's build time on a line of its own",
+      "ended": "2026-11-14T04:38:52.000Z",
       "minutes": 1.7,
-      "leadMinutes": 9.2,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43363751957"
+      "leadMinutes": 10.9,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43557551375"
+    },
+    {
+      "sha": "ea4fdd6",
+      "title": "Social preview: MCP in place of three.js",
+      "ended": "2026-11-14T04:02:17.000Z",
+      "minutes": 1.8,
+      "leadMinutes": 10.4,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43554461817"
+    },
+    {
+      "sha": "65b0d07",
+      "title": "Replay the latest deploy on /status",
+      "ended": "2026-11-14T03:22:30.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 10.5,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43551153708"
     }
   ]
 }

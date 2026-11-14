@@ -1,11 +1,117 @@
 {
-  "generated": "2026-11-14T03:03:29.310Z",
+  "generated": "2026-11-14T07:52:50.699Z",
   "totals": {
-    "releases": 70,
-    "commits": 93,
+    "releases": 77,
+    "commits": 100,
     "drills": 2
   },
+  "serving": null,
   "entries": [
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T07:44:09.000Z",
+      "sha": "d3fc892",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43572342146",
+      "release": "v2026.11.14.93",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "d3fc892",
+          "title": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T07:22:18.000Z",
+      "sha": "260cec0",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43570636474",
+      "release": "v2026.11.14.92",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "260cec0",
+          "title": "Phone fixes, a stoppable deploy replay, deep links that land and a safer Recently",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T04:53:45.000Z",
+      "sha": "8a96ca9",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43558728795",
+      "release": "v2026.11.14.91",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "8a96ca9",
+          "title": "README: today's end-to-end results, and the hero as it looks now",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T04:38:52.000Z",
+      "sha": "ae7b75e",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43557551375",
+      "release": "v2026.11.14.90",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "ae7b75e",
+          "title": "README refreshed; the hero map's build time on a line of its own",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T04:02:17.000Z",
+      "sha": "ea4fdd6",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43554461817",
+      "release": "v2026.11.14.89",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "ea4fdd6",
+          "title": "Social preview: MCP in place of three.js",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T03:22:30.000Z",
+      "sha": "65b0d07",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43551153708",
+      "release": "v2026.11.14.88",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "65b0d07",
+          "title": "Replay the latest deploy on /status",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T03:11:18.000Z",
+      "sha": "6ffe387",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43550139639",
+      "release": "v2026.11.14.87",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "6ffe387",
+          "title": "A Recently list on the home page, current between deploys",
+          "linked": true
+        }
+      ]
+    },
     {
       "kind": "deploy",
       "at": "2026-11-14T02:34:12.000Z",
@@ -16,7 +122,7 @@
       "commits": [
         {
           "sha": "c8ff875",
-          "title": "Experience matches LinkedIn: ENGIE to Feb 2026, SJTU a summer research internship",
+          "title": "Experience: ENGIE dates and the SJTU role title updated",
           "linked": true
         }
       ]
@@ -31,7 +137,7 @@
       "commits": [
         {
           "sha": "76637b5",
-          "title": "The ~15% cloud saving is an estimate, and the site says so",
+          "title": "Cost figures: the ~15% saving labelled as an estimate on every page",
           "linked": true
         }
       ]
@@ -46,7 +152,7 @@
       "commits": [
         {
           "sha": "9efe054",
-          "title": "Third review: a fair comparison, steady pages, figures that name their runs",
+          "title": "Like-for-like comparisons, steadier page layouts, and figures that name their runs",
           "linked": true
         }
       ]
@@ -61,7 +167,7 @@
       "commits": [
         {
           "sha": "1fd06df",
-          "title": "Second full review: one way to print money and uptime, sturdier reads, honest labels",
+          "title": "One format for money and uptime everywhere, sturdier API reads, clearer labels",
           "linked": true
         }
       ]
@@ -76,7 +182,7 @@
       "commits": [
         {
           "sha": "79f06d1",
-          "title": "Map: the latency belongs to the Go server, not to /api",
+          "title": "Map: the latency figure moved to the Go server's hop",
           "linked": true
         }
       ]
@@ -136,12 +242,12 @@
       "commits": [
         {
           "sha": "c9baf5e",
-          "title": "Ask: the new facts' wording, and the Go parity fixtures regenerated",
+          "title": "Ask: answers for the new pages, with the Go parity fixtures regenerated",
           "linked": true
         },
         {
           "sha": "cba325a",
-          "title": "Fixes from a full re-review: SLO counts, cost reads, the lab, the capacity model",
+          "title": "SLO counts, cost reads, the fault lab and the capacity model, tightened",
           "linked": true
         }
       ]
@@ -231,17 +337,17 @@
       "commits": [
         {
           "sha": "9aacb41",
-          "title": "Merge pull request #5 from zhenxi0901/dependabot/npm_and_yarn/web/web-4b4c6033e8",
+          "title": "Dependency updates: npm packages",
           "linked": true
         },
         {
           "sha": "83e8752",
-          "title": "Merge pull request #4 from zhenxi0901/dependabot/docker/base-images-92811cafae",
+          "title": "Dependency updates: Docker base images",
           "linked": true
         },
         {
           "sha": "e38aadb",
-          "title": "Merge pull request #6 from zhenxi0901/dependabot/github_actions/actions-52fc152648",
+          "title": "Dependency updates: GitHub Actions",
           "linked": true
         },
         {
@@ -286,7 +392,7 @@
       "commits": [
         {
           "sha": "07a8dc0",
-          "title": "Re-review of the chapter split: 404, focus, chapter marks, live panel",
+          "title": "Chapters follow-up: a 404 page, focus handling, chapter marks and the live panel",
           "linked": true
         }
       ]
@@ -346,7 +452,7 @@
       "commits": [
         {
           "sha": "d6623c6",
-          "title": "Fixes from the bug re-check, and accessibility in every state",
+          "title": "Accessibility in every state, and bug fixes",
           "linked": true
         },
         {
@@ -386,12 +492,12 @@
       "commits": [
         {
           "sha": "d48410f",
-          "title": "Fixes from three reviews: MCP, the text card, the terminal and the pages",
+          "title": "Fixes across the MCP server, the text card, the terminal and the pages",
           "linked": true
         },
         {
           "sha": "efd3310",
-          "title": "Content: say only what the sources show",
+          "title": "Content: claims checked against their sources",
           "linked": true
         }
       ]
@@ -406,7 +512,7 @@
       "commits": [
         {
           "sha": "97e64b4",
-          "title": "Remove a stray empty file committed by mistake",
+          "title": "Housekeeping: a stray file removed",
           "linked": true
         },
         {
@@ -546,7 +652,7 @@
       "at": "2026-10-19T12:05:49.000Z",
       "sha": "97ac23e",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39249180137",
-      "title": "Fixes from a full review: releases, the changelog, the card and claims",
+      "title": "Fixes to releases, the changelog, the profile card and claims",
       "restoreSeconds": 17
     },
     {
@@ -559,7 +665,7 @@
       "commits": [
         {
           "sha": "97ac23e",
-          "title": "Fixes from a full review: releases, the changelog, the card and claims",
+          "title": "Fixes to releases, the changelog, the profile card and claims",
           "linked": true
         }
       ]
@@ -589,17 +695,17 @@
       "commits": [
         {
           "sha": "a1935b0",
-          "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
+          "title": "Dependency updates: GitHub Actions",
           "linked": true
         },
         {
           "sha": "1669b2e",
-          "title": "Merge pull request #1 from zhenxi0901/dependabot/go_modules/api/api-4e31519e38",
+          "title": "Dependency updates: Go modules",
           "linked": true
         },
         {
           "sha": "7c4bf02",
-          "title": "Merge pull request #2 from zhenxi0901/dependabot/npm_and_yarn/web/web-25ec6b7114",
+          "title": "Dependency updates: npm packages",
           "linked": true
         },
         {
@@ -727,12 +833,12 @@
       "commits": [
         {
           "sha": "3a3d9c5",
-          "title": "Site fixes from a review: focus, live regions, timers and facts",
+          "title": "Focus, live regions, timers and facts: fixes across the site",
           "linked": false
         },
         {
           "sha": "2905b83",
-          "title": "API fixes from a review: errors, limits, caching, traces",
+          "title": "API: error handling, limits, caching and traces tightened",
           "linked": false
         },
         {
@@ -1037,7 +1143,7 @@
       "commits": [
         {
           "sha": "3563c2f",
-          "title": "Résumé: give the AI agent platform its own section",
+          "title": "Work history: the AI agent platform gets its own section",
           "linked": false
         }
       ]
@@ -1067,7 +1173,7 @@
       "commits": [
         {
           "sha": "86a24f1",
-          "title": "Résumé: describe the AI platform instead of naming the product",
+          "title": "Work history: the AI platform described by what it does",
           "linked": false
         }
       ]

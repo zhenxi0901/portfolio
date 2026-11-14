@@ -15,7 +15,7 @@
 // Also counted: releases stopped before taking traffic (the candidate failed its checks), releases
 // held by the error-budget gate, and rollback drills, which are rehearsals and never count as
 // failed changes. A failure after the deploy (publishing the GitHub release) is not a failed change.
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 const REPO = process.env.GITHUB_REPOSITORY ?? "zhenxi0901/portfolio";
 const TOKEN = process.env.GITHUB_TOKEN;
@@ -58,7 +58,11 @@ const seconds = (ms) => (ms == null ? null : Math.round(ms / 1000));
 const now = new Date();
 const since = new Date(now.getTime() - WINDOW_DAYS * 864e5);
 
-const toCommit = (c) => ({ sha: c.sha, at: new Date(c.commit.committer.date), title: c.commit.message.split("\n")[0] });
+// Release-note titles for commits whose subject line was a note to self (release-titles.json says
+// which and why). Every title this script writes goes through display(); the commits keep their messages.
+const RELEASE_TITLES = JSON.parse(await readFile(new URL("./release-titles.json", import.meta.url), "utf8")).titles;
+const display = (sha, subject) => RELEASE_TITLES[sha.slice(0, 7)] ?? subject;
+const toCommit = (c) => ({ sha: c.sha, at: new Date(c.commit.committer.date), title: display(c.sha, c.commit.message.split("\n")[0]) });
 // Every commit reachable from main, newest first by date. Date order is not ancestry order once
 // pull requests merge (a branch's commits can be older than main's latest), so what each deploy
 // shipped comes from the compare API below, never from positions in this list.
@@ -188,7 +192,7 @@ const perDay = Array.from({ length: WINDOW_DAYS }, (_, k) => {
 
 const titles = new Map(commits.map((c) => [c.sha, c.title]));
 const titleOf = async (sha) => {
-  if (!titles.has(sha)) titles.set(sha, (await gh(`/commits/${sha}`)).commit.message.split("\n")[0]);
+  if (!titles.has(sha)) titles.set(sha, display(sha, (await gh(`/commits/${sha}`)).commit.message.split("\n")[0]));
   return titles.get(sha);
 };
 const drills = events.filter((e) => e.kind === "drill");
