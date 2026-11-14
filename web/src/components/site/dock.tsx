@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   motion,
@@ -50,6 +50,18 @@ export function Dock() {
   const mouseX = useMotionValue(Infinity);
   const path = usePathname();
   const chapter = chapterOf(path);
+  // Phones have no hover, so the current chapter's name says where you are when a page opens, then
+  // goes once you scroll or after a moment: left up, it read as a tooltip stuck over the page.
+  const [hint, setHint] = useState(true);
+  useEffect(() => {
+    const hide = () => setHint(false);
+    const t = window.setTimeout(hide, 2500);
+    window.addEventListener("scroll", hide, { passive: true, once: true });
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("scroll", hide);
+    };
+  }, []);
 
   return (
     <nav data-print-hide aria-label="Pages" className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
@@ -59,7 +71,7 @@ export function Dock() {
         className="flex h-14 items-end gap-1 rounded-full border border-line bg-surface/85 px-2 pb-2 shadow-soft backdrop-blur-md sm:gap-1.5 sm:px-2.5"
       >
         {items.map((item) => (
-          <DockIcon key={item.label} item={item} mouseX={mouseX} current={item.href === chapter ? (item.href === path ? "page" : "true") : undefined} />
+          <DockIcon key={item.label} item={item} mouseX={mouseX} current={item.href === chapter ? (item.href === path ? "page" : "true") : undefined} hint={hint} />
         ))}
         {/* On phones the dock keeps only the pages; these links live in the footer and ⌘K too. */}
         <span className="mx-1 mb-1.5 hidden h-7 w-px self-end bg-line-strong sm:block" aria-hidden />
@@ -74,7 +86,7 @@ export function Dock() {
 }
 
 /** `current` is "page" on the chapter itself and "true" on a page inside it (a case study is in its product's chapter). */
-function DockIcon({ item, mouseX, current }: { item: Item; mouseX: MotionValue<number>; current?: "page" | "true" }) {
+function DockIcon({ item, mouseX, current, hint = false }: { item: Item; mouseX: MotionValue<number>; current?: "page" | "true"; hint?: boolean }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const reduce = useReducedMotion();
   const distance = useTransform(mouseX, (x) => {
@@ -107,11 +119,11 @@ function DockIcon({ item, mouseX, current }: { item: Item; mouseX: MotionValue<n
       className="group relative grid place-items-center rounded-full bg-surface-2 text-ink-2 transition-colors hover:text-ink aria-[current=page]:bg-accent aria-[current=page]:text-on-accent aria-[current=true]:bg-accent aria-[current=true]:text-on-accent max-sm:size-[31px]!"
     >
       <Icon className="size-[45%]" weight={current ? "fill" : "regular"} />
-      {/* Phones have no hover: the current chapter's name shows above its icon there. */}
+      {/* Phones have no hover: the current chapter's name shows above its icon there while the page opens. */}
       <span
         className={cn(
-          "pointer-events-none absolute -top-9 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink opacity-0 shadow-soft transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
-          current && "max-sm:opacity-100",
+          "pointer-events-none absolute -top-9 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink opacity-0 shadow-soft transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100",
+          current && hint && "max-sm:opacity-100",
         )}
       >
         {item.label}

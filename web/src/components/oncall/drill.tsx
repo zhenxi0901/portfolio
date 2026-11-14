@@ -51,17 +51,20 @@ export function Drill({ scenario }: { scenario: Scenario }) {
 
   if (phase === "idle") {
     return (
-      <div className="mt-10 rounded-3xl border border-line bg-surface p-6 sm:p-8">
-        <p className="font-semibold">How it works</p>
-        <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-ink-2">
-          <li>A page fires. Every look and every action costs simulated minutes, and the error budget burns while you work.</li>
-          <li>{scenario.honesty}</li>
-          <li>When it is over you get your own postmortem: timeline, time to recover, budget spent and what went well.</li>
-        </ul>
+      <div className="mt-8 rounded-3xl border border-line bg-surface p-6 sm:p-8 lg:flex lg:items-start lg:justify-between lg:gap-10">
+        <div>
+          <p className="font-semibold">How it works</p>
+          <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-ink-2">
+            <li>A page fires. Every look and every action costs simulated minutes, and the error budget burns while you work.</li>
+            <li>{scenario.honesty}</li>
+            <li>When it is over you get your own postmortem: timeline, time to recover, budget spent and what went well.</li>
+          </ul>
+        </div>
+        {/* Beside the rules from lg up, so a laptop's first screen has it (under them it sat just below); under them on a phone. */}
         <button
           type="button"
           onClick={start}
-          className="mt-6 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-on-accent"
+          className="mt-6 inline-flex shrink-0 items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-on-accent lg:mt-0"
         >
           <BellRinging size={16} weight="fill" /> Go on call
         </button>
