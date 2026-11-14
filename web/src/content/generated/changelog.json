@@ -1,11 +1,546 @@
 {
-  "generated": "2026-10-19T12:06:08.635Z",
+  "generated": "2026-11-14T03:03:29.310Z",
   "totals": {
-    "releases": 38,
-    "commits": 50,
+    "releases": 70,
+    "commits": 93,
     "drills": 2
   },
   "entries": [
+    {
+      "kind": "deploy",
+      "at": "2026-11-14T02:34:12.000Z",
+      "sha": "c8ff875",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43546864199",
+      "release": "v2026.11.14.86",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "c8ff875",
+          "title": "Experience matches LinkedIn: ENGIE to Feb 2026, SJTU a summer research internship",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T09:26:18.000Z",
+      "sha": "76637b5",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43401060872",
+      "release": "v2026.11.13.85",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "76637b5",
+          "title": "The ~15% cloud saving is an estimate, and the site says so",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T06:45:57.000Z",
+      "sha": "9efe054",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43380655690",
+      "release": "v2026.11.13.84",
+      "minutes": 2.7,
+      "commits": [
+        {
+          "sha": "9efe054",
+          "title": "Third review: a fair comparison, steady pages, figures that name their runs",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T05:57:40.000Z",
+      "sha": "1fd06df",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43375203648",
+      "release": "v2026.11.13.83",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "1fd06df",
+          "title": "Second full review: one way to print money and uptime, sturdier reads, honest labels",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T04:23:21.000Z",
+      "sha": "79f06d1",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43364984500",
+      "release": "v2026.11.13.82",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "79f06d1",
+          "title": "Map: the latency belongs to the Go server, not to /api",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T04:12:04.000Z",
+      "sha": "cd58821",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43363751957",
+      "release": "v2026.11.13.81",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "cd58821",
+          "title": "/api/map.svg: the request path, live, for the GitHub profile",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T03:00:09.000Z",
+      "sha": "37580e6",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43355762741",
+      "release": "v2026.11.13.80",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "37580e6",
+          "title": "Capacity lab setups as links; the bill and the lab checkable on /evidence",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T02:37:14.000Z",
+      "sha": "54bb29c",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43353240483",
+      "release": "v2026.11.13.79",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "54bb29c",
+          "title": "README and profile card: what the site shows up front, today's test results",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-13T02:21:03.000Z",
+      "sha": "c9baf5e",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43351315320",
+      "release": "v2026.11.13.78",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "c9baf5e",
+          "title": "Ask: the new facts' wording, and the Go parity fixtures regenerated",
+          "linked": true
+        },
+        {
+          "sha": "cba325a",
+          "title": "Fixes from a full re-review: SLO counts, cost reads, the lab, the capacity model",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T11:10:06.000Z",
+      "sha": "1ce2814",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43206526839",
+      "release": "v2026.11.12.76",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "1ce2814",
+          "title": "README: the live-map hero, /break, /cost, the capacity lab and the drill",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T10:45:39.000Z",
+      "sha": "8596fc1",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43202936235",
+      "release": "v2026.11.12.75",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "8596fc1",
+          "title": "Hero: a live map of this site's own request path",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T10:26:44.000Z",
+      "sha": "b99bb03",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43200179437",
+      "release": "v2026.11.12.74",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "b99bb03",
+          "title": "Research: a capacity lab for serving agents on one GPU",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T10:13:30.000Z",
+      "sha": "d526b87",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43198179147",
+      "release": "v2026.11.12.73",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "d526b87",
+          "title": "Break it yourself: fault injection on the live server at /break",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T09:56:58.000Z",
+      "sha": "8533f74",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43195690606",
+      "release": "v2026.11.12.72",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "8533f74",
+          "title": "What this site costs: a live receipt at /cost",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T07:44:24.000Z",
+      "sha": "9aacb41",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43177254534",
+      "release": "v2026.11.12.71",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "9aacb41",
+          "title": "Merge pull request #5 from zhenxi0901/dependabot/npm_and_yarn/web/web-4b4c6033e8",
+          "linked": true
+        },
+        {
+          "sha": "83e8752",
+          "title": "Merge pull request #4 from zhenxi0901/dependabot/docker/base-images-92811cafae",
+          "linked": true
+        },
+        {
+          "sha": "e38aadb",
+          "title": "Merge pull request #6 from zhenxi0901/dependabot/github_actions/actions-52fc152648",
+          "linked": true
+        },
+        {
+          "sha": "cdb5031",
+          "title": "Bump the base-images group with 2 updates",
+          "linked": true
+        },
+        {
+          "sha": "590a5d4",
+          "title": "Bump the web group in /web with 3 updates",
+          "linked": true
+        },
+        {
+          "sha": "295b1ed",
+          "title": "Bump the actions group with 3 updates",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T03:58:43.000Z",
+      "sha": "1147391",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43151557398",
+      "release": "v2026.11.12.68",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "1147391",
+          "title": "Old /#work-ai links land on the AI chapter",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T03:48:36.000Z",
+      "sha": "07a8dc0",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43150456511",
+      "release": "v2026.11.12.67",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "07a8dc0",
+          "title": "Re-review of the chapter split: 404, focus, chapter marks, live panel",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-12T02:27:23.000Z",
+      "sha": "b6c333d",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43141330564",
+      "release": "v2026.11.12.66",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "b6c333d",
+          "title": "Split the one-page site into chapters",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T08:34:48.000Z",
+      "sha": "7ed7870",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42987919138",
+      "release": "v2026.11.11.65",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "7ed7870",
+          "title": "The on-call drills in the terminal: oncall iot, oncall ai",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T08:02:36.000Z",
+      "sha": "c358892",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42983687200",
+      "release": "v2026.11.11.64",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "c358892",
+          "title": "Hero: no THREE.Clock deprecation warning in the console",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T07:43:47.000Z",
+      "sha": "d6623c6",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42981392391",
+      "release": "v2026.11.11.63",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "d6623c6",
+          "title": "Fixes from the bug re-check, and accessibility in every state",
+          "linked": true
+        },
+        {
+          "sha": "de3eb56",
+          "title": "On-call drill: a realistic cause for the AI incident, and keyboard fixes",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T07:09:52.000Z",
+      "sha": "e97c690",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42977289885",
+      "release": "v2026.11.11.62",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "e97c690",
+          "title": "A second on-call drill, on the AI agent platform; arrow keys on every tab strip",
+          "linked": true
+        },
+        {
+          "sha": "86cc1d2",
+          "title": "Experience: the HyScale Lab role carries the ARIES product",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T06:23:20.000Z",
+      "sha": "d48410f",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42971864077",
+      "release": "v2026.11.11.61",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "d48410f",
+          "title": "Fixes from three reviews: MCP, the text card, the terminal and the pages",
+          "linked": true
+        },
+        {
+          "sha": "efd3310",
+          "title": "Content: say only what the sources show",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T05:29:40.000Z",
+      "sha": "97e64b4",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42965926261",
+      "release": "v2026.11.11.59",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "97e64b4",
+          "title": "Remove a stray empty file committed by mistake",
+          "linked": true
+        },
+        {
+          "sha": "270e629",
+          "title": "The AI platform's case in its own section; Experience split by product",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T04:48:49.000Z",
+      "sha": "0d942c7",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42961464005",
+      "release": "v2026.11.11.57",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "0d942c7",
+          "title": "Work grouped by product; the palette puts the best match first",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T04:24:05.000Z",
+      "sha": "df33106",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42958802228",
+      "release": "v2026.11.11.56",
+      "minutes": 1.6,
+      "commits": [
+        {
+          "sha": "df33106",
+          "title": "A terminal in the page: a shell over the site's real API",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T03:55:09.000Z",
+      "sha": "897e882",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42955661803",
+      "release": "v2026.11.11.55",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "897e882",
+          "title": "README: screenshots of the agents and evidence pages",
+          "linked": true
+        },
+        {
+          "sha": "f3b3879",
+          "title": "/evidence: the site's claims, sorted by how they can be checked",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T03:44:34.000Z",
+      "sha": "2a09c1a",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42954551617",
+      "release": "v2026.11.11.53",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "2a09c1a",
+          "title": "/agents: how to point an agent at the site, with a console that calls it",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T03:30:39.000Z",
+      "sha": "363e0f2",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42953028785",
+      "release": "v2026.11.11.52",
+      "minutes": 1.8,
+      "commits": [
+        {
+          "sha": "363e0f2",
+          "title": "The site as an MCP server, llms.txt, Markdown copies and a card for curl",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-11-11T03:18:06.000Z",
+      "sha": "10d2b68",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42951645082",
+      "release": "v2026.11.11.51",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "10d2b68",
+          "title": "Three weeks of new work: control safety, two-step changes, Apptainer, MCP costs",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-10-19T12:29:49.000Z",
+      "sha": "833a9bf",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39252255724",
+      "release": "v2026.10.19.50",
+      "minutes": 1.9,
+      "commits": [
+        {
+          "sha": "833a9bf",
+          "title": "Scheduled checks: say they can run late, and cover a day of delay",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
+      "at": "2026-10-19T12:15:42.000Z",
+      "sha": "6c704e2",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39250447901",
+      "release": "v2026.10.19.49",
+      "minutes": 1.7,
+      "commits": [
+        {
+          "sha": "6c704e2",
+          "title": "README: retake the delivery panel; refresh the delivery snapshots",
+          "linked": true
+        }
+      ]
+    },
     {
       "kind": "drill",
       "at": "2026-10-19T12:05:49.000Z",
