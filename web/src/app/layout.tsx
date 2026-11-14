@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { HashSettle } from "@/components/site/hash-settle";
 import { profile } from "@/content/profile";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
         />
         <Providers>{children}</Providers>
+        <HashSettle />
       </body>
     </html>
   );

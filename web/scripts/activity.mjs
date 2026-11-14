@@ -9,6 +9,10 @@
 import { writeFile } from "node:fs/promises";
 
 const USER = "zhenxi0901";
+// Where pull requests may come from (owner/name, or owner/* for all of an owner's): the list goes on
+// the home page unread, so nothing from anywhere else appears by itself. The server's config
+// (api/internal/server) lists the same, and a Go test holds the two to it.
+const REPOS = ["zhenxi0901/*", "hyscale-lab/ARIES", "whupdido/mdp", "maeganliew/LTU_VIE", "anAcc22/SC1015_Group_Project"];
 const RELEASES = ["zhenxi0901/dora-card"];
 const KEEP = 8;
 const TOKEN = process.env.GITHUB_TOKEN;
@@ -40,13 +44,18 @@ const repoName = (apiUrl) => {
   return rest.split("/").length === 2 ? rest : "";
 };
 const utc = (iso) => new Date(iso).toISOString().replace(".000Z", "Z");
+const allowed = (repo) => {
+  const parts = repo.toLowerCase().split("/");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return false;
+  return REPOS.some((r) => [parts.join("/"), `${parts[0]}/*`].includes(r.toLowerCase()));
+};
 
 const items = [];
 const q = encodeURIComponent(`author:${USER} is:pr is:public`);
 const search = await gh(`/search/issues?q=${q}&sort=updated&order=desc&per_page=30`);
 for (const it of search.items) {
   const repo = repoName(it.repository_url);
-  if (!it.pull_request || !repo || !onGitHub(it.html_url)) continue;
+  if (!it.pull_request || !repo || !allowed(repo) || !onGitHub(it.html_url)) continue;
   const base = { title: it.title.trim(), repo, number: it.number, url: it.html_url };
   if (it.pull_request.merged_at) items.push({ kind: "merged", ...base, at: utc(it.pull_request.merged_at) });
   else if (it.state === "open" && !it.draft) items.push({ kind: "review", ...base, at: utc(it.created_at) });

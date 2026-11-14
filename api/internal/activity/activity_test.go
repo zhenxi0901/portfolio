@@ -35,7 +35,10 @@ const search = `{"items": [
    "pull_request": {"merged_at": "2026-09-02T00:00:00Z"}},
   {"title": "Map sync between the tablet and the Pi", "number": 41, "html_url": "https://github.com/whupdido/mdp/pull/41",
    "repository_url": "https://api.github.com/repos/whupdido/mdp", "state": "closed", "created_at": "2026-10-01T00:00:00Z",
-   "pull_request": {"merged_at": "2026-10-02T03:00:00Z"}}
+   "pull_request": {"merged_at": "2026-10-02T03:00:00Z"}},
+  {"title": "Merged somewhere the config does not name", "number": 3, "html_url": "https://github.com/someone/else/pull/3",
+   "repository_url": "https://api.github.com/repos/someone/else", "state": "closed", "created_at": "2026-11-12T00:00:00Z",
+   "pull_request": {"merged_at": "2026-11-12T01:00:00Z"}}
 ]}`
 
 const releases = `[
@@ -44,7 +47,7 @@ const releases = `[
   {"tag_name": "v9", "html_url": "https://github.com/zhenxi0901/dora-card/releases/tag/v9", "draft": true, "published_at": null}
 ]`
 
-var cfg = Config{User: "zhenxi0901", Releases: []string{"zhenxi0901/dora-card"}}
+var cfg = Config{User: "zhenxi0901", Repos: []string{"hyscale-lab/ARIES", "whupdido/*"}, Releases: []string{"zhenxi0901/dora-card"}}
 
 // fakeGitHub answers the two endpoints the service reads, counting requests; fail makes it 503.
 func fakeGitHub(t *testing.T, fail *atomic.Bool) (*httptest.Server, *atomic.Int64) {
@@ -105,7 +108,7 @@ func TestReadsPullRequestsAndReleases(t *testing.T) {
 		{Kind: "merged", Title: "Map sync between the tablet and the Pi", Repo: "whupdido/mdp", Number: 41, URL: "https://github.com/whupdido/mdp/pull/41", At: at("2026-10-02T03:00:00Z")},
 	}
 	if len(f.Items) != len(want) {
-		t.Fatalf("got %d items, want %d (drafts, unmerged closes, issues, prereleases and links off GitHub left out): %+v", len(f.Items), len(want), f.Items)
+		t.Fatalf("got %d items, want %d (drafts, unmerged closes, issues, prereleases, links off GitHub and repositories outside the config left out): %+v", len(f.Items), len(want), f.Items)
 	}
 	for i := range want {
 		if f.Items[i] != want[i] {
@@ -164,6 +167,40 @@ func TestReadsHourlyAndKeepsTheLastListOnFailure(t *testing.T) {
 	if f := s.Feed(context.Background()); f.Source != "live" || len(f.Items) != 4 {
 		t.Errorf("GitHub down after a good read: %q with %d items, want the last live list", f.Source, len(f.Items))
 	}
+	if calls.Load() == afterSuccess {
+		t.Error("did not read GitHub again once the hour was up")
+	}
+
+	// Ten minutes after that failure GitHub answers again, and the list is the new read's.
+	fail.Store(false)
+	clock = clock.Add(11 * time.Minute)
+	if f := s.Feed(context.Background()); f.Source != "live" || !f.Updated.Equal(clock) {
+		t.Errorf("a good read after the hour: %q updated %v, want live at %v", f.Source, f.Updated, clock)
+	}
+}
+
+func TestOnlyTheConfiguredRepositories(t *testing.T) {
+	c := Config{Repos: []string{"hyscale-lab/ARIES", "whupdido/*"}}
+	for repo, want := range map[string]bool{
+		"hyscale-lab/ARIES": true,
+		"HyScale-Lab/aries": true, // GitHub's names ignore case
+		"hyscale-lab/other": false,
+		"whupdido/mdp":      true,
+		"whupdido/anything": true,
+		"someone/else":      false,
+		"whupdido":          false,
+		"whupdido/":         false,
+		"/mdp":              false,
+		"whupdido/mdp/x":    false,
+		"":                  false,
+	} {
+		if got := c.Allowed(repo); got != want {
+			t.Errorf("Allowed(%q) = %v, want %v", repo, got, want)
+		}
+	}
+	if (Config{}).Allowed("hyscale-lab/ARIES") {
+		t.Error("a config that names no repositories allows one")
+	}
 }
 
 // While one request reads GitHub, everyone else gets the last list at once rather than waiting.
@@ -204,6 +241,8 @@ func TestNewestSortsDedupesAndKeeps(t *testing.T) {
 		items = append(items, Item{URL: "https://github.com/a/b/pull/" + string(rune('a'+i)), At: at("2026-11-01T00:00:00Z").Add(time.Duration(i) * time.Hour)})
 	}
 	items = append(items, items[len(items)-1]) // a repeat of the newest
+	// Newest sorts in place, so note now which ones should stay: the newest Keep, down to the fourth oldest.
+	newest, oldestKept := items[Keep+2].URL, items[3].URL
 	got := Newest(items)
 	if len(got) != Keep {
 		t.Fatalf("kept %d, want %d", len(got), Keep)
@@ -212,6 +251,9 @@ func TestNewestSortsDedupesAndKeeps(t *testing.T) {
 		if got[i].At.After(got[i-1].At) || got[i].URL == got[i-1].URL {
 			t.Fatalf("not newest first without repeats: %+v", got)
 		}
+	}
+	if got[0].URL != newest || got[Keep-1].URL != oldestKept {
+		t.Errorf("kept %s to %s, want the newest %d: %s to %s", got[0].URL, got[Keep-1].URL, Keep, newest, oldestKept)
 	}
 }
 

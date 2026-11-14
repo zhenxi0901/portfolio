@@ -84,6 +84,25 @@ export function GkeViz() {
     return () => clearTimeout(t);
   }, [inView, touched, reduce]);
 
+  // Below lg the card's columns stack and its height follows the drawing, so the cluster (about 600 px
+  // taller than "Before" on a phone) would push the rest of the page down while the visitor scrolls past.
+  // There the card turns to its result while it is still below the screen, as with reduced motion; if it
+  // is already on screen, the migration plays as on a desktop. "Before" stays one tap away.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || touched || reduce || window.matchMedia("(min-width: 1024px)").matches) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting) return;
+        io.disconnect();
+        if (e.boundingClientRect.top > window.innerHeight) setMode("after");
+      },
+      { rootMargin: "0px 0px 100% 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [touched, reduce]);
+
   // Cluster autoscaler: close the gap between the nodes we have and the nodes the pods need.
   const needed = nodesFor(replicas);
   useEffect(() => {

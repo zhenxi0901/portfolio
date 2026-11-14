@@ -5,6 +5,9 @@
 // GitHub at most once an hour and keeps the last good list whenever GitHub is slow or refuses.
 //
 // GitHub is read without a token, so only public data can ever come back, whatever is searched for.
+// And only from repositories the config names: the list goes on the home page without anyone reading
+// it first, so a pull request anywhere else (whatever its repository or title says) never appears by
+// itself. A new repository is a line in the config, here and in the snapshot script.
 package activity
 
 import (
@@ -54,10 +57,25 @@ const (
 	maxBody = 2 << 20
 )
 
-// Config says whose work to list.
+// Config says whose work to list, and from where.
 type Config struct {
 	User     string   // the GitHub login whose pull requests are listed
+	Repos    []string // where they may come from: owner/name, or owner/* for all of an owner's repositories
 	Releases []string // owner/name repositories whose releases are listed
+}
+
+// Allowed reports whether pull requests in repo (owner/name) may be listed. GitHub's names ignore case.
+func (c Config) Allowed(repo string) bool {
+	owner, name, ok := strings.Cut(repo, "/")
+	if !ok || owner == "" || name == "" || strings.Contains(name, "/") {
+		return false
+	}
+	for _, r := range c.Repos {
+		if strings.EqualFold(r, repo) || strings.EqualFold(r, owner+"/*") {
+			return true
+		}
+	}
+	return false
 }
 
 // Service serves the feed.
@@ -185,7 +203,7 @@ func (s *Service) pulls(ctx context.Context) ([]Item, error) {
 	out := []Item{}
 	for _, it := range res.Items {
 		repo := repoName(it.RepositoryURL)
-		if it.PullRequest == nil || repo == "" || !onGitHub(it.HTMLURL) {
+		if it.PullRequest == nil || repo == "" || !s.cfg.Allowed(repo) || !onGitHub(it.HTMLURL) {
 			continue
 		}
 		item := Item{Title: strings.TrimSpace(it.Title), Repo: repo, Number: it.Number, URL: it.HTMLURL}

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
 import { now } from "@/content/profile";
 import { api, type SloReport } from "@/lib/api";
-import { sloPct, sloSpan } from "@/components/sections/slo-panel";
+import { sloSpan } from "@/components/sections/slo-panel";
+import { uptime } from "@/lib/uptime";
 import { Recently } from "@/components/home/recently";
 
 /**
@@ -24,7 +25,8 @@ export function Now() {
       alive = false;
     };
   }, []);
-  const live = slo?.available ? `${sloPct(slo.availability)} available over ${slo.since ? sloSpan(slo.since, slo.updated) : `${slo.window_days} days`}` : null;
+  // The one way the site prints availability (lib/uptime): the map, /status and the cards print it too.
+  const live = slo?.available ? `${uptime(slo.availability)} available over ${slo.since ? sloSpan(slo.since, slo.updated) : `${slo.window_days} days`}` : null;
 
   return (
     <section id="now" aria-labelledby="now-title" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 sm:px-8">

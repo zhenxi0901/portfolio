@@ -59,19 +59,20 @@ export function ConcurrencyChart() {
           {[0, 20, 40, 60].map((t) => (
             <g key={t}>
               <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeWidth={1} />
-              <text x={M.left - 10} y={y(t) + 4} textAnchor="end" className="fill-ink-3 font-mono text-[11px] tabular-nums">
+              {/* Sizes are in the drawing's units, which a phone shows at about 57%: larger there, so labels stay near 9 px. */}
+              <text x={M.left - 10} y={y(t) + 4} textAnchor="end" className="fill-ink-3 font-mono text-[16px] tabular-nums sm:text-[11px]">
                 {t}
               </text>
             </g>
           ))}
           {LEVELS.map((l) => (
-            <text key={l} x={x(l)} y={H - 16} textAnchor="middle" className="fill-ink-3 font-mono text-[11px]">
+            <text key={l} x={x(l)} y={H - 16} textAnchor="middle" className="fill-ink-3 font-mono text-[16px] sm:text-[11px]">
               {l} at once
             </text>
           ))}
 
           <path d={ideal} fill="none" stroke="var(--ink-3)" strokeWidth={1} opacity={0.8} />
-          <text x={x(4) - 6} y={y(base * 4) - 8} textAnchor="end" className="fill-ink-3 text-[11px]">
+          <text x={x(4) - 6} y={y(base * 4) - 8} textAnchor="end" className="fill-ink-3 text-[16px] sm:text-[11px]">
             linear
           </text>
 
@@ -105,7 +106,7 @@ export function ConcurrencyChart() {
           {pts.map((p, i) => (
             <g key={p.level}>
               <circle cx={x(p.level)} cy={y(p.v)} r={hover === i ? 6 : 4.5} fill="var(--accent-ink)" stroke="var(--surface)" strokeWidth={2} />
-              <text x={x(p.level) + (i === 2 ? -12 : 10)} y={y(p.v) - 12} textAnchor={i === 2 ? "end" : "start"} className="fill-ink text-[12px] font-semibold">
+              <text x={x(p.level) + (i === 2 ? -12 : 10)} y={y(p.v) - 12} textAnchor={i === 2 ? "end" : "start"} className="fill-ink text-[17px] font-semibold sm:text-[12px]">
                 {(metric === "attempts" ? p.speedup : p.passSpeedup).toFixed(2)}x
               </text>
               {/* Hit target larger than the mark. */}
