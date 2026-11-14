@@ -119,10 +119,11 @@ function DockIcon({ item, mouseX, current, hint = false }: { item: Item; mouseX:
       className="group relative grid place-items-center rounded-full bg-surface-2 text-ink-2 transition-colors hover:text-ink aria-[current=page]:bg-accent aria-[current=page]:text-on-accent aria-[current=true]:bg-accent aria-[current=true]:text-on-accent max-sm:size-[31px]!"
     >
       <Icon className="size-[45%]" weight={current ? "fill" : "regular"} />
-      {/* Phones have no hover: the current chapter's name shows above its icon there while the page opens. */}
+      {/* Phones have no hover: the current chapter's name shows above its icon there while the page opens.
+          It goes at once there, not in a fade: half-faded text fails contrast checks (Lighthouse caught one mid-fade). */}
       <span
         className={cn(
-          "pointer-events-none absolute -top-9 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink opacity-0 shadow-soft transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100",
+          "pointer-events-none absolute -top-9 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink opacity-0 shadow-soft transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 max-sm:transition-none",
           current && hint && "max-sm:opacity-100",
         )}
       >
