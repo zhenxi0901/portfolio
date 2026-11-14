@@ -204,7 +204,10 @@ const head = commits.find((c) => c.sha === process.env.GITHUB_SHA) ?? commits[0]
 const SIGN_IN = "Sign in to Google Cloud, keyless";
 async function stepsOf(run) {
   const { jobs } = await gh(`/actions/runs/${run.id}/jobs`);
-  const t0 = run.started.getTime();
+  // From the run's start, or from its earliest job's: when failed jobs are re-run, the jobs that had
+  // passed keep their first attempt's times, which come before the re-run's start, and measured from
+  // that start every one of their steps would be stacked at 0:00.
+  const t0 = Math.min(run.started.getTime(), ...jobs.map((j) => Date.parse(j.started_at)).filter(Number.isFinite));
   const at = (iso) => Math.max(0, Math.round((Date.parse(iso) - t0) / 1000));
   const out = [];
   for (const job of jobs) {
@@ -223,17 +226,18 @@ async function stepsOf(run) {
       out.push(step);
     }
   }
-  return out;
+  return { t0, steps: out };
 }
 const lastRun = allDeploys.at(-1);
+const replay = lastRun ? await stepsOf(lastRun) : null;
 const lastDeploy = lastRun
   ? {
       sha: lastRun.sha.slice(0, 7),
       title: await titleOf(lastRun.sha),
       ended: lastRun.ended.toISOString(),
-      seconds: Math.round((lastRun.ended - lastRun.started) / 1000),
+      seconds: Math.round((lastRun.ended - replay.t0) / 1000),
       url: lastRun.linked ? lastRun.url : null,
-      steps: await stepsOf(lastRun),
+      steps: replay.steps,
     }
   : null;
 
@@ -300,9 +304,23 @@ for (const e of events) {
 // All-time totals: every commit reachable from the newest deployed commit has shipped.
 const newest = allDeploys.at(-1);
 const shippedTotal = !newest ? 0 : newest.sha === commits[0]?.sha ? commits.length : (await all(`/commits?sha=${newest.sha}`)).length;
+// The release this build becomes. It ships after this file is written, so no run lists it yet, but
+// the changelog page is part of it: whoever reads that page is being served by it. Its commits are
+// the ones since the newest deploy; its tag and deploy time come with the next build.
+let serving = null;
+if (head && newest && head.sha !== newest.sha) {
+  const cmp = await gh(`/compare/${newest.sha}...${head.sha}`);
+  if (cmp.status === "ahead")
+    serving = {
+      sha: head.sha.slice(0, 7),
+      title: head.title,
+      commits: cmp.commits.map(toCommit).reverse().map((c) => ({ sha: c.sha.slice(0, 7), title: c.title, linked: true })),
+    };
+}
 const changelog = {
   generated: now.toISOString(),
   totals: { releases: allDeploys.length, commits: shippedTotal, drills: drills.length },
+  serving,
   entries: entries.reverse(),
 };
 

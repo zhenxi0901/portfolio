@@ -183,8 +183,8 @@ function Card({ node, title, sub, href, label, accent = false }: { node: Node; t
 }
 
 // Above the line by default, clear of the cards at either end.
-function EdgeLabel({ from, to, children, dy = -5.5 }: { from: Node; to: Node; children: React.ReactNode; dy?: number }) {
-  const x = (N[from][0] + N[to][0]) / 2;
+function EdgeLabel({ from, to, children, dx = 0, dy = -5.5 }: { from: Node; to: Node; children: React.ReactNode; dx?: number; dy?: number }) {
+  const x = (N[from][0] + N[to][0]) / 2 + dx;
   const y = (N[from][1] + N[to][1]) / 2 + dy;
   return (
     <span style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9px] text-ink-3 @lg:text-[10px]" aria-hidden>
@@ -308,7 +308,9 @@ export function LiveMap() {
             <EdgeLabel from="you" to="gfe">{link(visit)}</EdgeLabel>
             <EdgeLabel from="gfe" to="run">{`1st byte ${ms(visit.ttfb)}`}</EdgeLabel>
             {visit.server !== null && (
-              <EdgeLabel from="run" to="page" dy={-3}>
+              // Below and right of the diagonal: centred above it, the label's right end sat on the dashed line,
+              // and above-left is where the "new release" badge appears on the line from GitHub Actions.
+              <EdgeLabel from="run" to="page" dx={4} dy={4}>
                 {`Go ${ms(visit.server)}`}
               </EdgeLabel>
             )}

@@ -124,7 +124,9 @@ export function Signals() {
             {signals.map((s, k) => (
               <button
                 key={s.question}
+                id={`signal-tab-${k}`}
                 role="tab"
+                aria-controls="signal-panel"
                 aria-selected={k === idx}
                 tabIndex={k === idx ? 0 : -1}
                 onClick={() => choose(k)}
@@ -139,7 +141,7 @@ export function Signals() {
           </div>
         </div>
 
-        <div className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-6">
+        <div id="signal-panel" role="tabpanel" aria-labelledby={`signal-tab-${idx}`} className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h4 className="text-lg font-semibold">{signal.question}</h4>

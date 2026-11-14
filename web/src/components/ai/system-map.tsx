@@ -136,7 +136,9 @@ export function SystemMap() {
           {journeys.map((j) => (
             <button
               key={j.id}
+              id={`journey-tab-${j.id}`}
               role="tab"
+              aria-controls="journey-panel"
               aria-selected={jid === j.id}
               tabIndex={jid === j.id ? 0 : -1}
               onClick={() => choose(j.id)}
@@ -169,7 +171,7 @@ export function SystemMap() {
         </button>
       </div>
 
-      <div className="min-w-0 overflow-hidden rounded-3xl border border-line bg-surface">
+      <div id="journey-panel" role="tabpanel" aria-labelledby={`journey-tab-${jid}`} className="min-w-0 overflow-hidden rounded-3xl border border-line bg-surface">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-5 sm:px-7 sm:pt-6">
           {journey.product ? (
             <ProductTag p={journey.product} />

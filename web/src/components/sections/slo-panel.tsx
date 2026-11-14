@@ -14,8 +14,8 @@ function span(since: string, updated: string) {
   const h = (Date.parse(updated) - Date.parse(since)) / 36e5;
   return h < 48 ? `${Math.max(1, Math.round(h))} h` : `${Math.round(h / 24)} days`;
 }
-/** The same figure and window elsewhere (the home page live line), so they always agree. */
-export { pct as sloPct, span as sloSpan };
+/** The same window elsewhere (the home page live line), so they always agree. */
+export { span as sloSpan };
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 const dayTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -106,7 +106,7 @@ export function SloPanel() {
               {r.days.map((d) => (
                 <span
                   key={d.end}
-                  title={d.checks ? `${day(d.end)}: ${pct(d.passed / d.checks)} available` : `${day(d.end)}: not measured yet`}
+                  title={d.checks ? `${day(d.end)}: ${uptime(d.passed / d.checks)} available` : `${day(d.end)}: not measured yet`}
                   className={cn("flex-1 rounded-[3px]", dayTone(d.checks, d.passed, r.target))}
                 />
               ))}

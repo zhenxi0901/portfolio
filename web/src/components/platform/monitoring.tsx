@@ -56,7 +56,9 @@ export function Monitoring() {
         {VIEWS.map((v) => (
           <button
             key={v.id}
+            id={`monitoring-tab-${v.id}`}
             role="tab"
+            aria-controls="monitoring-panel"
             aria-selected={view === v.id}
             tabIndex={view === v.id ? 0 : -1}
             onClick={() => setView(v.id)}
@@ -70,7 +72,7 @@ export function Monitoring() {
         ))}
       </div>
 
-      <div className="mt-5">
+      <div id="monitoring-panel" role="tabpanel" aria-labelledby={`monitoring-tab-${view}`} className="mt-5">
         {view === "slo" && (
           <div className="grid gap-4">
             <SloBoard />

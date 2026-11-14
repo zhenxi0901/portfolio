@@ -23,7 +23,9 @@ export function FlowExplorer() {
         {flows.map((f) => (
           <button
             key={f.id}
+            id={`flow-tab-${f.id}`}
             role="tab"
+            aria-controls="flow-panel"
             aria-selected={active === f.id}
             tabIndex={active === f.id ? 0 : -1}
             onClick={() => setActive(f.id)}
@@ -37,7 +39,7 @@ export function FlowExplorer() {
         ))}
       </div>
 
-      <div className="relative rounded-3xl border border-line bg-surface p-5 sm:p-7">
+      <div id="flow-panel" role="tabpanel" aria-labelledby={`flow-tab-${active}`} className="relative rounded-3xl border border-line bg-surface p-5 sm:p-7">
         <p className="mb-6 max-w-[62ch] text-[15px] leading-relaxed text-ink" aria-live="polite">
           {flow.about}
         </p>

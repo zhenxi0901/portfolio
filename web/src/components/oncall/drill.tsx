@@ -14,6 +14,9 @@ export function Drill({ scenario }: { scenario: Scenario }) {
   const { phase, minutes, log } = s;
   const feed = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
+  // The latest result next to the buttons, on phones only (hidden from lg up).
+  const latest = useRef<HTMLDivElement>(null);
+  const onPhone = () => latest.current?.offsetParent != null;
   // Each phase change removes the button that was just pressed, so focus is moved on purpose:
   // to the page when it fires, to "Confirm recovery" after the rollback, to the debrief at the end.
   const focusNext = useRef<"pager" | "verify" | "debrief" | null>(null);
@@ -21,7 +24,8 @@ export function Drill({ scenario }: { scenario: Scenario }) {
     const target = focusNext.current;
     if (!target) return;
     focusNext.current = null;
-    root.current?.querySelector<HTMLElement>(`[data-focus="${target}"]`)?.focus();
+    // On a phone the result of the rollback is what to see next; the focused button is just below it.
+    root.current?.querySelector<HTMLElement>(`[data-focus="${target}"]`)?.focus({ preventScroll: target === "verify" && latest.current?.offsetParent != null });
   }, [phase, log.length]);
 
   const used = new Set(log.map((e) => e.move.id));
@@ -37,7 +41,12 @@ export function Drill({ scenario }: { scenario: Scenario }) {
     if (move.effect === "mitigate") focusNext.current = "verify";
     if (move.effect === "verify") focusNext.current = "debrief";
     setS((current) => playMove(current, move));
-    requestAnimationFrame(() => feed.current?.scrollTo({ top: 0, behavior: "smooth" }));
+    requestAnimationFrame(() => {
+      feed.current?.scrollTo({ top: 0, behavior: "smooth" });
+      // Phones stack the columns: the button pressed is far below the status and the feed, so bring the
+      // result (with the status and the budget) to the top of the screen, the buttons right under it.
+      if (onPhone()) latest.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
   };
 
   if (phase === "idle") {
@@ -109,7 +118,8 @@ export function Drill({ scenario }: { scenario: Scenario }) {
             className="mt-3 max-h-[26rem] space-y-3 overflow-y-auto rounded-2xl pr-1"
             aria-live="polite"
           >
-            {log.length === 0 && <p className="text-sm text-ink-3">{scenario.emptyHint}</p>}
+            {/* Inset: the box's rounded corners would clip the first letter of a line that touches them. */}
+            {log.length === 0 && <p className="px-2 py-1 text-sm text-ink-3">{scenario.emptyHint}</p>}
             {[...log].reverse().map((e) => (
               <div key={e.move.id + e.at} className="rounded-2xl border border-line bg-surface-2/60 p-3.5">
                 <p className="flex flex-wrap items-baseline gap-x-2 font-mono text-[11px] text-ink-3">
@@ -129,8 +139,15 @@ export function Drill({ scenario }: { scenario: Scenario }) {
         {/* Phones stack the columns, so the latest result also shows here, next to the buttons. The
             feed above is the live region; this copy is not announced twice. */}
         {phase !== "resolved" && log.length > 0 && (
-          <div aria-hidden className="rounded-3xl border border-line-strong bg-surface-2/60 p-4 lg:hidden">
-            <p className="font-mono text-[11px] text-ink-3">
+          <div ref={latest} aria-hidden className="scroll-mt-20 rounded-3xl border border-line-strong bg-surface-2/60 p-4 lg:hidden">
+            {/* The incident card is a screen or more above: its status and budget come along. */}
+            <p className="flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
+              <span className={phase === "paged" ? "text-critical" : "text-good"}>{statusLabel(s)}</span>
+              <span className="text-ink-3">
+                {at(minutes)} · {pct(spent)} of the budget spent
+              </span>
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-ink-3">
               {at(log[log.length - 1].at)} {log[log.length - 1].move.label}
             </p>
             <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{log[log.length - 1].move.result}</p>

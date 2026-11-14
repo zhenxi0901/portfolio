@@ -12,7 +12,7 @@ const STOPS: Stop[] = [
   {
     id: "now",
     title: "What I am doing now",
-    text: "Final-year research at NTU and DevOps at Primustech, dated, with this site's live uptime beside it.",
+    text: "Final-year research at NTU and DevOps at Primustech, dated, together with this site's live uptime.",
   },
   {
     id: "chapters",

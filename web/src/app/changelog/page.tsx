@@ -15,6 +15,8 @@ type Entry =
 const changelog = generated as {
   generated: string;
   totals: { releases: number; commits: number; drills: number };
+  // The release this image became: it shipped after the file was written (absent from older snapshots).
+  serving?: { sha: string; title: string; commits: Commit[] } | null;
   entries: Entry[];
 };
 
@@ -84,6 +86,25 @@ export default function ChangelogPage() {
         )}
       </p>
 
+      {changelog.serving && (
+        <section aria-labelledby="serving-title" className="mt-12 rounded-3xl border border-line bg-surface p-5 sm:p-6">
+          <h2 id="serving-title" className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <span className="text-xl font-semibold tracking-[-0.02em]">Serving you now</span>
+            <span className="font-mono text-xs font-normal text-ink-3">
+              {changelog.serving.commits.length} commit{changelog.serving.commits.length === 1 ? "" : "s"} · tag and deploy time with the next release
+            </span>
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink-2">
+            The release this page is part of: it went live after the list below was written.
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            {changelog.serving.commits.map((c) => (
+              <CommitRow key={c.sha} c={c} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="mt-12 space-y-12">
         {days.map((key) => {
           const today = entries.filter((e) => dayKey(e.at) === key);
@@ -126,22 +147,7 @@ export default function ChangelogPage() {
                         </p>
                         <ul className="mt-2 space-y-1.5">
                           {e.commits.map((c) => (
-                            <li key={c.sha} className="flex gap-3 text-[15px] leading-snug">
-                              {c.linked ? (
-                                <a
-                                  href={`${REPO}/commit/${c.sha}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="shrink-0 pt-0.5 font-mono text-xs text-ink-3 hover:text-ink"
-                                >
-                                  {c.sha}
-                                </a>
-                              ) : (
-                                <span className="shrink-0 pt-0.5 font-mono text-xs text-ink-3">{c.sha}</span>
-                              )}
-                              {/* Titles can hold long unbroken tokens (a branch name in a merge commit). */}
-                              <span className="min-w-0 [overflow-wrap:anywhere]">{c.title}</span>
-                            </li>
+                            <CommitRow key={c.sha} c={c} />
                           ))}
                         </ul>
                       </div>
@@ -157,9 +163,26 @@ export default function ChangelogPage() {
       </div>
       <p className="mt-12 text-xs leading-relaxed text-ink-3">
         As of {new Date(changelog.generated).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: TZ })}{" "}
-        Singapore time, when the pipeline built the image you are looking at; the release of this very image is the next entry.
+        Singapore time, when the pipeline built the image you are looking at;{" "}
+        {changelog.serving ? "that image's own release is the one at the top." : "the release of this very image is the next entry."}
       </p>
     </ArticleShell>
+  );
+}
+
+function CommitRow({ c }: { c: Commit }) {
+  return (
+    <li className="flex gap-3 text-[15px] leading-snug">
+      {c.linked ? (
+        <a href={`${REPO}/commit/${c.sha}`} target="_blank" rel="noreferrer" className="shrink-0 pt-0.5 font-mono text-xs text-ink-3 hover:text-ink">
+          {c.sha}
+        </a>
+      ) : (
+        <span className="shrink-0 pt-0.5 font-mono text-xs text-ink-3">{c.sha}</span>
+      )}
+      {/* Titles can hold long unbroken tokens (a branch name in a merge commit). */}
+      <span className="min-w-0 [overflow-wrap:anywhere]">{c.title}</span>
+    </li>
   );
 }
 

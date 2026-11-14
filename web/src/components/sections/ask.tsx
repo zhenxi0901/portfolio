@@ -13,7 +13,9 @@ import { AnswerTrace } from "@/components/sections/answer-trace";
 const SUGGESTIONS = [
   "How did you cut the cloud bill?",
   "What did your final-year project find?",
-  "Which GPUs have you used?",
+  // Retrieval answers "Which GPUs have you used?" with the whole skills list (only it says "GPUs");
+  // this lands on the ARIES-on-NSCC fact, which names the A100 and what ran on it.
+  "How did you run agents on a supercomputer?",
   "What happens when a build has a critical CVE?",
 ];
 

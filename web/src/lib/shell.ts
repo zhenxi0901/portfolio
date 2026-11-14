@@ -241,7 +241,7 @@ const prose = (text: string, cls?: string): Line[] => wrap(text).map((l) => [t(l
 function moveRow(m: Move, s: DrillState): Line {
   const command = `oncall ${m.id}`;
   const done = seen(s, m);
-  return line({ text: command, run: command, cls: done ? DIM : ACCENT }, gap(command.length, ONCALL_WIDTH), t(m.label, done ? DIM : undefined), t(done ? "  seen" : `  ${m.minutes} min`, DIM));
+  return line({ text: command, run: command, cls: done ? DIM : ACCENT }, gap(command.length, ONCALL_WIDTH), t(m.label, done ? DIM : undefined), t(done ? "  seen" : `  ${m.minutes} min`, DIM));
 }
 
 /** The pager's state, the clock and the budget: printed after every move. */

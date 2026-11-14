@@ -2,6 +2,8 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -39,6 +41,15 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// activityConfig is whose public work the home page's Recently list shows, and from which
+// repositories: nothing from anywhere else appears by itself. web/scripts/activity.mjs, which writes
+// the build's snapshot, lists the same; TestActivityConfigMatchesTheSnapshotScript holds them together.
+var activityConfig = activity.Config{
+	User:     "zhenxi0901",
+	Repos:    []string{"zhenxi0901/*", "hyscale-lab/ARIES", "whupdido/mdp", "maeganliew/LTU_VIE", "anAcc22/SC1015_Group_Project"},
+	Releases: []string{"zhenxi0901/dora-card"},
+}
 
 type Server struct {
 	cfg     Config
@@ -106,7 +117,7 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 	}
 
 	return &Server{
-		activity: activity.New(activity.Config{User: "zhenxi0901", Releases: []string{"zhenxi0901/dora-card"}}, recent, cfg.ActivityFromGitHub, log),
+		activity: activity.New(activityConfig, recent, cfg.ActivityFromGitHub, log),
 		delivery: delivery,
 		cfg:      cfg,
 		log:      log,
@@ -142,58 +153,65 @@ func (s *Server) Handler() http.Handler {
 		}
 		_, _ = w.Write([]byte("ready"))
 	})
+	// Every GET route under /api/ is registered through get, which also lists it for the catch-all
+	// below, so a known path asked with another method answers 405 and its Allow header, never 404.
+	// (A test fails the build if one is registered on the mux directly.)
+	apiMethods := map[string]string{"/api/ask": "POST", "/api/contact": "POST"}
+	get := func(path string, h http.Handler) {
+		mux.Handle("GET "+path, h)
+		apiMethods[path] = "GET, HEAD"
+	}
+
 	// Cloud Run's front end reserves some paths ending in "z" (/healthz, /readyz), so they work for
 	// container probes but never reach the app from outside. External checks use /api/health.
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
+	get("/api/health", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		if s.ask.FactCount() == 0 {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not ready"})
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
+	}))
 	mux.Handle("GET /metrics", promhttp.HandlerFor(s.reg, promhttp.HandlerOpts{}))
-	mux.HandleFunc("GET /api/status", s.handleStatus)
+	get("/api/status", http.HandlerFunc(s.handleStatus))
 	// This site's availability as Cloud Monitoring's uptime checks saw it. Cached for 5 minutes.
-	mux.HandleFunc("GET /api/slo", func(w http.ResponseWriter, r *http.Request) {
+	get("/api/slo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=60")
-		writeJSON(w, http.StatusOK, s.slo.Report(r.Context()))
-	})
+		sendJSON(w, r, http.StatusOK, s.slo.Report(r.Context()))
+	}))
 	// What the site has cost this month: its usage from Cloud Monitoring at list prices, and the
 	// price list for the page's what-if. Usage is read at most once an hour.
-	mux.HandleFunc("GET /api/cost", func(w http.ResponseWriter, r *http.Request) {
+	get("/api/cost", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
-		writeJSON(w, http.StatusOK, s.cost.Report(r.Context()))
-	})
+		sendJSON(w, r, http.StatusOK, s.cost.Report(r.Context()))
+	}))
 	// Recent public work on GitHub for the home page's "Recently" list: pull requests merged or in
 	// review, and releases. GitHub is read at most hourly, on Cloud Run only.
-	mux.HandleFunc("GET /api/activity", func(w http.ResponseWriter, r *http.Request) {
+	get("/api/activity", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
-		writeJSON(w, http.StatusOK, s.activity.Feed(r.Context()))
-	})
+		sendJSON(w, r, http.StatusOK, s.activity.Feed(r.Context()))
+	}))
 	// The same availability as a shields.io endpoint badge, for the GitHub profile.
-	mux.HandleFunc("GET /api/badge/uptime", func(w http.ResponseWriter, r *http.Request) {
+	get("/api/badge/uptime", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		writeJSON(w, http.StatusOK, slo.Badge(s.slo.Report(r.Context())))
-	})
+	}))
 	// The live card on the GitHub profile: ?theme=light for light mode.
-	mux.HandleFunc("GET /api/card.svg", func(w http.ResponseWriter, r *http.Request) {
+	get("/api/card.svg", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		svg := card.SVG(s.cardData(r.Context()), r.URL.Query().Get("theme") != "light")
-		w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 		w.Header().Set("Cache-Control", "public, max-age=300")
-		_, _ = w.Write(svg)
-	})
+		send(w, r, http.StatusOK, "image/svg+xml; charset=utf-8", svg)
+	}))
 	// The same card as text, with ANSI colours: what `curl <site>` gets, at an address of its own.
-	mux.HandleFunc("GET /api/card.txt", s.handleTextCard)
+	get("/api/card.txt", http.HandlerFunc(s.handleTextCard))
 	// The live map on the GitHub profile: the request path, drawn with this instance's own numbers.
-	mux.HandleFunc("GET /api/map.svg", func(w http.ResponseWriter, r *http.Request) {
+	get("/api/map.svg", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p50, p95, _ := s.metrics.Window.Percentiles()
 		live := card.Live{P50: p50, P95: p95, Up: time.Since(s.started)}
 		svg := card.Map(s.cardData(r.Context()), live, r.URL.Query().Get("theme") != "light")
-		w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 		w.Header().Set("Cache-Control", "public, max-age=300")
-		_, _ = w.Write(svg)
-	})
+		send(w, r, http.StatusOK, "image/svg+xml; charset=utf-8", svg)
+	}))
 
 	askLimit := ratelimit.New(8, time.Minute)
 	contactLimit := ratelimit.New(3, 10*time.Minute)
@@ -204,13 +222,9 @@ func (s *Server) Handler() http.Handler {
 	// 240 a minute per client covers comparing every client strategy in one go.
 	labLimit := ratelimit.New(240, time.Minute)
 	visitor := func(r *http.Request) string { return rateKey(clientIP(r, s.cfg.TrustProxy)) }
-	mux.Handle("GET "+labRoute, s.limit("lab", labLimit, lab.New(visitor)))
+	get(labRoute, s.limit("lab", labLimit, lab.New(visitor)))
 	// The catch-all wins over a method-specific pattern, so a known path with the wrong method would
 	// read as 404; answer 405 with the allowed method instead.
-	apiMethods := map[string]string{
-		"/api/health": "GET, HEAD", "/api/status": "GET, HEAD", "/api/slo": "GET, HEAD", "/api/cost": "GET, HEAD", "/api/badge/uptime": "GET, HEAD", "/api/card.svg": "GET, HEAD", "/api/card.txt": "GET, HEAD", "/api/map.svg": "GET, HEAD",
-		"/api/ask": "POST", "/api/contact": "POST", labRoute: "GET, HEAD",
-	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if allow, ok := apiMethods[r.URL.Path]; ok {
 			w.Header().Set("Allow", allow)
@@ -404,6 +418,44 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// sendJSON is writeJSON for the answers big enough to be worth compressing (see send).
+func sendJSON(w http.ResponseWriter, r *http.Request, code int, v any) {
+	body, err := json.Marshal(v)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not encode the answer"})
+		return
+	}
+	// The same bytes json.Encoder writes: the value and a newline.
+	send(w, r, code, "application/json", append(body, '\n'))
+}
+
+// compressFrom is the smallest answer worth gzipping: below it, the saving is about the cost of the
+// compression header and the CPU.
+const compressFrom = 1024
+
+// send writes body, gzipped when the client accepts gzip and the body is big enough: data out is the
+// one meter this site's bill is made of (the static files are compressed at build time; see static.go).
+func send(w http.ResponseWriter, r *http.Request, code int, contentType string, body []byte) {
+	h := w.Header()
+	h.Set("Content-Type", contentType)
+	if len(body) >= compressFrom {
+		// Either answer depends on Accept-Encoding, and a cache in between has to know that.
+		h.Add("Vary", "Accept-Encoding")
+		if acceptedEncodings(r.Header.Get("Accept-Encoding"))["gzip"] {
+			var buf bytes.Buffer
+			zw := gzip.NewWriter(&buf)
+			_, werr := zw.Write(body)
+			if cerr := zw.Close(); werr == nil && cerr == nil {
+				body = buf.Bytes()
+				h.Set("Content-Encoding", "gzip")
+			}
+		}
+	}
+	h.Set("Content-Length", strconv.Itoa(len(body)))
+	w.WriteHeader(code)
+	_, _ = w.Write(body)
 }
 
 func short(commit string) string {

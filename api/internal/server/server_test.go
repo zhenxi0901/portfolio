@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -361,6 +363,101 @@ func TestWrongMethodOnAKnownAPIPathIs405(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("unknown API path = %d, want 404", resp.StatusCode)
+	}
+	// Every GET endpoint, /api/activity included (it once answered 404 here).
+	for _, path := range []string{"/api/health", "/api/status", "/api/slo", "/api/cost", "/api/activity", "/api/badge/uptime", "/api/card.svg", "/api/card.txt", "/api/map.svg", labRoute} {
+		resp, err := http.Post(ts.URL+path, "application/json", strings.NewReader("{}"))
+		must(t, err)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusMethodNotAllowed || resp.Header.Get("Allow") != "GET, HEAD" {
+			t.Errorf("POST %s = %d, Allow %q; want 405 GET, HEAD", path, resp.StatusCode, resp.Header.Get("Allow"))
+		}
+	}
+}
+
+// A GET route under /api/ registered on the mux directly would miss the 405 list: they all go through get.
+func TestAPIRoutesRegisterThroughGet(t *testing.T) {
+	src, err := os.ReadFile("server.go")
+	must(t, err)
+	if m := regexp.MustCompile(`mux\.Handle(Func)?\("GET /api/[^"]*"`).FindAll(src, -1); len(m) > 0 {
+		t.Errorf("registered without get(), so a wrong method would answer 404: %s", bytes.Join(m, []byte(", ")))
+	}
+}
+
+// Answers of a kilobyte or more go out gzipped to clients that accept it, and only to them.
+func TestLargeAnswersAreGzipped(t *testing.T) {
+	ts, _ := newTestServer(t)
+	get := func(path, encoding string) (*http.Response, []byte) {
+		req, err := http.NewRequest(http.MethodGet, ts.URL+path, nil)
+		must(t, err)
+		// Set by hand, so the client neither adds gzip nor quietly decompresses.
+		req.Header.Set("Accept-Encoding", encoding)
+		resp, err := http.DefaultClient.Do(req)
+		must(t, err)
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		must(t, err)
+		return resp, body
+	}
+	resp, body := get("/api/map.svg", "gzip, br")
+	if resp.Header.Get("Content-Encoding") != "gzip" || !strings.Contains(resp.Header.Get("Vary"), "Accept-Encoding") || resp.Header.Get("Content-Length") != strconv.Itoa(len(body)) {
+		t.Fatalf("map with gzip accepted: encoding %q, vary %q, length %q for %d bytes", resp.Header.Get("Content-Encoding"), resp.Header.Get("Vary"), resp.Header.Get("Content-Length"), len(body))
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(body))
+	must(t, err)
+	svg, err := io.ReadAll(zr)
+	must(t, err)
+	if !strings.HasPrefix(string(svg), "<svg") || len(body) >= len(svg) {
+		t.Errorf("gzipped map: %d bytes for %d, starts %q", len(body), len(svg), string(svg[:min(len(svg), 20)]))
+	}
+	if resp, body := get("/api/map.svg", "identity"); resp.Header.Get("Content-Encoding") != "" || !strings.HasPrefix(string(body), "<svg") || !strings.Contains(resp.Header.Get("Vary"), "Accept-Encoding") {
+		t.Errorf("map without gzip accepted: encoding %q, vary %q, starts %q", resp.Header.Get("Content-Encoding"), resp.Header.Get("Vary"), string(body[:min(len(body), 20)]))
+	}
+	if resp, body := get("/api/map.svg", "gzip;q=0"); resp.Header.Get("Content-Encoding") != "" || !strings.HasPrefix(string(body), "<svg") {
+		t.Errorf("map with gzip refused (q=0): encoding %q", resp.Header.Get("Content-Encoding"))
+	}
+	if resp, body := get("/api/health", "gzip"); resp.Header.Get("Content-Encoding") != "" || !strings.Contains(string(body), `"ok"`) {
+		t.Errorf("a small answer: encoding %q, body %q; want it as it is", resp.Header.Get("Content-Encoding"), body)
+	}
+	// The JSON a page reads decodes the same either way.
+	_, plain := get("/api/slo", "identity")
+	resp, zipped := get("/api/slo", "gzip")
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		zr, err := gzip.NewReader(bytes.NewReader(zipped))
+		must(t, err)
+		zipped, err = io.ReadAll(zr)
+		must(t, err)
+	}
+	if !bytes.Equal(plain, zipped) || !json.Valid(plain) {
+		t.Errorf("/api/slo differs once decompressed:\n%s\n%s", plain, zipped)
+	}
+}
+
+// The server and the snapshot script decide the Recently list by the same rules: same owner, same
+// repositories, same releases.
+func TestActivityConfigMatchesTheSnapshotScript(t *testing.T) {
+	src, err := os.ReadFile("../../../web/scripts/activity.mjs")
+	must(t, err)
+	list := func(name string) []string {
+		m := regexp.MustCompile(`(?m)^const ` + name + ` = (\[.*\]|"[^"]*");`).FindSubmatch(src)
+		if m == nil {
+			t.Fatalf("activity.mjs has no const %s", name)
+		}
+		var v any
+		must(t, json.Unmarshal(m[1], &v))
+		if s, ok := v.(string); ok {
+			return []string{s}
+		}
+		var out []string
+		for _, x := range v.([]any) {
+			out = append(out, x.(string))
+		}
+		return out
+	}
+	for name, want := range map[string][]string{"USER": {activityConfig.User}, "REPOS": activityConfig.Repos, "RELEASES": activityConfig.Releases} {
+		if got := list(name); !slices.Equal(got, want) {
+			t.Errorf("activity.mjs %s = %q, the server's = %q", name, got, want)
+		}
 	}
 }
 
