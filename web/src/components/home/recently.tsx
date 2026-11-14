@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, GitMerge, GitPullRequest, Package, PencilSimpleLine, RocketLaunch, Siren, type Icon } from "@phosphor-icons/react";
 import snapshot from "@/content/generated/activity.json";
-import changelog from "@/content/generated/changelog.json";
+import delivery from "@/content/generated/delivery.json";
 import { posts } from "@/content/writing";
 import { postmortems } from "@/content/postmortems";
 import { api, type ActivityItem } from "@/lib/api";
@@ -43,15 +43,10 @@ function fromGitHub(items: ActivityItem[]): Entry[] {
 }
 
 // What only this site knows, fixed when it was built: its latest deploy, and what I have written.
-// A changelog entry has its subject as title or, for some, as its first commit's.
-const deploy = changelog.entries.find((e) => e.kind === "deploy") as
-  | { sha: string; at: string; title?: string | null; commits?: { title: string }[] }
-  | undefined;
-const deployTitle = deploy?.title ?? deploy?.commits?.[0]?.title;
+// The pipeline's list of recent deploys, newest first, each with the subject of the commit it shipped.
+const deploy = (delivery as { recent: { sha: string; title: string; ended: string }[] }).recent[0];
 const local: Entry[] = [
-  ...(deploy && deployTitle
-    ? [{ key: deploy.sha, at: deploy.at, verb: "Deployed", icon: RocketLaunch, title: deployTitle, where: "this site", href: "/changelog", external: false }]
-    : []),
+  ...(deploy ? [{ key: deploy.sha, at: deploy.ended, verb: "Deployed", icon: RocketLaunch, title: deploy.title, where: "this site", href: "/status#replay", external: false }] : []),
   ...posts.map((p) => ({ key: p.slug, at: contentDay(p.date), verb: "Wrote", icon: PencilSimpleLine, title: p.title, href: `/writing/${p.slug}`, external: false })),
   ...postmortems.map((p) => ({ key: p.slug, at: contentDay(p.date), verb: "Postmortem", icon: Siren, title: p.title, href: `/postmortems/${p.slug}`, external: false })),
 ];

@@ -4,6 +4,7 @@ import { LiveInstance } from "@/components/status/live-instance";
 import { LiveState } from "@/components/status/live-state";
 import { SloPanel } from "@/components/sections/slo-panel";
 import { DeliveryPanel } from "@/components/sections/delivery-panel";
+import { DeployReplay } from "@/components/status/deploy-replay";
 import { VisitTrace } from "@/components/sections/visit-trace";
 import { incidents } from "@/content/status";
 import { decisions } from "@/content/decisions";
@@ -58,6 +59,7 @@ export default function StatusPage() {
       <LiveInstance commit={false} />
       <SloPanel />
       <DeliveryPanel />
+      <DeployReplay />
       <VisitTrace />
 
       <Part title="How it is watched">

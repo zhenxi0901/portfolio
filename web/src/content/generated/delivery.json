@@ -1,11 +1,11 @@
 {
-  "generated": "2026-10-19T12:06:08.635Z",
+  "generated": "2026-11-14T03:03:29.310Z",
   "windowDays": 30,
-  "deploys": 38,
-  "daysWithDeploys": 4,
+  "deploys": 65,
+  "daysWithDeploys": 6,
   "leadTimeMinutes": {
-    "median": 5.8,
-    "commits": 50
+    "median": 8.5,
+    "commits": 86
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -14,7 +14,7 @@
     "count": 0
   },
   "deployMinutes": {
-    "median": 1.4
+    "median": 1.7
   },
   "safeguards": {
     "stoppedBeforeTraffic": 0,
@@ -27,115 +27,92 @@
     }
   },
   "head": {
-    "sha": "97ac23e",
-    "title": "Fixes from a full review: releases, the changelog, the card and claims",
-    "committed": "2026-10-19T11:55:32.000Z"
+    "sha": "6ffe387",
+    "title": "A Recently list on the home page, current between deploys",
+    "committed": "2026-11-14T03:00:52.000Z"
+  },
+  "lastDeploy": {
+    "sha": "c8ff875",
+    "title": "Experience matches LinkedIn: ENGIE to Feb 2026, SJTU a summer research internship",
+    "ended": "2026-11-14T02:34:12.000Z",
+    "seconds": 111,
+    "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43546864199",
+    "steps": [
+      {
+        "name": "Release only main's head",
+        "start": 3,
+        "end": 3,
+        "result": "success"
+      },
+      {
+        "name": "Sign in to Google Cloud, keyless",
+        "start": 11,
+        "end": 16,
+        "result": "success"
+      },
+      {
+        "name": "Find the image CI tested",
+        "start": 16,
+        "end": 21,
+        "result": "success"
+      },
+      {
+        "name": "Check the image's provenance and SBOM",
+        "start": 21,
+        "end": 37,
+        "result": "success"
+      },
+      {
+        "name": "Check the error budget",
+        "start": 37,
+        "end": 41,
+        "result": "success"
+      },
+      {
+        "name": "Note the revision serving now",
+        "start": 41,
+        "end": 44,
+        "result": "success"
+      },
+      {
+        "name": "Start the new revision with no traffic",
+        "start": 44,
+        "end": 63,
+        "result": "success"
+      },
+      {
+        "name": "Check the new revision before it takes traffic",
+        "start": 63,
+        "end": 74,
+        "result": "success"
+      },
+      {
+        "name": "Send traffic to the new revision",
+        "start": 74,
+        "end": 83,
+        "result": "success"
+      },
+      {
+        "name": "Verify",
+        "start": 83,
+        "end": 93,
+        "result": "success"
+      },
+      {
+        "name": "Roll back to the previous revision",
+        "start": 93,
+        "end": 93,
+        "result": "skipped"
+      },
+      {
+        "name": "Publish the release",
+        "start": 100,
+        "end": 108,
+        "result": "success"
+      }
+    ]
   },
   "perDay": [
-    {
-      "date": "2026-09-20",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-21",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-22",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-23",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-24",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-25",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-26",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-27",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-28",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-29",
-      "deploys": 0
-    },
-    {
-      "date": "2026-09-30",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-01",
-      "deploys": 5
-    },
-    {
-      "date": "2026-10-02",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-03",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-04",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-05",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-06",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-07",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-08",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-09",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-10",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-11",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-12",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-13",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-14",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-15",
-      "deploys": 7
-    },
     {
       "date": "2026-10-16",
       "deploys": 6
@@ -150,57 +127,161 @@
     },
     {
       "date": "2026-10-19",
-      "deploys": 20
+      "deploys": 22
+    },
+    {
+      "date": "2026-10-20",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-21",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-22",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-23",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-24",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-25",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-26",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-27",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-28",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-29",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-30",
+      "deploys": 0
+    },
+    {
+      "date": "2026-10-31",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-01",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-02",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-03",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-04",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-05",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-06",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-07",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-08",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-09",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-10",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-11",
+      "deploys": 12
+    },
+    {
+      "date": "2026-11-12",
+      "deploys": 9
+    },
+    {
+      "date": "2026-11-13",
+      "deploys": 8
+    },
+    {
+      "date": "2026-11-14",
+      "deploys": 1
     }
   ],
   "recent": [
     {
-      "sha": "97ac23e",
-      "title": "Fixes from a full review: releases, the changelog, the card and claims",
-      "ended": "2026-10-19T12:03:39.000Z",
-      "minutes": 1.7,
-      "leadMinutes": 8.1,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39248925939"
-    },
-    {
-      "sha": "464e8da",
-      "title": "Changelog: attribute commits by ancestry, and wrap long titles",
-      "ended": "2026-10-19T11:24:07.000Z",
-      "minutes": 1.5,
-      "leadMinutes": 6.6,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39244188283"
-    },
-    {
-      "sha": "a1935b0",
-      "title": "Merge pull request #3 from zhenxi0901/dependabot/github_actions/actions-bcf8ce80f7",
-      "ended": "2026-10-19T11:08:16.000Z",
-      "minutes": 1.6,
-      "leadMinutes": 7.3,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39242243666"
-    },
-    {
-      "sha": "17da88d",
-      "title": "Load test: read the status JSON with jq, not by piping curl into python",
-      "ended": "2026-10-19T10:52:20.000Z",
-      "minutes": 1.7,
-      "leadMinutes": 7.1,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39240340244"
-    },
-    {
-      "sha": "747ef92",
-      "title": "Status page, changelog, decision records and a live profile card",
-      "ended": "2026-10-19T10:35:10.000Z",
+      "sha": "c8ff875",
+      "title": "Experience matches LinkedIn: ENGIE to Feb 2026, SJTU a summer research internship",
+      "ended": "2026-11-14T02:34:12.000Z",
       "minutes": 1.9,
-      "leadMinutes": 7.3,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39238277221"
+      "leadMinutes": 10.8,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43546864199"
     },
     {
-      "sha": "9dfbfb6",
-      "title": "Close the contact-form postmortem's last two action items",
-      "ended": "2026-10-19T10:15:15.000Z",
-      "minutes": 1.6,
-      "leadMinutes": 6.5,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39235917460"
+      "sha": "76637b5",
+      "title": "The ~15% cloud saving is an estimate, and the site says so",
+      "ended": "2026-11-13T09:26:18.000Z",
+      "minutes": 1.8,
+      "leadMinutes": 10.2,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43401060872"
+    },
+    {
+      "sha": "9efe054",
+      "title": "Third review: a fair comparison, steady pages, figures that name their runs",
+      "ended": "2026-11-13T06:45:57.000Z",
+      "minutes": 2.7,
+      "leadMinutes": 11.2,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43380655690"
+    },
+    {
+      "sha": "1fd06df",
+      "title": "Second full review: one way to print money and uptime, sturdier reads, honest labels",
+      "ended": "2026-11-13T05:57:40.000Z",
+      "minutes": 1.9,
+      "leadMinutes": 10.9,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43375203648"
+    },
+    {
+      "sha": "79f06d1",
+      "title": "Map: the latency belongs to the Go server, not to /api",
+      "ended": "2026-11-13T04:23:21.000Z",
+      "minutes": 1.9,
+      "leadMinutes": 10.5,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43364984500"
+    },
+    {
+      "sha": "cd58821",
+      "title": "/api/map.svg: the request path, live, for the GitHub profile",
+      "ended": "2026-11-13T04:12:04.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 9.2,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43363751957"
     }
   ]
 }

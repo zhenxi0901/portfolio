@@ -197,6 +197,46 @@ const lastDrill = drills.at(-1);
 // The commit this image is being built from (CI sets GITHUB_SHA), for the live card on the profile.
 const head = commits.find((c) => c.sha === process.env.GITHUB_SHA) ?? commits[0];
 
+// The latest deploy step by step, for the replay on /status: when each step started and ended, in
+// seconds from the run's start, and how it ended. GitHub's own bookkeeping (setting up and completing
+// jobs, post-run clean-up, the checkout) is left out and the two Google Cloud sign-in actions become
+// one step. Of the skipped steps only the rollback stays: the path that was there had a check failed.
+const SIGN_IN = "Sign in to Google Cloud, keyless";
+async function stepsOf(run) {
+  const { jobs } = await gh(`/actions/runs/${run.id}/jobs`);
+  const t0 = run.started.getTime();
+  const at = (iso) => Math.max(0, Math.round((Date.parse(iso) - t0) / 1000));
+  const out = [];
+  for (const job of jobs) {
+    for (const st of job.steps ?? []) {
+      if (/^(Set up job|Complete job|Post |Run actions\/checkout)/.test(st.name) || !st.started_at || !st.completed_at) continue;
+      if (st.conclusion === "skipped" && st.name !== "Roll back to the previous revision") continue;
+      const step = { name: st.name, start: at(st.started_at), end: at(st.completed_at), result: st.conclusion };
+      if (/^Run google-github-actions\//.test(st.name)) {
+        const prev = out.at(-1);
+        if (prev?.name === SIGN_IN) {
+          prev.end = step.end;
+          continue;
+        }
+        step.name = SIGN_IN;
+      }
+      out.push(step);
+    }
+  }
+  return out;
+}
+const lastRun = allDeploys.at(-1);
+const lastDeploy = lastRun
+  ? {
+      sha: lastRun.sha.slice(0, 7),
+      title: await titleOf(lastRun.sha),
+      ended: lastRun.ended.toISOString(),
+      seconds: Math.round((lastRun.ended - lastRun.started) / 1000),
+      url: lastRun.linked ? lastRun.url : null,
+      steps: await stepsOf(lastRun),
+    }
+  : null;
+
 const delivery = {
   generated: now.toISOString(),
   windowDays: WINDOW_DAYS,
@@ -217,6 +257,7 @@ const delivery = {
       : null,
   },
   head: head ? { sha: head.sha.slice(0, 7), title: head.title, committed: head.at.toISOString() } : null,
+  lastDeploy,
   perDay,
   recent: await Promise.all(
     deploys
