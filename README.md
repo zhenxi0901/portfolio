@@ -105,14 +105,14 @@ docker compose up --build
 The load generator (one `curl` per request) is the bottleneck: the server's own median is 0.03 ms. The
 Ask rate limiter let exactly the per-minute budget through and returned 429 for the rest.
 
-Browser end-to-end tests against the live site (13 Nov 2026, after a full re-review): all 27 pages
-in the sitemap at desktop and phone widths with no dead links or horizontal overflow, axe (WCAG 2.2 AA
-and best practice) clean in both themes, and no console warnings or errors; plus suites for
+Browser end-to-end tests against the live site (14 Nov 2026): all 27 pages in the sitemap at desktop
+and phone widths with no dead links or horizontal overflow, axe (WCAG 2.2 AA and best practice) clean
+in both themes, and no console warnings or errors; plus 428 checks in eleven more suites, among them
 **break it yourself** (25 checks, real faults against the live server: the arrival schedule, each
 client strategy, the comparison, the phone timeline), **what it costs** (25: the receipt adding up,
-the what-if at this month's pace matching it to the cent, the fallbacks), the **capacity lab** (17),
-the **live-map hero** (15: the edge timings, polling only while on screen), the chapters and the
-earlier review fixes. The deploy pipeline runs `scripts/smoke.sh` against the new revision and the
+the what-if at this month's pace matching it to the cent, the fallbacks), the **capacity lab** (22),
+the **live-map hero** (15: the edge timings, polling only while on screen), the in-page **terminal**
+(109), the **MCP console** (33), the chapters (93) and the earlier review fixes. The deploy pipeline runs `scripts/smoke.sh` against the new revision and the
 live URL on every release, and CI holds each release to accessibility and SEO of 100 on a page of
 every kind (and the home and status pages in dark).
 
