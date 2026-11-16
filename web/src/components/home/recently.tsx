@@ -79,14 +79,13 @@ function latestDeploy(live: boolean): Entry | null {
   return d ? { key: d.sha, at: d.ended, verb: "Deployed", title: d.title, where: "this site", href: "/status#replay", external: false } : null;
 }
 
-const newest = (github: ActivityItem[], live: boolean) => {
-  const deploy = latestDeploy(live);
-  return [...fromGitHub(github), ...(deploy ? [deploy] : []), ...writing].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, SHOW);
-};
+/** My work, newest first. The site's own deploy is not in it: being newest by nature, it led the list every time. */
+const newest = (github: ActivityItem[]) =>
+  [...fromGitHub(github), ...writing].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, SHOW);
 
 /**
  * What I have done lately, newest first: pull requests merged or in review in public repositories,
- * releases, this site's latest deploy and new writing. The GitHub part is the build's snapshot until
+ * releases and new writing; under it, one line for this site's latest deploy. The GitHub part is the build's snapshot until
  * the server's copy (refreshed from GitHub at most hourly) arrives, so the list renders without
  * JavaScript and stays current between deploys; when GitHub has not answered for hours, it says so.
  */
@@ -116,8 +115,9 @@ export function Recently() {
     };
   }, []);
 
-  const entries = newest(feed.items, live);
-  if (entries.length === 0) return null;
+  const entries = newest(feed.items);
+  const deploy = latestDeploy(live);
+  if (entries.length === 0 && !deploy) return null;
   const stale = asked !== null && asked - Date.parse(feed.updated) > STALE_MS;
   return (
     <div>
@@ -157,6 +157,19 @@ export function Recently() {
         ))}
       </ol>
       {stale && <p className="mt-3 text-xs text-ink-3">GitHub entries as of {dayTime(feed.updated)} Singapore time</p>}
+      {deploy && (
+        <p className="mt-4 border-t border-line pt-3 text-sm text-ink-3">
+          <a
+            href={deploy.href}
+            {...(deploy.external ? { target: "_blank", rel: "noreferrer" } : {})}
+            className="group decoration-line-strong underline-offset-4 hover:text-ink-2"
+          >
+            This site last deployed {dayTime(deploy.at)} Singapore time:{" "}
+            <span className="text-ink-2 group-hover:underline">{deploy.title}</span>
+            {deploy.external && <span className="sr-only"> (opens in a new tab)</span>}
+          </a>
+        </p>
+      )}
     </div>
   );
 }

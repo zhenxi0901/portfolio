@@ -48,7 +48,7 @@ export function Contact() {
         <Reveal className="lg:col-span-6">
           <h2 className="text-[clamp(1.75rem,3.4vw,2.625rem)] font-semibold leading-[1.12] tracking-[-0.022em]">Get in touch</h2>
           <p className="mt-4 max-w-[44ch] text-lg leading-relaxed text-ink-2">
-            I graduate in June 2027 and I&apos;m looking for SRE, cloud, DevOps and AI-infrastructure roles. Write to me about a role, or
+            I graduate in June 2027 and I&apos;m looking for SRE, DevOps, cloud and AI-infrastructure roles. Write to me about a role, or
             about anything on this site you would have done differently.
           </p>
           <button

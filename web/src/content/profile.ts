@@ -40,8 +40,17 @@ export const skillGroups: { name: string; items: string[] }[] = [
 ];
 
 export const now = {
-  updated: "12 Nov 2026",
+  updated: "16 Nov 2026",
+  /** /about's opening paragraph: who I am. */
   text: "Final-year Computer Science at NTU, researching what it costs to serve long-running LLM agents, and a DevOps intern at Primustech on its building IoT and AI agent platforms. Graduating June 2027, and open to SRE, DevOps, cloud and AI-infrastructure roles.",
+  /**
+   * The home page's "Now": what I am working on this month, a line each. Not the bio (that is /about's
+   * paragraph above, and the hero's), and not single events (Recently, beside it, lists those).
+   */
+  doing: [
+    "Moving the whole ARIES agent stack onto Singapore's national supercomputer for my final-year project: the backend that runs it without root is merged, and portable agent plugins are in review.",
+    "At Primustech, running the building IoT platform's releases and alerts on GKE, and the AI agent platform on Cloud Run.",
+  ],
 };
 
 export type CaseStudy = {

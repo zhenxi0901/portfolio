@@ -14,7 +14,12 @@ export function Now() {
           <h2 id="now-title" className="text-sm font-medium text-ink-3">
             Now, as of {now.updated}
           </h2>
-          <p className="mt-3 max-w-[56ch] text-lg leading-relaxed">{now.text}</p>
+          {/* This month's work, a line each; the bio is the hero's and /about's job. */}
+          <ul className="mt-3 max-w-[56ch] space-y-3 text-lg leading-relaxed">
+            {now.doing.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
         </div>
         <Recently />
       </div>

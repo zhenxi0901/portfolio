@@ -27,8 +27,8 @@ export function Hero({ work = "#chapters", legacy = false }: { work?: string; le
           <p className="mt-4 max-w-[46ch] text-[15px] leading-relaxed text-ink-2">
             DevOps intern at Primustech, where <span className="font-medium text-ink">{heroStat(169).value} of my pull requests</span> are
             merged into a production IoT platform, and final-year Computer Science student at NTU, where I benchmarked{" "}
-            <span className="font-medium text-ink">{heroStat(320).value} LLM agent runs</span>. Graduating June 2027, and open to SRE, cloud
-            and AI-infrastructure roles.
+            <span className="font-medium text-ink">{heroStat(320).value} LLM agent runs</span>. Graduating June 2027, and open to SRE, DevOps,
+            cloud and AI-infrastructure roles.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
             <Button asChild size="lg">
