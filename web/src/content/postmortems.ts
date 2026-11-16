@@ -95,9 +95,9 @@ export const postmortems: Postmortem[] = [
     ],
     lucky: "Nobody used the form during the window. That is luck, not design.",
     actions: [
-      { what: "Deliver before replying, with retries inside a 6 s budget and an email fallback on failure.", done: true, commit: "ccd58d5" },
-      { what: "Keep the webhook URL in Secret Manager; Terraform creates the empty secret and wires it to the service.", done: true, commit: "ccd58d5" },
-      { what: "Tests for the contact package: from none to 77% coverage.", done: true, commit: "ccd58d5" },
+      { what: "Deliver before replying, with retries inside a 6 s budget and an email fallback on failure.", done: true, commit: "0057e32" },
+      { what: "Keep the webhook URL in Secret Manager; Terraform creates the empty secret and wires it to the service.", done: true, commit: "0057e32" },
+      { what: "Tests for the contact package: from none to 77% coverage.", done: true, commit: "0057e32" },
       { what: "Fail closed on Cloud Run: no webhook means a 503 and the email fallback, never “sent”.", done: true, when: "16 Oct" },
       {
         what: "Alert when a message goes undelivered: an hourly scheduled check searches Cloud Run's logs for one since its last search, and a hit fails the check, which emails me. A free GitHub Action rather than a Cloud Monitoring alert policy, which is billed per condition.",
@@ -169,9 +169,9 @@ export const postmortems: Postmortem[] = [
     ],
     lucky: "It was found by a habit, not by a test designed to find it.",
     actions: [
-      { what: "Add /api/health for checks that go through the front end; it also reports not-ready if the knowledge base failed to load.", done: true, commit: "36bdb78" },
-      { what: "Run the full smoke test against the live URL after every deploy, so the real front door is tested every time.", done: true, commit: "cfcdeb9" },
-      { what: "Leave a comment in the server code on why both health endpoints exist.", done: true, commit: "36bdb78" },
+      { what: "Add /api/health for checks that go through the front end; it also reports not-ready if the knowledge base failed to load.", done: true, commit: "9ba97a3" },
+      { what: "Run the full smoke test against the live URL after every deploy, so the real front door is tested every time.", done: true, commit: "b9b4f5b" },
+      { what: "Leave a comment in the server code on why both health endpoints exist.", done: true, commit: "9ba97a3" },
     ],
     lesson: "Test through the same front door your users use.",
   },
@@ -229,9 +229,9 @@ export const postmortems: Postmortem[] = [
     ],
     lucky: "It showed up on day one, while the whole pipeline was fresh in mind.",
     actions: [
-      { what: "Read the whole response before matching, so a match can never fail the pipe.", done: true, commit: "cfcdeb9" },
-      { what: "Count 429 as a rejection in the contact check.", done: true, commit: "cfcdeb9" },
-      { what: "One smoke script, run locally, in CI against the container, and after every deploy against the live URL.", done: true, commit: "cfcdeb9" },
+      { what: "Read the whole response before matching, so a match can never fail the pipe.", done: true, commit: "b9b4f5b" },
+      { what: "Count 429 as a rejection in the contact check.", done: true, commit: "b9b4f5b" },
+      { what: "One smoke script, run locally, in CI against the container, and after every deploy against the live URL.", done: true, commit: "b9b4f5b" },
     ],
     lesson: "A flaky check is a broken check. Fix it before you trust it, and before you learn to ignore it.",
   },

@@ -1,11 +1,11 @@
 {
-  "generated": "2026-11-14T07:52:50.699Z",
+  "generated": "2026-11-16T08:24:24.976Z",
   "windowDays": 30,
-  "deploys": 69,
+  "deploys": 66,
   "daysWithDeploys": 6,
   "leadTimeMinutes": {
-    "median": 8.7,
-    "commits": 90
+    "median": 9.6,
+    "commits": 88
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -14,7 +14,7 @@
     "count": 0
   },
   "deployMinutes": {
-    "median": 1.7
+    "median": 1.8
   },
   "safeguards": {
     "stoppedBeforeTraffic": 0,
@@ -27,100 +27,92 @@
     }
   },
   "head": {
-    "sha": "d3fc892",
-    "title": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
-    "committed": "2026-11-14T07:34:08.000Z"
+    "sha": "c621e38",
+    "title": "The home page's Now says what I'm working on, and Recently leads with my work",
+    "committed": "2026-11-16T08:00:47.000Z"
   },
   "lastDeploy": {
-    "sha": "d3fc892",
-    "title": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
-    "ended": "2026-11-14T07:44:09.000Z",
-    "seconds": 107,
-    "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43572342146",
+    "sha": "c621e38",
+    "title": "The home page's Now says what I'm working on, and Recently leads with my work",
+    "ended": "2026-11-16T08:11:18.000Z",
+    "seconds": 100,
+    "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43829014005",
     "steps": [
       {
         "name": "Release only main's head",
         "start": 3,
-        "end": 4,
+        "end": 5,
         "result": "success"
       },
       {
         "name": "Sign in to Google Cloud, keyless",
-        "start": 12,
-        "end": 18,
+        "start": 11,
+        "end": 17,
         "result": "success"
       },
       {
         "name": "Find the image CI tested",
-        "start": 18,
-        "end": 22,
+        "start": 17,
+        "end": 19,
         "result": "success"
       },
       {
         "name": "Check the image's provenance and SBOM",
-        "start": 22,
-        "end": 36,
+        "start": 19,
+        "end": 32,
         "result": "success"
       },
       {
         "name": "Check the error budget",
-        "start": 36,
-        "end": 39,
+        "start": 32,
+        "end": 37,
         "result": "success"
       },
       {
         "name": "Note the revision serving now",
-        "start": 39,
-        "end": 41,
+        "start": 37,
+        "end": 39,
         "result": "success"
       },
       {
         "name": "Start the new revision with no traffic",
-        "start": 41,
-        "end": 59,
+        "start": 39,
+        "end": 57,
         "result": "success"
       },
       {
         "name": "Check the new revision before it takes traffic",
-        "start": 59,
-        "end": 74,
+        "start": 57,
+        "end": 69,
         "result": "success"
       },
       {
         "name": "Send traffic to the new revision",
-        "start": 74,
-        "end": 82,
+        "start": 69,
+        "end": 75,
         "result": "success"
       },
       {
         "name": "Verify",
-        "start": 82,
-        "end": 94,
+        "start": 75,
+        "end": 85,
         "result": "success"
       },
       {
         "name": "Roll back to the previous revision",
-        "start": 94,
-        "end": 94,
+        "start": 85,
+        "end": 85,
         "result": "skipped"
       },
       {
         "name": "Publish the release",
-        "start": 100,
-        "end": 106,
+        "start": 91,
+        "end": 97,
         "result": "success"
       }
     ]
   },
   "perDay": [
-    {
-      "date": "2026-10-16",
-      "deploys": 6
-    },
-    {
-      "date": "2026-10-17",
-      "deploys": 0
-    },
     {
       "date": "2026-10-18",
       "deploys": 0
@@ -231,57 +223,65 @@
     },
     {
       "date": "2026-11-14",
-      "deploys": 8
+      "deploys": 10
+    },
+    {
+      "date": "2026-11-15",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-16",
+      "deploys": 5
     }
   ],
   "recent": [
     {
-      "sha": "d3fc892",
-      "title": "README: hero screenshot refreshed; the changelog's live-release entry comes from CI",
-      "ended": "2026-11-14T07:44:09.000Z",
-      "minutes": 1.8,
-      "leadMinutes": 10,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43572342146"
+      "sha": "c621e38",
+      "title": "The home page's Now says what I'm working on, and Recently leads with my work",
+      "ended": "2026-11-16T08:11:18.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 10.5,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43829014005"
     },
     {
-      "sha": "260cec0",
-      "title": "Phone fixes, a stoppable deploy replay, deep links that land and a safer Recently",
-      "ended": "2026-11-14T07:22:18.000Z",
+      "sha": "92cba09",
+      "title": "README screenshots of the hero, status, cost and evidence pages as they are now",
+      "ended": "2026-11-16T07:42:26.000Z",
       "minutes": 1.9,
-      "leadMinutes": 10.8,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43570636474"
+      "leadMinutes": 10.2,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43825479562"
     },
     {
-      "sha": "8a96ca9",
-      "title": "README: today's end-to-end results, and the hero as it looks now",
-      "ended": "2026-11-14T04:53:45.000Z",
-      "minutes": 1.8,
-      "leadMinutes": 10.5,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43558728795"
-    },
-    {
-      "sha": "ae7b75e",
-      "title": "README refreshed; the hero map's build time on a line of its own",
-      "ended": "2026-11-14T04:38:52.000Z",
-      "minutes": 1.7,
-      "leadMinutes": 10.9,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43557551375"
-    },
-    {
-      "sha": "ea4fdd6",
-      "title": "Social preview: MCP in place of three.js",
-      "ended": "2026-11-14T04:02:17.000Z",
-      "minutes": 1.8,
+      "sha": "39e6af9",
+      "title": "A readable AI map on phones, aligned cards, and one colour for every live figure",
+      "ended": "2026-11-16T07:22:03.000Z",
+      "minutes": 1.9,
       "leadMinutes": 10.4,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43554461817"
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43823103309"
     },
     {
-      "sha": "65b0d07",
-      "title": "Replay the latest deploy on /status",
-      "ended": "2026-11-14T03:22:30.000Z",
+      "sha": "847f5be",
+      "title": "Labels that read as labels, and README screenshots of the new design",
+      "ended": "2026-11-16T05:19:07.000Z",
       "minutes": 1.7,
-      "leadMinutes": 10.5,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43551153708"
+      "leadMinutes": 10.3,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43809254543"
+    },
+    {
+      "sha": "c99a161",
+      "title": "A calmer, editorial design: IBM Plex type, and lime only for what is live",
+      "ended": "2026-11-16T04:59:18.000Z",
+      "minutes": 1.8,
+      "leadMinutes": 11.5,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43807177764"
+    },
+    {
+      "sha": "306eb7d",
+      "title": "README: the status page's deploy list, with its release-note titles",
+      "ended": "2026-11-14T08:39:54.000Z",
+      "minutes": 1.7,
+      "leadMinutes": 10.8,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43576755967"
     }
   ]
 }

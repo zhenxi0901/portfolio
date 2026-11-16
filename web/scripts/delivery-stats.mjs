@@ -62,6 +62,10 @@ const since = new Date(now.getTime() - WINDOW_DAYS * 864e5);
 // which and why). Every title this script writes goes through display(); the commits keep their messages.
 const RELEASE_TITLES = JSON.parse(await readFile(new URL("./release-titles.json", import.meta.url), "utf8")).titles;
 const display = (sha, subject) => RELEASE_TITLES[sha.slice(0, 7)] ?? subject;
+// The history was rewritten on 16 Nov 2026 and every commit got a new id, but GitHub Actions keeps the
+// old ids in its run records. A run's commit goes through this map, so deploys are compared and dated
+// on main as it is now (comparing an old id with a new one fails: the two histories share no commit).
+const REWRITTEN = JSON.parse(await readFile(new URL("./rewritten-commits.json", import.meta.url), "utf8")).commits;
 const toCommit = (c) => ({ sha: c.sha, at: new Date(c.commit.committer.date), title: display(c.sha, c.commit.message.split("\n")[0]) });
 // Every commit reachable from main, newest first by date. Date order is not ancestry order once
 // pull requests merge (a branch's commits can be older than main's latest), so what each deploy
@@ -76,7 +80,7 @@ const candidates = (await all(`/actions/workflows/deploy.yml/runs`, "workflow_ru
   .map((r) => ({
     id: r.id,
     attempt: r.run_attempt ?? 1,
-    sha: r.head_sha,
+    sha: REWRITTEN[r.head_sha] ?? r.head_sha,
     ok: r.conclusion === "success",
     started: new Date(r.run_started_at ?? r.created_at),
     ended: new Date(r.updated_at),
