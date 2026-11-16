@@ -12,21 +12,14 @@ export const productTone: Record<ProductKey, { text: string; bg: string; border:
   aries: { text: "text-p-aries", bg: "bg-p-aries", border: "border-p-aries/50", soft: "bg-p-aries/10" },
 };
 
-/** A small pill naming the product something belongs to, in that product's colour. */
+/**
+ * The product something belongs to: its name, with the product's colour only as a small mark beside it
+ * (the colour tells the three apart at a glance; the name does the work, so it stays in ink).
+ */
 export function ProductTag({ p, className }: { p: ProductKey; className?: string }) {
-  const Icon = productIcon[p];
-  const tone = productTone[p];
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
-        tone.border,
-        tone.soft,
-        tone.text,
-        className,
-      )}
-    >
-      <Icon size={13} weight="bold" aria-hidden />
+    <span className={cn("inline-flex items-center gap-2 text-xs font-medium text-ink-2", className)}>
+      <span aria-hidden className={cn("h-3 w-1 rounded-[1px]", productTone[p].bg)} />
       {products[p].name}
     </span>
   );

@@ -10,23 +10,32 @@ import { postHref } from "@/content/writing";
 import { AgentTime } from "@/components/research/agent-time";
 import { Rootless } from "@/components/research/rootless";
 import { ZoomImage } from "@/components/research/zoom-image";
-import { ProductTag } from "@/components/site/product-tag";
+import { ProductTag, productTone } from "@/components/site/product-tag";
 import { CapacityLab } from "@/components/research/capacity-lab";
+import { StickyColumn } from "@/components/site/sticky-column";
+import { cn } from "@/lib/utils";
 
-export function Research() {
+/** `chapter`: the section opens /research, so its heading is the page's h1 and the product tag would only repeat it. */
+export function Research({ chapter = false }: { chapter?: boolean } = {}) {
+  // As the page's h1 the section heading moves up a level, and so does everything under it.
+  const Sub = chapter ? "h2" : "h3";
   return (
     <section id="research" className="scroll-mt-20 border-t border-line bg-surface-2/40">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <div className="lg:sticky lg:top-28">
-              <ProductTag p="aries" className="mb-5" />
-              <SectionHeading
-                title="What does an AI agent actually cost to run?"
-                lead="My final-year project at NTU's HyScale Lab. I got ARIES, the lab's open-source framework for agent-serving experiments, running long tasks against live apps (mail, a shop, an LMS), then measured 320 runs on a hosted API and self-hosted SGLang on an A100. Since then: what MCP tool servers cost, and the whole stack running on a supercomputer without root."
-              />
+            {/* On its own page the product's colour is a short rule, as on /iot; its name is the title below. */}
+            {chapter ? <span aria-hidden className={cn("mb-6 block h-[3px] w-12", productTone.aries.bg)} /> : <ProductTag p="aries" className="mb-5" />}
+            <SectionHeading
+              as={chapter ? "h1" : "h2"}
+              title="What does an AI agent actually cost to run?"
+              lead="My final-year project at NTU's HyScale Lab. I got ARIES, the lab's open-source framework for agent-serving experiments, running long tasks against live apps (mail, a shop, an LMS), then measured 320 runs on a hosted API and self-hosted SGLang on an A100. Since then: what MCP tool servers cost, and the whole stack running on a supercomputer without root."
+            />
+            {/* The findings stay beside the charts that back them while the title and lead scroll away: the
+                whole column pinned was taller than a 1366x768 screen, and cut its own title under the top bar. */}
+            <StickyColumn className="mt-10">
               <Reveal delay={0.1}>
-                <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-8">
                   {fyp.findings.map((f) => (
                     <div key={f.label}>
                       <dt className="text-4xl font-semibold tracking-[-0.04em]">{f.value}</dt>
@@ -51,7 +60,7 @@ export function Research() {
                   ARIES on GitHub <ArrowUpRight size={14} />
                 </a>
               </Reveal>
-            </div>
+            </StickyColumn>
           </div>
 
           <div className="flex flex-col gap-4 lg:col-span-7">
@@ -95,16 +104,16 @@ export function Research() {
         </div>
 
         <Reveal className="mt-20">
-          <CapacityLab />
+          <CapacityLab level={chapter ? 2 : 3} />
         </Reveal>
 
         <Reveal className="mt-6">
           <article className="grid items-center gap-8 overflow-hidden rounded-3xl border border-line bg-surface p-6 sm:p-8 lg:grid-cols-12">
             <div className="lg:col-span-5">
-              <p className="font-mono text-xs text-ink-3">
+              <p className="text-sm text-ink-3">
                 {publication.venue}, {publication.role.toLowerCase()}
               </p>
-              <h3 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.035em]">{publication.title}</h3>
+              <Sub className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.025em]">{publication.title}</Sub>
               <p className="mt-4 max-w-[46ch] leading-relaxed text-ink-2">{publication.summary}</p>
               <a
                 href={publication.code}

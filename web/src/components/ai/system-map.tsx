@@ -57,7 +57,8 @@ const CAPTIONS = [
  * The AI products as a map: pick a journey and a packet walks it hop by hop, with what happens at each one.
  * "What I own" dims everything that is the platform rather than my work.
  */
-export function SystemMap() {
+export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
+  const Step = level === 3 ? "h3" : "h4";
   const reduce = useReducedMotionSafe();
   const [jid, setJid] = useState(journeys[0].id);
   const [i, setI] = useState(0);
@@ -154,7 +155,7 @@ export function SystemMap() {
                 />
                 {j.name}
               </span>
-              {j.mine && <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent">mine</span>}
+              {j.mine && <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent">mine</span>}
             </button>
           ))}
         </div>
@@ -162,7 +163,7 @@ export function SystemMap() {
           type="button"
           aria-pressed={lens}
           onClick={() => setLens((v) => !v)}
-          className="inline-flex w-fit items-center gap-2.5 rounded-full border border-line px-3.5 py-2 text-sm text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+          className="inline-flex w-fit items-center gap-2.5 rounded-md border border-line px-3.5 py-2 text-sm text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
         >
           <span className={cn("relative h-5 w-9 rounded-full transition-colors", lens ? "bg-accent" : "bg-surface-2 ring-1 ring-line-strong")}>
             <span className={cn("absolute top-0.5 size-4 rounded-full bg-ink transition-[left]", lens ? "left-[18px]" : "left-0.5")} />
@@ -176,7 +177,7 @@ export function SystemMap() {
           {journey.product ? (
             <ProductTag p={journey.product} />
           ) : (
-            <span className="rounded-full border border-line-strong px-2.5 py-0.5 text-xs font-medium text-ink-2">Shared infrastructure</span>
+            <span className="rounded-md border border-line-strong px-2.5 py-0.5 text-xs font-medium text-ink-2">Shared infrastructure</span>
           )}
           <p className="text-[15px] leading-relaxed text-ink">{journey.about}</p>
         </div>
@@ -190,8 +191,8 @@ export function SystemMap() {
             aria-label={`Map of the AI products. ${journey.name}, step ${i + 1} of ${steps.length}: ${step.title}.`}
           >
             {CAPTIONS.map((c) => (
-              <text key={c.text} x={c.x} y={c.y} textAnchor={c.anchor} style={{ fill: "var(--ink-3)", fontSize: 11, letterSpacing: "0.14em" }}>
-                {c.text.toUpperCase()}
+              <text key={c.text} x={c.x} y={c.y} textAnchor={c.anchor} style={{ fill: "var(--ink-3)", fontSize: 12, fontWeight: 500 }}>
+                {c.text}
               </text>
             ))}
 
@@ -297,7 +298,7 @@ export function SystemMap() {
 
         <div className="border-t border-line px-5 py-5 sm:px-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-mono text-xs text-ink-3">
+            <p className="text-xs text-ink-3">
               Step {i + 1} of {steps.length}
             </p>
             <div className="flex items-center gap-1">
@@ -322,10 +323,10 @@ export function SystemMap() {
           {/* A CSS fade on a fresh key: the text swaps at once even when the browser pauses animations. */}
           <div aria-live="polite" className="min-h-[7.5rem]">
             <div key={`${jid}-${i}`} className="step-in">
-              <h4 className="mt-2 text-lg font-semibold">{step.title}</h4>
+              <Step className="mt-2 text-lg font-semibold">{step.title}</Step>
               <p className="mt-1.5 max-w-[70ch] text-[15px] leading-relaxed text-ink-2">{step.text}</p>
               {owned && (
-                <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent-ink/40 px-3 py-1 text-sm text-ink">
+                <p className="mt-3 inline-flex items-center gap-2 rounded-md border border-accent-ink/40 px-3 py-1 text-sm text-ink">
                   <span aria-hidden className="size-1.5 rounded-full bg-accent-ink" />
                   {owned}
                 </p>
@@ -341,7 +342,7 @@ export function SystemMap() {
                   onClick={() => go(k)}
                   aria-current={k === i ? "step" : undefined}
                   className={cn(
-                    "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                    "rounded-md border px-2.5 py-1 text-xs transition-colors",
                     k === i ? "border-accent-ink bg-accent text-on-accent" : k < i ? "border-line-strong text-ink" : "border-line text-ink-3 hover:text-ink",
                   )}
                 >

@@ -10,29 +10,29 @@ type Stop = { id: string; title: string; text: string };
 // to see in a minute; every stop is on it, so the tour never leaves the page.
 const STOPS: Stop[] = [
   {
+    id: "top",
+    title: "Your request, live",
+    text: "The map is the request you just made: where it came from, how long it took, and the commit that answered it. Every box opens the page behind it.",
+  },
+  {
     id: "now",
     title: "What I am doing now",
-    text: "Final-year research at NTU and DevOps at Primustech, dated, together with this site's live uptime.",
+    text: "Dated by hand, and beside it what I have done lately: pull requests, releases and this site's own deploys.",
   },
   {
     id: "chapters",
-    title: "Three systems, a chapter each",
-    text: "Two platforms I run in production and my final-year research. Each card opens its chapter, with working models of what I built.",
+    title: "Two platforms and a research project",
+    text: "Each opens its chapter, with a working model of what I built that you can press, and the numbers.",
   },
   {
     id: "explore",
-    title: "This site runs like production",
-    text: "An SLO, a deploy pipeline with rollbacks, postmortems and an MCP server. Break it yourself with real faults, or read this month's bill on the cost page.",
+    title: "The service behind this page",
+    text: "Readings from the site's own API, and things to try: break it with real faults, go on call, or open the terminal.",
   },
   {
     id: "latest",
     title: "Latest writing",
-    text: "The newest posts, from serving LLM agents to a benchmark run without root. The postmortems are on the writing page.",
-  },
-  {
-    id: "contact",
-    title: "Hiring for reliability?",
-    text: "Leave a message here; it reaches me directly. I graduate in June 2027.",
+    text: "Longer notes on what the measurements showed, and the postmortems of what broke here. That is the tour; the chapters have the rest.",
   },
 ];
 
@@ -153,7 +153,7 @@ export function Tour() {
         if (e.key === "ArrowRight") go(i + 1);
         if (e.key === "ArrowLeft") go(i - 1);
       }}
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-lg overflow-hidden rounded-3xl border border-line-strong bg-surface/95 shadow-soft outline-none backdrop-blur-md"
+      className="fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg overflow-hidden rounded-3xl border border-line-strong bg-surface/95 shadow-soft outline-none backdrop-blur-md lg:inset-x-auto lg:bottom-6 lg:right-6 lg:mx-0 lg:w-[24rem]"
     >
       <div className="h-1 bg-surface-2" aria-hidden>
         <div className="h-full bg-accent-ink transition-[width] duration-100 ease-linear" style={{ width: `${((i + Math.min(1, elapsed / STEP_MS)) / STOPS.length) * 100}%` }} />
@@ -161,7 +161,7 @@ export function Tour() {
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div aria-live="polite">
-            <p className="font-mono text-xs text-ink-3">
+            <p className="text-xs text-ink-3">
               {i + 1} of {STOPS.length}
             </p>
             <p className="mt-1 font-semibold">{stop.title}</p>
@@ -198,7 +198,7 @@ export function Tour() {
           <button
             type="button"
             onClick={() => (last ? close() : go(i + 1))}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent"
           >
             {last ? "Done" : "Next"} {!last && <ArrowRight size={14} />}
           </button>

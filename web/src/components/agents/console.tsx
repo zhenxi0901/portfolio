@@ -164,7 +164,7 @@ export function Console() {
               type="submit"
               // Not disabled, which would drop keyboard focus mid-call; the call itself is ignored while busy.
               aria-disabled={busy || undefined}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-on-accent transition-[transform,filter] hover:brightness-95 active:scale-[0.97] aria-disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-5 text-sm font-medium text-on-accent transition-[transform,filter] hover:opacity-85 aria-disabled:opacity-60"
             >
               {busy ? <CircleNotch size={16} className="animate-spin" aria-hidden /> : <ArrowRight size={16} aria-hidden />}
               Call {tool.name}

@@ -10,8 +10,8 @@ export const metadata = pageMetadata({
 
 export default function AiPage() {
   return (
-    <SiteShell path="/ai" title="The AI agent platform">
-      <AiInfra />
+    <SiteShell path="/ai">
+      <AiInfra chapter />
     </SiteShell>
   );
 }

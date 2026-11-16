@@ -108,7 +108,10 @@ function Select({ label, value, options, onChange }: { label: string; value: str
 }
 
 /** Pick a model, a GPU and an agent's task; see what fits, how fast, how busy, and what a task costs. */
-export function CapacityLab() {
+export function CapacityLab({ level = 3 }: { level?: 2 | 3 }) {
+  // One level below the heading it sits under: h2 on /research, where the section heading is the page's h1.
+  const Title = level === 2 ? "h2" : "h3";
+  const Sub = level === 2 ? "h3" : "h4";
   const shared = useSyncExternalStore(onHistory, fromAddress, () => null);
   const [own, setOwn] = useState<Setup | null>(null);
   const s = own ?? shared ?? fyp;
@@ -163,10 +166,10 @@ export function CapacityLab() {
     <section id="capacity" aria-labelledby="capacity-title" className="scroll-mt-24 rounded-3xl border border-line bg-surface p-5 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-xs text-ink-3">Capacity lab · a first-order model</p>
-          <h3 id="capacity-title" className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.035em]">
+          <p className="text-sm text-ink-3">Capacity lab, a first-order model</p>
+          <Title id="capacity-title" className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.025em]">
             Size a GPU for agents yourself
-          </h3>
+          </Title>
           <p className="mt-3 max-w-[70ch] leading-relaxed text-ink-2">
             Pick a model, a GPU and an agent&apos;s task, and see what fits: how many agents&apos; histories the KV cache holds, how fast they
             decode, how much of the time the GPU actually works, and what a task costs. It starts from what I served: Qwen3-4B, four agents at
@@ -179,7 +182,7 @@ export function CapacityLab() {
             <button
               type="button"
               onClick={share}
-              className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+              className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
             >
               <LinkSimple size={14} aria-hidden /> Copy a link to this setup
             </button>
@@ -187,7 +190,7 @@ export function CapacityLab() {
               type="button"
               onClick={reset}
               aria-disabled={atFyp || undefined}
-              className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-disabled:opacity-50"
             >
               <ArrowCounterClockwise size={14} aria-hidden /> Back to my setup
             </button>
@@ -211,7 +214,7 @@ export function CapacityLab() {
                 { v: false, label: "BF16, 2 bytes" },
                 { v: true, label: "FP8, 1 byte" },
               ].map((o) => (
-                <label key={o.label} className={cn("flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm", s.fp8 === o.v ? "border-accent-ink text-ink" : "border-line text-ink-2")}>
+                <label key={o.label} className={cn("flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm", s.fp8 === o.v ? "border-accent-ink text-ink" : "border-line text-ink-2")}>
                   <input type="radio" name={precisionName} checked={s.fp8 === o.v} onChange={() => up({ fp8: o.v })} className="accent-[var(--accent-ink)]" />
                   {o.label}
                 </label>
@@ -247,7 +250,7 @@ export function CapacityLab() {
         </div>
 
         <div className="lg:col-span-7">
-          <h4 className="text-sm font-medium">GPU memory</h4>
+          <Sub className="text-sm font-medium">GPU memory</Sub>
           <div
             className="mt-2 flex h-9 overflow-hidden rounded-xl border border-line bg-surface-2"
             role="img"
@@ -289,7 +292,7 @@ export function CapacityLab() {
             </p>
           ) : (
             <>
-          <h4 className="mt-7 text-sm font-medium">One turn of one agent</h4>
+          <Sub className="mt-7 text-sm font-medium">One turn of one agent</Sub>
           <div className="mt-2 flex h-6 overflow-hidden rounded-lg border border-line bg-surface-2" role="img" aria-label={`The GPU works ${secs(r.modelSecondsPerTurn)} of a ${secs(turnTotal)} turn; the agent's own work is the rest.`}>
             <span className="h-full bg-p-aries" style={{ width: `${Math.max(0.6, prefillShare * 100)}%` }} />
             <span className="h-full bg-accent" style={{ width: `${decodeShare * 100}%` }} />

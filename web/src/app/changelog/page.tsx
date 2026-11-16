@@ -24,7 +24,7 @@ const REPO = "https://github.com/zhenxi0901/portfolio";
 const TZ = "Asia/Singapore";
 
 export const metadata = pageMetadata({
-  title: "Changelog: every release of this site",
+  title: "Changelog",
   description:
     "Every production release of this portfolio, with the commits it shipped, written by its own pipeline. Rollback drills and held releases included.",
   path: "/changelog",
@@ -66,8 +66,7 @@ export default function ChangelogPage() {
 
   return (
     <ArticleShell back={{ href: "/status", label: "How this site runs" }}>
-      <p className="mt-8 font-mono text-xs text-ink-3">Written by the pipeline · Singapore time</p>
-      <h1 className="mt-4 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">Changelog</h1>
+      <h1 className="mt-10 text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Changelog</h1>
       <p className="mt-6 max-w-[62ch] text-lg leading-relaxed text-ink-2">
         Every release of this site to production, with the commits it shipped: {totals.releases} releases and {totals.commits} commits so
         far{listed < totals.releases ? `; the latest ${listed} are listed here` : ""}. Each line is written as a release note; a linked

@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/page-metadata";
 import { cn } from "@/lib/utils";
 
 export const metadata = pageMetadata({
-  title: "Evidence: where this site's claims come from",
+  title: "Where each claim on this site comes from",
   description:
     "Every headline claim on this site, sorted by how you can check it: live from your browser, on public record, or in a private repository it cannot link to.",
   path: "/evidence",
@@ -23,7 +23,7 @@ const home = { postmortems: "/writing#postmortems", contact: "/#contact" };
 function Badge({ kind }: { kind: ProofKind }) {
   const Icon = icons[kind];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 font-mono text-[11px]", tones[kind])}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 font-mono text-[11px]", tones[kind])}>
       <Icon size={12} weight={kind === "live" ? "fill" : "regular"} aria-hidden />
       {proofKinds[kind].label}
     </span>
@@ -62,7 +62,7 @@ function ClaimCard({ c, id }: { c: Claim; id: string }) {
               <a
                 href={l.href}
                 {...(external(l.href) ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
               >
                 {l.label}
                 {external(l.href) && <ArrowUpRight size={12} aria-hidden />}
@@ -79,10 +79,9 @@ export default function EvidencePage() {
   const total = order.reduce((n, k) => n + proofCounts[k], 0);
   return (
     <ArticleShell back={{ href: "/", label: "Home" }} wide>
-      <p className="mt-8 font-mono text-xs text-ink-3">{total} claims · sorted by how you can check them</p>
-      <h1 className="mt-4 max-w-[16ch] text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">Don&apos;t take my word for it.</h1>
+      <h1 className="mt-10 max-w-[20ch] text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Where each claim on this site comes from</h1>
       <p className="mt-6 max-w-[64ch] text-lg leading-relaxed text-ink-2">
-        A portfolio is a list of claims. This page takes the main ones and says where each comes from: something you can check from your browser
+        A portfolio is a list of claims. This page takes the main ones, {total} of them, and says where each comes from: something you can check from your browser
         right now, something on public record, or work in a private repository that I cannot show you. The third kind is labelled as such.
       </p>
 

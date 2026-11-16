@@ -3,9 +3,10 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Fade-and-rise when the element enters the viewport. The animation itself is CSS
- * (see [data-reveal] in globals.css); this only flips `data-shown`, so server-rendered
- * HTML is readable before, and without, JavaScript.
+ * Marks the element shown (`data-shown`) when it enters the viewport, which starts the motion inside
+ * it that carries information (bars growing to their value, lines drawing: see [data-reveal] in
+ * globals.css). The element itself does not fade in; content is always readable, with or without
+ * JavaScript.
  */
 export function Reveal({
   children,

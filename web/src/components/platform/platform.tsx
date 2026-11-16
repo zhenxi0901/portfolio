@@ -44,7 +44,7 @@ export function Platform() {
         <ProductTag p="iot" className="mb-5" />
         <SectionHeading
           title="Inside the IoT platform"
-          lead="The building IoT platform I run on GKE: how traffic moves through it, what I alert on and why, and where the money went."
+          lead="Start with the path a request takes through it. The alerts that page me, and why each one does, are in the next tab; the cost review that cut the bill by an estimated 15% is in the last."
         />
         <OnCallLink drill="iot" />
         <Reveal className="mt-10">
@@ -52,7 +52,7 @@ export function Platform() {
             role="tablist"
             aria-label="Platform views"
             onKeyDown={(e) => onTabKeys(e, TABS.length, TAB_IDS.indexOf(tab), (k) => setTab(TABS[k].id))}
-            className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface p-1">
+            className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-surface p-1">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -63,14 +63,14 @@ export function Platform() {
                 aria-controls={`panel-${t.id}`}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "relative rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                  "relative rounded-md px-4 py-2 text-sm font-medium transition-colors",
                   tab === t.id ? "text-on-accent" : "text-ink-2 hover:text-ink",
                 )}
               >
                 {tab === t.id && (
                   <motion.span
                     layoutId="platform-tab"
-                    className="absolute inset-0 rounded-full bg-accent"
+                    className="absolute inset-0 rounded-md bg-accent"
                     transition={{ type: "spring", stiffness: 380, damping: 32 }}
                   />
                 )}

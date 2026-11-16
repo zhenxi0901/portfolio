@@ -33,7 +33,8 @@ const AGENT_ICON = { operator: Robot, documents: FileMagnifyingGlass } as const;
 // This platform's case studies live in its own section, not in Work (see products.ts).
 const aiCases = cases.filter((c) => c.products[0] === "ai");
 
-export function AiInfra() {
+/** `chapter`: the section opens /ai, so its heading is the page's h1 and the product tag would only repeat it. */
+export function AiInfra({ chapter = false }: { chapter?: boolean } = {}) {
   const [tab, setTab] = useState<Tab>("map");
   // Other pages link straight to a tab: /ai#ai-trace.
   useHashTab("ai", TAB_IDS, setTab);
@@ -47,19 +48,15 @@ export function AiInfra() {
     return () => window.removeEventListener("ai-tab", open);
   }, []);
   const tone = productTone.ai;
+  // As the page's h1 the section heading moves up a level, and so does everything under it.
+  const Sub = chapter ? "h2" : "h3";
 
   return (
     <section id="ai" className="scroll-mt-20 border-t border-line">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
-        <ProductTag p="ai" className="mb-5" />
-        <SectionHeading
-          title={
-            <>
-              The AI agent platform <span className="text-accent-ink">I run</span>.
-            </>
-          }
-          lead={`${aiIntro} Follow a request through it, see the AI infrastructure layer by layer, and switch on the lens to see which parts are mine.`}
-        />
+        {/* On its own page the product's colour is a short rule, as on /iot; its name is the title below. */}
+        {chapter ? <span aria-hidden className={cn("mb-6 block h-[3px] w-12", tone.bg)} /> : <ProductTag p="ai" className="mb-5" />}
+        <SectionHeading as={chapter ? "h1" : "h2"} title="The AI agent platform I run" lead={aiIntro} />
         <OnCallLink drill="ai" />
 
         <Reveal className="mt-10">
@@ -67,25 +64,25 @@ export function AiInfra() {
             {agents.map((a) => {
               const Icon = AGENT_ICON[a.id];
               return (
-                <article key={a.id} className={cn("flex gap-4 rounded-3xl border bg-surface p-5", tone.border)}>
-                  <span className={cn("grid size-11 shrink-0 place-items-center rounded-2xl", tone.soft, tone.text)}>
-                    <Icon size={22} weight="duotone" />
-                  </span>
-                  <div>
-                    <h3 className="font-semibold">{a.name}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-ink-2">{a.what}</p>
-                    <p className="mt-2 font-mono text-xs text-ink-3">{a.runs}</p>
-                  </div>
+                // Two descriptions, not things to press: type under a rule in the product's colour, no box.
+                <article key={a.id} className={cn("border-t-2 pt-4", tone.border)}>
+                  <Sub className="flex items-center gap-2 font-semibold">
+                    <Icon size={18} className={tone.text} aria-hidden />
+                    {a.name}
+                  </Sub>
+                  <p className="mt-1.5 max-w-[56ch] text-[15px] leading-relaxed text-ink-2">{a.what}</p>
+                  <p className="mt-2 text-sm text-ink-3">{a.runs}</p>
                 </article>
               );
             })}
           </div>
-          <p className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-2">
-            Building data comes from{" "}
-            <a href="/iot" className="rounded-full transition-opacity hover:opacity-80">
-              <ProductTag p="iot" />
+          {/* A sentence, not a row of parts: a flex row put a gap between the link and its comma. */}
+          <p className="mt-4 text-sm text-ink-2">
+            Building data comes from the{" "}
+            <a href="/iot" className="font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+              building IoT platform
             </a>
-            , the platform I run on GKE; it has a chapter of its own.
+            , which I run on GKE; it has a chapter of its own.
           </p>
         </Reveal>
 
@@ -104,7 +101,7 @@ export function AiInfra() {
           const Viz = caseViz[study.id];
           return (
             <div key={study.id} className="mt-12">
-              <CaseCard study={study} tone="tint" wide level={3}>
+              <CaseCard study={study} tone="tint" wide level={chapter ? 2 : 3} chapter={chapter ? "ai" : undefined}>
                 {Viz && <Viz />}
               </CaseCard>
             </div>
@@ -112,13 +109,18 @@ export function AiInfra() {
         })}
 
         {/* The views: what the case card's "follow a request" link and openAiTab() scroll to. */}
-        <div id="ai-views" className="mt-12 scroll-mt-24">
-          <Reveal>
+        <div id="ai-views" className="mt-20 scroll-mt-24">
+          <SectionHeading
+            as={chapter ? "h2" : "h3"}
+            title="Inside the platform"
+            lead="Follow a request through it, see the AI infrastructure layer by layer, and switch on the lens to see which parts are mine."
+          />
+          <Reveal className="mt-8">
             <div
               role="tablist"
               aria-label="AI platform views"
               onKeyDown={(e) => onTabKeys(e, TABS.length, TAB_IDS.indexOf(tab), (k) => setTab(TABS[k].id))}
-              className="inline-flex flex-wrap gap-1 rounded-3xl border border-line bg-surface p-1 sm:rounded-full">
+              className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-surface p-1">
               {TABS.map((t) => (
                 <button
                   key={t.id}
@@ -129,14 +131,14 @@ export function AiInfra() {
                   aria-controls={`ai-panel-${t.id}`}
                   onClick={() => setTab(t.id)}
                   className={cn(
-                    "relative rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "relative rounded-md px-4 py-2 text-sm font-medium transition-colors",
                     tab === t.id ? "text-on-accent" : "text-ink-2 hover:text-ink",
                   )}
                 >
                   {tab === t.id && (
                     <motion.span
                       layoutId="ai-tab"
-                      className="absolute inset-0 rounded-full bg-accent"
+                      className="absolute inset-0 rounded-md bg-accent"
                       transition={{ type: "spring", stiffness: 380, damping: 32 }}
                     />
                   )}
@@ -147,10 +149,10 @@ export function AiInfra() {
           </Reveal>
 
           <div id={`ai-panel-${tab}`} role="tabpanel" aria-labelledby={`ai-tab-${tab}`} className="mt-8">
-            {tab === "map" && <SystemMap />}
-            {tab === "stack" && <InfraStack />}
+            {tab === "map" && <SystemMap level={chapter ? 3 : 4} />}
+            {tab === "stack" && <InfraStack level={chapter ? 3 : 4} />}
             {tab === "trace" && <RequestTrace />}
-            {tab === "measure" && <Measures />}
+            {tab === "measure" && <Measures level={chapter ? 3 : 4} />}
           </div>
         </div>
       </div>

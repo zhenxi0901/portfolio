@@ -23,7 +23,7 @@ export function CopyButton({ text, label, name, describedBy }: { text: string; l
           // No clipboard permission: the text is on screen to select by hand.
         }
       }}
-      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 text-[13px] text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-[13px] text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
     >
       {done ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
       <span>{done ? "Copied" : label}</span>

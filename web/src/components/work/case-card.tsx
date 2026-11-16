@@ -5,10 +5,11 @@ import type { CaseStudy } from "@/content/profile";
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/motion/reveal";
 import { ProductTag } from "@/components/site/product-tag";
+import type { ProductKey } from "@/content/products";
 
 /**
- * One case study with its working model. `level` is the title's heading level: h4 under a product's
- * heading in Work, h3 directly under a section's h2. `wide` is for a card that has a row to itself:
+ * One case study with its working model. `level` is the title's heading level: one below the heading
+ * it sits under (h2 straight under a chapter's h1, h4 under a product's h3 in Work). `wide` is for a card that has a row to itself:
  * on large screens the text goes on the left and the model on the right, instead of the model
  * stretching across the row.
  */
@@ -19,15 +20,18 @@ export function CaseCard({
   tone = "plain",
   wide = false,
   level = 4,
+  chapter,
 }: {
   study: CaseStudy;
   children: React.ReactNode;
   className?: string;
   tone?: "plain" | "dots" | "tint" | "raised";
   wide?: boolean;
-  level?: 3 | 4;
+  level?: 2 | 3 | 4;
+  /** The chapter the card is shown in: its own product's tag would only repeat the page's title. */
+  chapter?: ProductKey;
 }) {
-  const Title = level === 3 ? "h3" : "h4";
+  const Title = level === 2 ? "h2" : level === 3 ? "h3" : "h4";
   return (
     <Reveal className={cn("h-full", className)}>
       <article
@@ -38,20 +42,22 @@ export function CaseCard({
           tone === "plain" && "bg-surface",
           tone === "raised" && "bg-surface-2",
           tone === "tint" && "bg-[color-mix(in_oklab,var(--accent)_14%,var(--surface))]",
-          tone === "dots" && "dot-grid bg-surface",
+          tone === "dots" && "bg-surface",
         )}
       >
         <header className={cn(wide && "lg:col-start-1 lg:row-start-1")}>
-          <div className="flex flex-wrap items-center gap-2">
-            {study.products.map((p) => (
-              <ProductTag key={p} p={p} />
-            ))}
-            {/* On the accent tint, ink-3 falls just under 4.5:1 in dark mode, so tinted cards use ink-2. */}
-            <span className={cn("font-mono text-xs", tone === "tint" ? "text-ink-2" : "text-ink-3")}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {/* On a tint, ink-3 can fall under 4.5:1, so tinted cards use ink-2. */}
+            <span className={cn("text-sm", tone === "tint" ? "text-ink-2" : "text-ink-3")}>
               {study.org}, {study.year}
             </span>
+            {study.products
+              .filter((p) => p !== chapter)
+              .map((p) => (
+                <ProductTag key={p} p={p} />
+              ))}
           </div>
-          <Title className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.03em] sm:text-[1.7rem]">{study.title}</Title>
+          <Title className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.02em] sm:text-[1.65rem]">{study.title}</Title>
           <p className="mt-2 max-w-[48ch] text-[15px] leading-relaxed text-ink-2">{study.summary}</p>
         </header>
 
@@ -60,7 +66,7 @@ export function CaseCard({
         <a
           href={`/work/${study.id}`}
           className={cn(
-            "mt-6 inline-flex w-fit items-center gap-1.5 rounded-full border border-line-strong bg-surface px-4 py-2 text-sm font-medium transition-colors hover:border-ink-3",
+            "mt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-ink underline decoration-line-strong decoration-2 underline-offset-[5px] transition-colors hover:decoration-ink",
             wide && "lg:col-start-1 lg:row-start-2 lg:self-end",
           )}
         >

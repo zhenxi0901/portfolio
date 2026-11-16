@@ -4,7 +4,7 @@ import { Lab } from "@/components/lab/lab";
 import { pageMetadata } from "@/lib/page-metadata";
 
 export const metadata = pageMetadata({
-  title: "Break it yourself: fault injection on a live server",
+  title: "Break it yourself",
   description:
     "Pick what goes wrong on this site's server and how the client copes, then send real requests and watch retries, a circuit breaker and hedging handle them.",
   path: "/break",
@@ -25,10 +25,7 @@ function Ext({ href, children }: { href: string; children: React.ReactNode }) {
 export default function BreakPage() {
   return (
     <ArticleShell back={{ href: "/", label: "Home" }} wide>
-      <p className="mt-8 font-mono text-xs text-ink-3">Fault injection · real requests to the Go server on Cloud Run</p>
-      <h1 id="break" className="mt-4 scroll-mt-28 text-[clamp(2.5rem,6vw,4.25rem)] font-semibold leading-[1] tracking-[-0.045em]">
-        Break it yourself.
-      </h1>
+      <h1 id="break" className="mt-10 scroll-mt-28 text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Break it yourself</h1>
       <p className="mt-6 max-w-[64ch] text-lg leading-relaxed text-ink-2">
         Choose what goes wrong on the server and how the client copes, then send real requests and watch every attempt come back. The faults land
         on your requests only: the site&apos;s SLO is measured from outside, on another endpoint, so nothing here can hurt it.

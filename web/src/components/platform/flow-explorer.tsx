@@ -79,7 +79,7 @@ export function FlowExplorer() {
                 <div>
                   <p className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{hop.at}</span>
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5 font-mono text-[11px] text-ink-2">{hop.tag}</span>
+                    <span className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-[11px] text-ink-2">{hop.tag}</span>
                   </p>
                   <p className="mt-1.5 max-w-[62ch] text-[15px] leading-relaxed text-ink-2">{hop.text}</p>
                 </div>

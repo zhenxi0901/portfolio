@@ -398,7 +398,7 @@ export default function ClusterScene() {
               burstRef.current?.(i);
               window.setTimeout(() => scrollToId(hub.target), reduce ? 0 : 450);
             }}
-            className="pointer-events-auto absolute left-0 top-0 whitespace-nowrap rounded-full border border-line bg-surface/90 px-2.5 py-1 font-mono text-[11px] text-ink opacity-0 shadow-soft backdrop-blur-sm transition-colors hover:border-accent-ink hover:text-ink focus-visible:text-ink"
+            className="pointer-events-auto absolute left-0 top-0 whitespace-nowrap rounded-md border border-line bg-surface/90 px-2.5 py-1 font-mono text-[11px] text-ink opacity-0 shadow-soft backdrop-blur-sm transition-colors hover:border-accent-ink hover:text-ink focus-visible:text-ink"
             aria-label={`${hub.label}: jump to related work`}
           >
             {hub.label}

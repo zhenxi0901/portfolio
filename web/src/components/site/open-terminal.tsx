@@ -11,7 +11,7 @@ export function OpenTerminal({ label = "Open the terminal" }: { label?: string }
       type="button"
       onClick={() => setOpen(true)}
       aria-keyshortcuts="`"
-      className="inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-surface px-5 text-sm font-medium text-ink transition-colors hover:border-ink-3"
+      className="inline-flex h-10 items-center gap-2 rounded-md border border-line-strong bg-surface px-5 text-sm font-medium text-ink transition-colors hover:border-ink-3"
     >
       <TerminalWindow size={16} aria-hidden />
       {label}

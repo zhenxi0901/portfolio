@@ -11,7 +11,7 @@ import { pageMetadata } from "@/lib/page-metadata";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata = pageMetadata({
-  title: "For agents: this site is an MCP server",
+  title: "Ask this site with your own agent",
   description:
     "Point Claude, Cursor or any MCP client at one URL and ask about my work: five read-only tools over this site's facts and live numbers.",
   path: "/agents",
@@ -46,15 +46,13 @@ const sources = [
 export default function AgentsPage() {
   return (
     <ArticleShell back={{ href: "/about#ask", label: "Ask me" }} wide>
-      <p className="mt-8 font-mono text-xs text-ink-3">
-        {host}/mcp · Model Context Protocol {MCP_PROTOCOL}
-      </p>
-      <h1 className="mt-4 max-w-[18ch] text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">
-        Ask my site with your own agent.
-      </h1>
+      <h1 className="mt-10 max-w-[20ch] text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Ask this site with your own agent</h1>
       <p className="mt-6 max-w-[64ch] text-lg leading-relaxed text-ink-2">
         This portfolio is also an MCP server. Add one URL to Claude, Cursor or any client that speaks the Model Context Protocol, and your agent can
         answer questions about my work from the site&apos;s own facts and read its live reliability numbers. No key, nothing to install, read-only.
+      </p>
+      <p className="mt-3 text-[15px] text-ink-2">
+        The endpoint is <code className="font-mono text-ink">{host}/mcp</code>, speaking Model Context Protocol {MCP_PROTOCOL}.
       </p>
 
       <StatRow
@@ -120,7 +118,7 @@ export default function AgentsPage() {
                 href={`${REPO_BLOB}${s.path}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
               >
                 {s.label}
                 <ArrowUpRight size={12} aria-hidden />
@@ -130,7 +128,7 @@ export default function AgentsPage() {
           <li>
             <a
               href="/decisions#mcp-without-sessions-or-a-model"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+              className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
             >
               ADR 10: why it has no sessions and no model
             </a>

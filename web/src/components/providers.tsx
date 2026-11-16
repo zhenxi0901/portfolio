@@ -30,7 +30,7 @@ function TerminalUnavailable() {
 const Terminal = dynamic(() => import("@/components/site/terminal").catch(() => ({ default: TerminalUnavailable })), {
   ssr: false,
   loading: () => (
-    <p role="status" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full border border-line bg-surface px-4 py-2 font-mono text-xs text-ink-2 shadow-soft">
+    <p role="status" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-md border border-line bg-surface px-4 py-2 font-mono text-xs text-ink-2 shadow-soft">
       opening the terminal…
     </p>
   ),

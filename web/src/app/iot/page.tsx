@@ -17,7 +17,7 @@ export default function IotPage() {
       <ChapterHeader
         product="iot"
         title="The building IoT platform"
-        lead={`${products.iot.what} I run it on GKE at Primustech. First what I shipped on it, each as a small working model; then the platform from the inside: how traffic moves, what I alert on, and where the money went.`}
+        lead={`${products.iot.what} I run it on GKE at Primustech. Below are six changes I shipped on it, each as a model you can run, and after them the platform seen from the inside.`}
       />
       <Work chapter="iot" />
       <Platform />

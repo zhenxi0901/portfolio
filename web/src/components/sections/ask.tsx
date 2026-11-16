@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowUp, Lightning, Sparkle, Database, WarningCircle } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "motion/react";
+import { Lightning, MagnifyingGlass, Sparkle, Database, WarningCircle } from "@phosphor-icons/react";
 import { api, type AskResult } from "@/lib/api";
 import { retrieve } from "@/lib/retrieval";
 import type { Fact } from "@/content/knowledge";
@@ -94,7 +94,7 @@ export function Ask() {
             }}
             className="flex items-center gap-3 border-b border-line p-3 pl-5"
           >
-            <Sparkle size={20} weight="fill" className="shrink-0 text-accent-ink" />
+            <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
             <label htmlFor="ask-input" className="sr-only">
               Your question
             </label>
@@ -112,10 +112,9 @@ export function Ask() {
               type="submit"
               // ask() ignores an empty question or a second one while busy; disabled would drop focus.
               aria-disabled={busy || !q.trim() || undefined}
-              aria-label="Ask"
-              className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-on-accent transition-transform active:scale-95 aria-disabled:opacity-40"
+              className="h-10 shrink-0 rounded-md bg-accent px-4 text-sm font-medium text-on-accent transition-opacity hover:opacity-85 aria-disabled:opacity-40"
             >
-              <ArrowUp size={18} weight="bold" />
+              Ask
             </button>
           </form>
 
@@ -142,7 +141,7 @@ export function Ask() {
                         key={s}
                         type="button"
                         onClick={() => ask(s)}
-                        className="rounded-full border border-line-strong px-4 py-2 text-sm text-ink-2 transition-colors hover:border-accent-ink hover:text-ink"
+                        className="rounded-md border border-line-strong px-4 py-2 text-sm text-ink-2 transition-colors hover:border-accent-ink hover:text-ink"
                       >
                         {s}
                       </button>
@@ -166,23 +165,12 @@ export function Ask() {
 }
 
 function AnswerView({ a }: { a: Answer }) {
-  const reduce = useReducedMotion();
-  const words = a.answer.split(" ");
+  // The whole answer at once: it took a few milliseconds to find, so spelling it out word by word
+  // would only pretend to be thinking.
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <p className="text-sm text-ink-3">{a.question}</p>
-      <p className="mt-3 max-w-[70ch] text-lg leading-relaxed">
-        {words.map((w, i) => (
-          <motion.span
-            key={i}
-            initial={reduce ? false : { opacity: 0, filter: "blur(4px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            transition={{ delay: Math.min(i * 0.018, 1.2), duration: 0.25 }}
-          >
-            {w}{" "}
-          </motion.span>
-        ))}
-      </p>
+      <p className="mt-3 max-w-[70ch] text-lg leading-relaxed">{a.answer}</p>
       {a.sources.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-2">
           <span className="text-xs text-ink-3">Sources</span>
@@ -198,7 +186,7 @@ function AnswerView({ a }: { a: Answer }) {
                   e.preventDefault();
                   followHref(href);
                 }}
-                className="rounded-full border border-line px-3 py-1 text-xs text-ink-2 transition-colors hover:border-accent-ink hover:text-ink"
+                className="rounded-md border border-line px-3 py-1 text-xs text-ink-2 transition-colors hover:border-accent-ink hover:text-ink"
               >
                 {s.title}
               </a>

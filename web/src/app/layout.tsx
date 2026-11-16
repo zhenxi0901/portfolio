@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { HashSettle } from "@/components/site/hash-settle";
 import { profile } from "@/content/profile";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// IBM Plex: an engineering typeface for the site's text, and its mono for machine output only (hashes,
+// timings, commands, paths). Long reads add a serif of their own (components/article/serif.ts).
+const plexSans = IBM_Plex_Sans({ variable: "--font-plex-sans", subsets: ["latin"] });
+const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500"] });
 
 const description =
   "Li ZhenXi runs cloud platforms in production and benchmarks AI infrastructure: Kubernetes on Google Cloud, CI/CD, observability and LLM serving.";
@@ -50,7 +52,7 @@ const personJsonLd = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
       <head>
         {/* Runs before paint: lets CSS hide reveal targets only when JavaScript is available. */}
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />

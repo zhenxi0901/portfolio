@@ -9,6 +9,7 @@ import {
   profile,
   publication,
   signals,
+  skillGroups,
 } from "@/content/profile";
 import { aiOverview, journeys, measures, stack } from "@/content/ai-platform";
 import { budgetPolicy, burnRules, investigation, slos, sreTerms } from "@/content/slo";
@@ -101,9 +102,10 @@ export function buildKnowledge(): Fact[] {
     id: "cost-review",
     title: "Cost review",
     anchor: "platform",
-    lead: "How I cut cloud spend by an estimated 15%:",
+    lead: "How I cut cloud spend, by an estimated 15%.",
+    // Whole sentences per move, not "title: detail" chains: an answer quotes them as they are.
     text: costReview.levers
-      .map((l) => `${l.title} (${l.area}, ${l.status}): ${l.detail} ${l.guardrail.startsWith("sort_desc") ? "" : l.guardrail}`)
+      .map((l) => `${l.title} (${l.area}, ${l.status}). ${l.detail} ${l.guardrail.startsWith("sort_desc") ? "" : l.guardrail}`)
       .join(" "),
   });
 
@@ -237,12 +239,7 @@ export function buildKnowledge(): Fact[] {
     id: "skills",
     title: "Skills",
     anchor: "stack",
-    text:
-      "Cloud: Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM), AWS (EKS, EC2), Kubernetes, Docker, Terraform, Pulumi, Linux. " +
-      "CI/CD: GitHub Actions, Jenkins, Cloud Build. Observability: Prometheus, Grafana, PromQL, Cloud Monitoring, alerting, load testing. " +
-      "AI infrastructure: LLM serving with SGLang, LLM benchmarking, A100 GPUs, Vertex AI, RAG, MCP, PyTorch. " +
-      "Data: Kafka, ZooKeeper, PostgreSQL, Redis, MQTT. Languages: Python, Java, Bash, Go, C and C++. " +
-      "Industrial: BMS, SCADA, BACnet, OPC, PLCs.",
+    text: skillGroups.map((g) => `${g.name}: ${g.items.join(", ")}.`).join(" "),
   });
 
   facts.push({

@@ -172,7 +172,9 @@ export const posts: Post[] = [
     slug: "metrics-bill-kafka-topics",
     title: "Finding a metrics bill in 914 orphaned Kafka topics",
     summary:
-      "Managed Prometheus was the third-largest line item and nobody had measured why. Attribution first, then a reaper, then dropping what nobody read.",
+      "Managed Prometheus was the third-largest line item and nobody had measured why. Attribution first, then a reaper for 914 orphaned topics, then dropping the metrics nobody read: 40% fewer samples per scrape, and an estimated ~15% cut in cloud spend.",
+    description:
+      "Managed Prometheus was the third-largest line item. Reaping 914 orphaned Kafka topics and dropping unread metrics cut cloud spend by an estimated ~15%.",
     date: "19 Oct 2026",
     product: "iot",
     stats: [

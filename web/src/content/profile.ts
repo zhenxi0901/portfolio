@@ -25,6 +25,20 @@ export const stats: Stat[] = [
 ];
 
 /** The home page's "now" line: what I am doing at the moment, and the day it was last true. */
+/**
+ * What I use, by kind. The /about page lists these as they are, and the Ask "Skills" fact is written from
+ * them (content/knowledge.ts), so the two never disagree.
+ */
+export const skillGroups: { name: string; items: string[] }[] = [
+  { name: "Cloud", items: ["Google Cloud (GKE, Cloud Run, Cloud Build, Cloud SQL, IAM)", "AWS (EKS, EC2)", "Kubernetes", "Docker", "Terraform", "Pulumi", "Linux"] },
+  { name: "CI/CD", items: ["GitHub Actions", "Jenkins", "Cloud Build"] },
+  { name: "Observability", items: ["Prometheus", "Grafana", "PromQL", "Cloud Monitoring", "alerting", "load testing"] },
+  { name: "AI infrastructure", items: ["LLM serving with SGLang", "LLM benchmarking", "A100 GPUs", "Vertex AI", "RAG", "MCP", "PyTorch"] },
+  { name: "Data", items: ["Kafka", "ZooKeeper", "PostgreSQL", "Redis", "MQTT"] },
+  { name: "Languages", items: ["Python", "Java", "Bash", "Go", "C and C++"] },
+  { name: "Industrial", items: ["BMS", "SCADA", "BACnet", "OPC", "PLCs"] },
+];
+
 export const now = {
   updated: "12 Nov 2026",
   text: "Final-year Computer Science at NTU, researching what it costs to serve long-running LLM agents, and a DevOps intern at Primustech on its building IoT and AI agent platforms. Graduating June 2027, and open to SRE, DevOps, cloud and AI-infrastructure roles.",

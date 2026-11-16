@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/
 import { cases } from "@/content/profile";
 import { products } from "@/content/products";
 import { ArticleShell, Part, Prose, StatRow } from "@/components/article/article-shell";
-import { caseViz } from "@/components/work/case-viz";
+import { caseModelNote, caseViz } from "@/components/work/case-viz";
 import { ProductTag } from "@/components/site/product-tag";
 import { Reveal } from "@/components/motion/reveal";
 import { pageMetadata } from "@/lib/page-metadata";
@@ -20,7 +20,7 @@ export async function generateMetadata(props: PageProps<"/work/[slug]">) {
   const { slug } = await props.params;
   const c = cases.find((x) => x.id === slug);
   if (!c) return {};
-  return pageMetadata({ title: `${c.title}: a case study`, description: c.summary, path: `/work/${c.id}`, markdown: `work/${c.id}.md` });
+  return pageMetadata({ title: c.title, description: c.summary, path: `/work/${c.id}`, markdown: `work/${c.id}.md` });
 }
 
 export default async function CasePage(props: PageProps<"/work/[slug]">) {
@@ -35,22 +35,22 @@ export default async function CasePage(props: PageProps<"/work/[slug]">) {
   return (
     // Back to the card on the home page, which sits with its product: in Work, or in the product's own section.
     <ArticleShell back={{ href: sectionHref(`case-${c.id}`), label: products[c.products[0]].name }}>
-      <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <h1 className="mt-10 max-w-[24ch] text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">{c.title}</h1>
+      <p className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-3">
+        <span>
+          {c.org}, {c.year}
+        </span>
         {c.products.map((p) => (
           <ProductTag key={p} p={p} />
         ))}
-        <span className="font-mono text-xs text-ink-3">
-          {c.org}, {c.year} · Case study
-        </span>
       </p>
-      <h1 className="mt-4 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">{c.title}</h1>
       <p className="mt-6 max-w-[60ch] text-lg leading-relaxed text-ink-2">{c.summary}</p>
       <StatRow stats={c.numbers} />
 
       {Viz && (
         <Reveal className="mt-10">
           <div className="overflow-hidden rounded-3xl border border-line bg-surface p-5 sm:p-7">
-            <p className="font-mono text-xs text-ink-3">A small working model of the real system. Press the buttons.</p>
+            <p className="max-w-[70ch] text-sm leading-relaxed text-ink-2">{caseModelNote[c.id] ?? "A small working model of the real system."}</p>
             <div className="mt-5">
               <Viz />
             </div>
@@ -65,37 +65,30 @@ export default async function CasePage(props: PageProps<"/work/[slug]">) {
       <Part title="What I did">
         <ol className="space-y-5">
           {c.did.map((d, n) => (
-            <li key={d} className="flex gap-4">
-              <span className="grid size-7 shrink-0 place-items-center rounded-full border border-line-strong font-mono text-xs text-ink-2">
-                {n + 1}
-              </span>
-              <p className="pt-0.5 text-[15px] leading-relaxed text-ink-2 sm:text-base">{d}</p>
+            <li key={d} className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3">
+              <span className="pt-0.5 font-mono text-sm text-ink-3">{n + 1}.</span>
+              <p className="max-w-[70ch] text-[15px] leading-relaxed text-ink-2 sm:text-base">{d}</p>
             </li>
           ))}
         </ol>
       </Part>
 
-      <figure className="mt-14 rounded-3xl bg-[color-mix(in_oklab,var(--accent)_14%,var(--surface))] p-6 sm:p-8">
-        <figcaption className="font-mono text-xs uppercase tracking-[0.18em] text-ink-2">The result</figcaption>
-        <p className="mt-3 text-2xl font-semibold leading-snug tracking-[-0.02em] sm:text-3xl">{c.result}</p>
+      <figure className="mt-14 border-l-2 border-ink pl-6">
+        <figcaption className="text-sm font-medium text-ink-3">The result</figcaption>
+        <p className="mt-2 max-w-[44ch] text-2xl font-semibold leading-snug tracking-[-0.015em] sm:text-[1.75rem]">{c.result}</p>
       </figure>
 
       <Part title="Stack">
-        <ul className="flex flex-wrap gap-2" aria-label="Stack">
-          {c.stack.map((s) => (
-            <li key={s} className="rounded-full border border-line px-3 py-1 font-mono text-xs text-ink-2">
-              {s}
-            </li>
-          ))}
-        </ul>
+        {/* A plain line: the tools are words, not machine output, and not things to press. */}
+        <p className="max-w-[70ch] text-[15px] leading-relaxed text-ink-2">{c.stack.join(", ")}</p>
       </Part>
 
       {c.deeper.length > 0 && (
         <Part title="Go deeper">
-          <ul className="divide-y divide-line rounded-3xl border border-line bg-surface">
+          <ul className="divide-y divide-line border-y border-line">
             {c.deeper.map((d) => (
               <li key={d.href}>
-                <a href={d.href} className="group flex items-center justify-between gap-4 p-4 text-[15px] transition-colors hover:text-ink sm:p-5 sm:text-base">
+                <a href={d.href} className="group flex items-center justify-between gap-4 py-4 text-[15px] transition-colors hover:text-ink sm:text-base">
                   <span className="text-ink-2 group-hover:text-ink">{d.label}</span>
                   <ArrowUpRight size={16} className="shrink-0 text-ink-3 group-hover:text-ink" />
                 </a>

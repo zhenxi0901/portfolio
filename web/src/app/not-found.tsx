@@ -23,7 +23,7 @@ export default function NotFound() {
     <SiteShell path="">
       <section className="mx-auto max-w-[1320px] px-4 pb-16 pt-32 sm:px-8 sm:pt-40">
         <p className="font-mono text-xs text-ink-3">404</p>
-        <h1 className="mt-4 max-w-4xl text-[clamp(2.5rem,6vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.05em]">Nothing lives here.</h1>
+        <h1 className="mt-4 max-w-4xl text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Nothing lives here</h1>
         <p className="mt-6 max-w-[60ch] text-lg leading-relaxed text-ink-2">
           This address doesn&apos;t match a page. If it came from an older link, the site has since been split into chapters; one of
           these will have what you were after. Or search all of it: press{" "}

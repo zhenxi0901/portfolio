@@ -2,7 +2,7 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { cases } from "@/content/profile";
 import { productOrder, products, type ProductKey } from "@/content/products";
 import { Reveal } from "@/components/motion/reveal";
-import { productIcon, productTone } from "@/components/site/product-tag";
+import { productTone } from "@/components/site/product-tag";
 import { SectionHeading } from "@/components/site/section-heading";
 import { CaseCard } from "@/components/work/case-card";
 import { caseViz } from "@/components/work/case-viz";
@@ -49,11 +49,7 @@ export function Work({ chapter }: { chapter?: ProductKey } = {}) {
       {!chapter && (
         <>
           <SectionHeading
-            title={
-              <>
-                Production work you can <span className="text-accent-ink">play with</span>.
-              </>
-            }
+            title="Production work, as models you can run"
             lead="Things I shipped at Primustech, each a small working model of the real system. Press the buttons."
           />
           <ProductLegend />
@@ -62,27 +58,21 @@ export function Work({ chapter }: { chapter?: ProductKey } = {}) {
 
       {(chapter ? groups.filter((g) => g.p === chapter) : groups).map(({ p, studies }) => {
         const GroupTitle = chapter ? "h2" : "h3";
-        const Icon = productIcon[p];
         const tone = productTone[p];
         return (
           <div key={p} id={`work-${p}`} className={cn(!chapter && "mt-16", "scroll-mt-24")} role="group" aria-labelledby={`work-${p}-title`}>
             <Reveal>
               <div className={cn("flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b pb-4", tone.border)}>
-                <div className="flex items-center gap-3.5">
-                  <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", tone.soft, tone.text)}>
-                    <Icon size={22} weight="duotone" aria-hidden />
-                  </span>
-                  <div>
-                    <p className="font-mono text-[11px] text-ink-3">
-                      {products[p].org} · {products[p].runs}
-                    </p>
-                    <GroupTitle id={`work-${p}-title`} className="text-2xl font-semibold tracking-[-0.03em] sm:text-[1.7rem]">
-                      {chapter ? "What I shipped, as working models" : products[p].name}
-                    </GroupTitle>
-                  </div>
+                <div>
+                  <p className="text-sm text-ink-3">
+                    {products[p].org}, {products[p].runs}
+                  </p>
+                  <GroupTitle id={`work-${p}-title`} className="mt-1 text-2xl font-semibold tracking-[-0.02em] sm:text-[1.65rem]">
+                    {chapter ? "What I shipped, as working models" : products[p].name}
+                  </GroupTitle>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-                  <span className={cn("font-mono text-xs", tone.text)}>
+                  <span className="text-ink-3">
                     {studies.length} case {studies.length === 1 ? "study" : "studies"}
                   </span>
                   {deeper[p] && (
@@ -100,7 +90,7 @@ export function Work({ chapter }: { chapter?: ProductKey } = {}) {
                 const { span, tone: cardTone, wide } = placement[study.id] ?? { span: "lg:col-span-6" };
                 const Viz = caseViz[study.id];
                 return (
-                  <CaseCard key={study.id} study={study} tone={cardTone} wide={wide} level={chapter ? 3 : 4} className={span}>
+                  <CaseCard key={study.id} study={study} tone={cardTone} wide={wide} level={chapter ? 3 : 4} chapter={chapter} className={span}>
                     {Viz && <Viz />}
                   </CaseCard>
                 );

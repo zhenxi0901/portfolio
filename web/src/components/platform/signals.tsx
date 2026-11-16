@@ -150,7 +150,7 @@ export function Signals() {
             <span
               role="status"
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium",
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium",
                 firing ? "bg-critical/15 text-critical" : pendingNow ? "bg-amber-500/15 text-ink" : "bg-good/12 text-good",
               )}
             >
@@ -210,7 +210,7 @@ export function Signals() {
               <button
                 type="button"
                 onClick={() => setBroken(false)}
-                className="inline-flex items-center gap-2 rounded-full border border-line-strong px-4 py-2 text-sm font-medium transition-colors hover:border-ink-3"
+                className="inline-flex items-center gap-2 rounded-md border border-line-strong px-4 py-2 text-sm font-medium transition-colors hover:border-ink-3"
               >
                 <Wrench size={15} /> Fix it
               </button>
@@ -218,7 +218,7 @@ export function Signals() {
               <button
                 type="button"
                 onClick={() => setBroken(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-transform active:scale-[0.97]"
+                className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-transform"
               >
                 <Lightning size={15} weight="fill" /> {sim.action}
               </button>
@@ -232,7 +232,7 @@ export function Signals() {
 
           <div className="mt-4 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-3">The rule</p>
+              <p className="text-sm font-medium text-ink-3">The rule</p>
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {signal.metrics.map((m) => (
                   <li key={m}>
@@ -242,7 +242,7 @@ export function Signals() {
               </ul>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-3">Why this signal</p>
+              <p className="text-sm font-medium text-ink-3">Why this signal</p>
               <p className="mt-2 text-sm leading-relaxed text-ink-2">{signal.why}</p>
             </div>
           </div>

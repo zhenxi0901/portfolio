@@ -4,7 +4,7 @@ import { Footer } from "@/components/site/footer";
 import { Hero } from "@/components/hero/hero";
 import { Now } from "@/components/home/now";
 import { Chapters } from "@/components/home/chapters";
-import { Explore } from "@/components/home/explore";
+import { OpsLedger } from "@/components/home/ops-ledger";
 import { Latest } from "@/components/home/latest";
 import { Tour } from "@/components/site/tour";
 import { Contact } from "@/components/sections/contact";
@@ -14,8 +14,9 @@ import { LegacyAnchors } from "@/components/home/legacy-anchors";
 export const metadata = { alternates: { canonical: "/" } };
 
 /**
- * The home page says who I am, what I am doing now, and where everything is: one card per
- * chapter, the ways into the site's own operations, the latest writing, and how to get in touch.
+ * The home page says who I am (beside this page's own request, live), what I am doing now, and where
+ * everything is: the three chapters, a ledger of the site's own operations, the latest writing, and
+ * how to get in touch.
  * Everything else has a page of its own (decision 11); the one-page version is kept at /v1.
  */
 export default function Home() {
@@ -25,7 +26,7 @@ export default function Home() {
       <LegacyAnchors />
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
       >
         Skip to content
       </a>
@@ -34,7 +35,7 @@ export default function Home() {
         <Hero />
         <Now />
         <Chapters />
-        <Explore />
+        <OpsLedger />
         <Latest />
         <Contact />
       </main>

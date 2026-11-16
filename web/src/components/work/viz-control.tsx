@@ -113,7 +113,7 @@ export function ControlViz() {
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="inline-flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+        <div className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface p-1">
           <button
             type="button"
             onClick={() => setWant((v) => Math.max(16, v - 1))}

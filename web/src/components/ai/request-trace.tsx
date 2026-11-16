@@ -36,7 +36,7 @@ export function RequestTrace() {
           <p className="font-mono text-xs text-ink-3">trace · operations agent</p>
           <p className="mt-1 font-semibold">&ldquo;{sampleTrace.question}&rdquo;</p>
         </div>
-        <span className="rounded-full border border-dashed border-line-strong px-2.5 py-0.5 text-xs text-ink-2">
+        <span className="rounded-md border border-dashed border-line-strong px-2.5 py-0.5 text-xs text-ink-2">
           Sample: illustrative numbers, real structure
         </span>
       </div>
@@ -91,7 +91,7 @@ export function RequestTrace() {
         <div key={sel} className="step-in">
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-semibold">{picked.name}</span>
-            <span className="rounded-full bg-surface-2 px-2 py-0.5 font-mono text-[11px] text-ink-2">{KIND[picked.kind].label}</span>
+            <span className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-[11px] text-ink-2">{KIND[picked.kind].label}</span>
             <span className="font-mono text-xs text-ink-2">{s(picked.dur)}</span>
             {picked.tokensIn !== undefined && (
               <span className="font-mono text-xs text-ink-2">

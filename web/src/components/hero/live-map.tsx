@@ -163,35 +163,38 @@ const ROUTES = {
 };
 type Route = keyof typeof ROUTES;
 
-/** A node: a link whose name is what it shows, plus where it goes for screen readers. */
-function Card({ node, title, sub, href, label, accent = false }: { node: Node; title: string; sub: React.ReactNode; href: string; label: string; accent?: boolean }) {
+/** A node: a link whose name is what it shows, plus where it goes for screen readers. `live`: on the path your request took. */
+function Card({ node, title, sub, href, label, live = false }: { node: Node; title: string; sub: React.ReactNode; href: string; label: string; live?: boolean }) {
   const [x, y] = N[node];
   return (
     <a
       href={href}
       style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }}
       className={cn(
-        "absolute z-10 w-max max-w-[min(9.5rem,30%)] -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-surface px-2 py-1 text-center shadow-soft transition-colors hover:border-accent-ink focus-visible:border-accent-ink @lg:px-2.5 @lg:py-1.5",
-        accent ? "border-accent-ink" : "border-line",
+        "absolute z-10 w-max max-w-[min(11rem,30%)] -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-surface px-2 py-1 text-center transition-colors hover:border-ink-3 focus-visible:border-ink-3 @lg:px-2.5 @lg:py-1.5",
+        live ? "border-live-ink" : "border-line-strong",
       )}
     >
-      <span className="block text-[11px] font-semibold leading-tight text-ink @lg:text-[12px]">{title}</span>
-      <span className="mt-0.5 block font-mono text-[9.5px] leading-tight text-ink-2 @lg:text-[10.5px]">{sub}</span>
+      <span className="block text-[12px] font-semibold leading-tight text-ink @lg:text-[13px] @2xl:text-[14px]">{title}</span>
+      <span className="mt-0.5 block font-mono text-[11px] leading-tight text-ink-2 @lg:text-[12px]">{sub}</span>
       <span className="sr-only">. {label}</span>
     </a>
   );
 }
 
-// Above the line by default, clear of the cards at either end.
+// Above the line by default, clear of the cards at either end. The numbers on the path are live readings.
 function EdgeLabel({ from, to, children, dx = 0, dy = -5.5 }: { from: Node; to: Node; children: React.ReactNode; dx?: number; dy?: number }) {
   const x = (N[from][0] + N[to][0]) / 2 + dx;
   const y = (N[from][1] + N[to][1]) / 2 + dy;
   return (
-    <span style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9px] text-ink-3 @lg:text-[10px]" aria-hidden>
+    <span style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[11px] text-live-ink @lg:text-[12px]" aria-hidden>
       {children}
     </span>
   );
 }
+
+/** A reading in a sentence: the site's one colour, because it came from the running service just now. */
+const Live = ({ children }: { children: React.ReactNode }) => <span className="font-medium text-live-ink">{children}</span>;
 
 /** The site's request path and its watchers, drawn with live numbers. */
 export function LiveMap() {
@@ -258,7 +261,6 @@ export function LiveMap() {
     <figure ref={box} className="w-full">
       {/* A container: in a narrow column (two columns on a 1024 px screen) the type steps down. */}
       <div className="@container relative hidden aspect-[5/4] w-full md:block">
-        <div className="dot-grid absolute inset-[4%] rounded-[2rem] opacity-70 [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" aria-hidden />
         <svg viewBox="0 0 100 80" className="absolute inset-0 size-full" aria-hidden>
           {EDGES.map(([a, b]) => {
             const onPath = (a === "you" && b === "gfe") || (a === "gfe" && b === "run") || (a === "run" && b === "page");
@@ -269,7 +271,7 @@ export function LiveMap() {
                 y1={N[a][1]}
                 x2={N[b][0]}
                 y2={N[b][1]}
-                stroke={onPath ? "var(--accent-ink)" : "var(--line-strong)"}
+                stroke={onPath ? "var(--live-ink)" : "var(--line-strong)"}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
                 strokeDasharray={a === "actions" || a === "probes" || a === "monitoring" ? "3 3" : undefined}
@@ -278,7 +280,8 @@ export function LiveMap() {
             );
           })}
           {(Object.keys(ROUTES) as Route[]).map((r) => (
-            <circle key={r} r={1.3} cx={0} cy={0} className={r === "probe" ? "fill-good" : r === "deploy" ? "fill-p-aries" : "fill-accent-ink"} opacity={0}>
+            // Every dot is something that really happened just now, so every dot is lime.
+            <circle key={r} r={1.3} cx={0} cy={0} className="fill-live-ink" opacity={0}>
               <animateMotion
                 id={`map-${r}`}
                 ref={(el) => {
@@ -294,10 +297,10 @@ export function LiveMap() {
             </circle>
           ))}
         </svg>
-        <Card node="you" title="You" sub={place ?? "this browser"} href="/status#visit-trace" label={`You${place ? `, in ${place} time` : ""}. Your visit's trace is on the status page.`} accent />
+        <Card node="you" title="You" sub={place ?? "this browser"} href="/status#visit-trace" label={`You${place ? `, in ${place} time` : ""}. Your visit's trace is on the status page.`} live />
         <Card node="gfe" title="Google front end" sub={visit?.protocol ?? "TLS · HTTP"} href="/decisions" label="Google's front end terminates TLS. Why the site runs this way: the decision records." />
-        <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} accent />
-        <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} accent />
+        <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} live />
+        <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} live />
         <Card node="api" title="/api" sub="status · slo · cost" href="/agents" label="The JSON API and the MCP server: for agents." />
         {/* Two lines on purpose: as one line the card's width cap broke "built 27 min ago" mid-phrase at every width. */}
         <Card node="actions" title="GitHub Actions" sub={deployed ? <>{commit} <span className="block">built {deployed}</span></> : commit} href="/changelog" label={`Built and deployed by GitHub Actions: commit ${commit}${deployed ? `, built ${deployed}` : ""}. The changelog.`} />
@@ -318,7 +321,7 @@ export function LiveMap() {
         )}
         {newRelease && (
           <EdgeLabel from="actions" to="run" dy={0}>
-            <span className="rounded-full bg-p-aries px-1.5 py-0.5 text-[10px] text-white">new release</span>
+            <span className="rounded bg-live px-1.5 py-0.5 text-[11px] font-medium text-[#0d0d10]">new release</span>
           </EdgeLabel>
         )}
         {/* The edge timings are drawn for the eye; this is them for a screen reader. */}
@@ -338,35 +341,53 @@ export function LiveMap() {
           ["This page", visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB${visit.cold ? " · cold start" : ""}` : "static export", visit ? `${ms(visit.total)} end to end` : "", "/cost"],
         ].map(([title, sub, time, href], i) => (
           <li key={title}>
-            <a href={href} className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-3.5 py-2.5 transition-colors hover:border-accent-ink focus-visible:border-accent-ink">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent font-mono text-[11px] text-on-accent" aria-hidden>
+            <a href={href} className="flex items-center gap-3 rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 transition-colors hover:border-ink-3 focus-visible:border-ink-3">
+              <span className="w-4 shrink-0 font-mono text-xs text-ink-3" aria-hidden>
                 {i + 1}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">{title}</span>
-                <span className="block truncate font-mono text-[11px] text-ink-2">{sub}</span>
+                <span className="block truncate font-mono text-xs text-ink-2">{sub}</span>
               </span>
-              <span className="shrink-0 font-mono text-[11px] text-ink-3">{time}</span>
+              <span className="shrink-0 font-mono text-xs text-live-ink">{time}</span>
             </a>
           </li>
         ))}
       </ol>
 
-      <figcaption className="mt-3 text-center text-[13px] leading-relaxed text-ink-3 md:mt-1">
-        <span className="hidden md:inline">
-          This page, live: the bright lines are the path your request just took, the faint dashed ones what keeps watch over it, and every box opens a page.{" "}
-        </span>
-        <span className="md:hidden">Your request, live. Watched by uptime checks from three regions: {avail}. </span>
-        {deployed ? `Built ${deployed}` : "Built and deployed by GitHub Actions"}, commit {commit}.
-        {newRelease && (
-          // The commit above is what's live now, but this page is still the build before it.
+      {/* The request you just made, in a sentence; before its timing is known, what the picture is. */}
+      <figcaption className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-ink-2 md:mt-2">
+        {visit ? (
           <>
-            {" "}It went out while you were here.{" "}
+            You asked{place ? (
+              <>
+                {" "}from <Live>{place}</Live>
+              </>
+            ) : null}
+            ; the first byte came back in <Live>{ms(visit.ttfb)}</Live>
+            {visit.server !== null && (
+              <>
+                , <Live>{ms(visit.server)}</Live> of it in the Go server
+              </>
+            )}
+            , from commit <Live>{commit}</Live>
+            {deployed ? `, built ${deployed}` : ""}.{" "}
+          </>
+        ) : (
+          <>Your request to this page, drawn as it happens. </>
+        )}
+        {newRelease && (
+          // Straight after the commit it refers to: that is what's live now, but this page is still the build before it.
+          <>
+            {visit ? "It" : "A new release"} went out while you were here.{" "}
             <button type="button" onClick={() => window.location.reload()} className="font-medium text-ink underline underline-offset-4">
               Reload for it
             </button>
+            .{" "}
           </>
         )}
+        <span className="hidden md:inline">The lime path is what you just did; the dashed lines are what keeps watch over it. Every box opens a page.</span>
+        <span className="md:hidden">Watched by uptime checks from three regions: {avail}.</span>
       </figcaption>
     </figure>
   );

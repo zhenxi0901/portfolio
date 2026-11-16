@@ -46,11 +46,10 @@ export function Contact() {
     <section id="contact" className="scroll-mt-20 border-t border-line bg-surface">
       <div className="mx-auto grid max-w-[1320px] gap-14 px-4 pb-40 pt-24 sm:px-8 sm:pt-32 lg:grid-cols-12">
         <Reveal className="lg:col-span-6">
-          <h2 className="text-[clamp(2.75rem,7vw,5.5rem)] font-semibold leading-[0.95] tracking-[-0.05em]">
-            Hiring for reliability?
-          </h2>
-          <p className="mt-6 max-w-[40ch] text-lg leading-relaxed text-ink-2">
-            I graduate in June 2027 and I&apos;m looking for SRE, cloud, DevOps and AI infrastructure roles.
+          <h2 className="text-[clamp(1.75rem,3.4vw,2.625rem)] font-semibold leading-[1.12] tracking-[-0.022em]">Get in touch</h2>
+          <p className="mt-4 max-w-[44ch] text-lg leading-relaxed text-ink-2">
+            I graduate in June 2027 and I&apos;m looking for SRE, cloud, DevOps and AI-infrastructure roles. Write to me about a role, or
+            about anything on this site you would have done differently.
           </p>
           <button
             type="button"

@@ -26,7 +26,7 @@ function Tags({ tags }: { tags: string[] }) {
   return (
     <ul className="mt-5 flex flex-wrap gap-2" aria-label="Tools">
       {tags.map((t) => (
-        <li key={t} className="rounded-full border border-line px-3 py-1 font-mono text-xs text-ink-2">
+        <li key={t} className="rounded-md border border-line px-3 py-1 font-mono text-xs text-ink-2">
           {t}
         </li>
       ))}
@@ -114,7 +114,7 @@ export function Experience() {
                           {role.points.length > 0 && (
                             // Work for the same employer that belongs to neither product.
                             <div role="group" aria-label="Outside both platforms">
-                              <p className="mb-4 font-mono text-xs text-ink-3">Also</p>
+                              <p className="mb-4 text-sm font-medium text-ink-3">Also</p>
                               <Points points={role.points} />
                             </div>
                           )}
@@ -135,7 +135,7 @@ export function Experience() {
       </ol>
 
       <div className="mt-14 grid gap-2 rounded-3xl border border-line bg-surface p-6 sm:grid-cols-[9rem_1fr] sm:p-8">
-        <p className="font-mono text-xs text-ink-3">{education.period}</p>
+        <p className="text-sm text-ink-3">{education.period}</p>
         <div>
           <p className="text-xl font-semibold tracking-[-0.02em]">{education.school}</p>
           <p className="mt-1 text-ink-2">{education.degree}</p>

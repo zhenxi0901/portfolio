@@ -198,7 +198,7 @@ export default function Terminal() {
                 <div key={entry.id} className="mb-3">
                   {entry.prompt !== undefined && (
                     <p className="whitespace-pre-wrap break-words">
-                      <span className="text-accent-ink">{entry.prompt}</span> <span className="text-ink">{entry.command}</span>
+                      <span className="text-live-ink">{entry.prompt}</span> <span className="text-ink">{entry.command}</span>
                     </p>
                   )}
                   {entry.lines.map((segs, i) => (

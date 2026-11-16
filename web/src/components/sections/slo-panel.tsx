@@ -58,7 +58,7 @@ export function SloPanel() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="font-semibold">
           This site&apos;s own SLO, measured from outside{" "}
-          <span className="ml-1 rounded-full border border-line px-2 py-0.5 align-middle font-mono text-[11px] font-normal text-ink-2">
+          <span className="ml-1 rounded-md border border-line px-2 py-0.5 align-middle font-mono text-[11px] font-normal text-ink-2">
             real data
           </span>
         </p>
@@ -83,7 +83,7 @@ export function SloPanel() {
             <div className="flex flex-col-reverse justify-end">
               {/* Monitoring stores several samples per probe, so the counts are not shown as "checks". */}
               <dt className="mt-1 text-sm text-ink-2">availability over {r.since ? span(r.since, r.updated) : "the window"}</dt>
-              <dd className="text-3xl font-semibold tracking-[-0.03em]">{uptime(r.availability)}</dd>
+              <dd className="text-3xl font-semibold tracking-[-0.02em] text-live-ink">{uptime(r.availability)}</dd>
             </div>
             <div className="flex flex-col-reverse justify-end">
               <dt className="mt-1 text-sm text-ink-2">
@@ -93,7 +93,7 @@ export function SloPanel() {
             </div>
             <div className="col-span-2 flex flex-col-reverse justify-end sm:col-span-1">
               <dt className="mt-1 text-sm text-ink-2">downtime the checks saw</dt>
-              <dd className="text-3xl font-semibold tracking-[-0.03em]">{r.downtime_minutes.toFixed(1)} min</dd>
+              <dd className="text-3xl font-semibold tracking-[-0.02em] text-live-ink">{r.downtime_minutes.toFixed(1)} min</dd>
             </div>
           </dl>
 

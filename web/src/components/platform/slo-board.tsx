@@ -121,13 +121,13 @@ export function SloBoard() {
           Dashboards <span className="text-ink-3">›</span> IoT platform <span className="text-ink-3">›</span> <span className="text-ink">SLO</span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-dashed border-line-strong px-2.5 py-0.5 text-xs text-ink-2">Sample data, proposed objectives</span>
+          <span className="rounded-md border border-dashed border-line-strong px-2.5 py-0.5 text-xs text-ink-2">Sample data, proposed objectives</span>
           <span className="rounded-md border border-line px-2 py-0.5 font-mono text-xs text-ink-2">Last 30 days</span>
           <button
             type="button"
             onClick={() => !running && start()}
             aria-disabled={running || undefined}
-            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-on-accent aria-disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-on-accent aria-disabled:opacity-60"
           >
             {played && !running ? <ArrowCounterClockwise size={13} weight="bold" /> : <Play size={13} weight="fill" />}
             {played && !running ? "Replay the incident" : running ? "Incident running" : "Simulate an incident"}
@@ -239,7 +239,7 @@ export function SloBoard() {
                   <td className="px-4 py-2.5">
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium",
                         r.state === "firing" ? "bg-critical/15 text-critical" : r.state === "resolved" ? "bg-surface-2 text-ink-2" : "bg-good/12 text-good",
                       )}
                     >

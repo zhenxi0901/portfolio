@@ -64,7 +64,7 @@ export function Drill({ scenario }: { scenario: Scenario }) {
         <button
           type="button"
           onClick={start}
-          className="mt-6 inline-flex shrink-0 items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-on-accent lg:mt-0"
+          className="mt-6 inline-flex shrink-0 items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-on-accent lg:mt-0"
         >
           <BellRinging size={16} weight="fill" /> Go on call
         </button>
@@ -123,8 +123,13 @@ export function Drill({ scenario }: { scenario: Scenario }) {
           >
             {/* Inset: the box's rounded corners would clip the first letter of a line that touches them. */}
             {log.length === 0 && <p className="px-2 py-1 text-sm text-ink-3">{scenario.emptyHint}</p>}
-            {[...log].reverse().map((e) => (
-              <div key={e.move.id + e.at} className="rounded-2xl border border-line bg-surface-2/60 p-3.5">
+            {[...log].reverse().map((e, n) => (
+              // On a phone the newest finding is already in the box beside the buttons, so here it is
+              // hidden from sight (not from screen readers: this list is the one that announces it).
+              <div
+                key={e.move.id + e.at}
+                className={cn("rounded-2xl border border-line bg-surface-2/60 p-3.5", n === 0 && phase !== "resolved" && "max-lg:sr-only")}
+              >
                 <p className="flex flex-wrap items-baseline gap-x-2 font-mono text-[11px] text-ink-3">
                   <span className="text-ink">{at(e.at)}</span>
                   <span>{e.move.label}</span>
@@ -262,10 +267,10 @@ function Debrief({ scenario, state, onRestart }: { scenario: Scenario; state: Dr
       <p className="mt-5 text-sm leading-relaxed text-ink-2">{scenario.rootCause}</p>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium hover:border-ink-3">
+        <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-ink-3">
           <ArrowCounterClockwise size={15} /> Run it again
         </button>
-        <a href="/writing#postmortems" className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent">
+        <a href="/writing#postmortems" className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent">
           Read the real postmortems
         </a>
       </div>

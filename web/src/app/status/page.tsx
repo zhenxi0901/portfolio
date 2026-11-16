@@ -12,7 +12,7 @@ import { pageMetadata } from "@/lib/page-metadata";
 import { SITE_URL } from "@/lib/site";
 
 const base = pageMetadata({
-  title: "Status: is this site up?",
+  title: "Status",
   description:
     "Live state, 30 days of availability against a 99.9% SLO, how the site is watched, and its incident history, with a feed to subscribe to.",
   path: "/status",
@@ -48,7 +48,7 @@ export default function StatusPage() {
           <Rss size={14} aria-hidden /> Subscribe to incidents
         </a>
       </div>
-      <h1 id="status" className="mt-4 scroll-mt-28 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">
+      <h1 id="status" className="mt-4 scroll-mt-28 text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">
         Status
       </h1>
       <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
@@ -88,7 +88,7 @@ export default function StatusPage() {
               <a href={i.href} className="group block rounded-3xl border border-line bg-surface p-5 transition-colors hover:border-ink-3">
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-ink-3">
                   <span>{i.date}</span>
-                  <span className="rounded-full border border-line px-2 py-0.5">{i.kind}</span>
+                  <span className="rounded-md border border-line px-2 py-0.5">{i.kind}</span>
                   <span className="inline-flex items-center gap-1.5 text-ink-2">
                     <span className="size-1.5 rounded-full bg-good" aria-hidden />
                     Resolved

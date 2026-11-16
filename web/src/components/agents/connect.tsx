@@ -61,7 +61,7 @@ export function Connect() {
             tabIndex={k === i ? 0 : -1}
             onClick={() => setI(k)}
             className={cn(
-              "shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+              "shrink-0 rounded-md border px-3.5 py-1.5 text-sm transition-colors",
               k === i ? "border-accent-ink bg-surface-2 text-ink" : "border-line text-ink-2 hover:border-line-strong hover:text-ink",
             )}
           >

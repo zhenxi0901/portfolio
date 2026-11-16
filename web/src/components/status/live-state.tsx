@@ -56,7 +56,7 @@ export function LiveState() {
           <span className={cn("size-3 rounded-full", tone, r && up && "animate-pulse")} aria-hidden />
           {state}
         </p>
-        <p className="font-mono text-xs text-ink-3">
+        <p className="text-xs text-ink-3">
           {r ? `checked ${r.at.toLocaleTimeString("en-GB")} your time, again every minute` : "checking from your browser…"}
         </p>
       </div>

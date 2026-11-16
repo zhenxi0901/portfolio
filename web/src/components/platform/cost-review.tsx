@@ -19,7 +19,7 @@ export function CostReview() {
     <div>
       <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
         <p className="text-[clamp(2.5rem,5vw,3.5rem)] font-semibold leading-none tracking-[-0.05em]">
-          ~15<span className="text-accent-ink">%</span>
+          ~15%
         </p>
         <p className="max-w-[52ch] pb-1 text-sm leading-relaxed text-ink-2">
           estimated saving on cloud spend from six moves, with a seventh in review: measure first, cut second, and write every trade-off down. Pick a move.
@@ -74,7 +74,7 @@ export function CostReview() {
           <div aria-live="polite">
             <div key={i} className="step-in">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] text-ink-2">{l.area}</span>
+                <span className="rounded-md bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] text-ink-2">{l.area}</span>
                 <span className="inline-flex items-center gap-1 text-xs text-ink-2">
                   {l.status === "done" ? (
                     <CheckCircle size={14} weight="fill" className="text-good" />
@@ -97,7 +97,7 @@ export function CostReview() {
 
               <p className="mt-6 text-[15px] leading-relaxed text-ink-2">{l.detail}</p>
               <div className="mt-4 rounded-2xl bg-surface-2 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-3">{measured ? "How I measured it" : "The trade-off, on record"}</p>
+                <p className="text-sm font-medium text-ink-3">{measured ? "How I measured it" : "The trade-off, on record"}</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-ink">
                   {measured ? <code className="font-mono text-[12px]">{l.guardrail}</code> : l.guardrail}
                 </p>

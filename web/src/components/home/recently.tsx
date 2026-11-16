@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, GitMerge, GitPullRequest, Package, PencilSimpleLine, RocketLaunch, Siren, type Icon } from "@phosphor-icons/react";
+import { ArrowUpRight } from "@phosphor-icons/react";
 import snapshot from "@/content/generated/activity.json";
 import delivery from "@/content/generated/delivery.json";
 import { posts } from "@/content/writing";
 import { postmortems } from "@/content/postmortems";
 import { api, type ActivityItem } from "@/lib/api";
 
-type Entry = { key: string; at: string; verb: string; icon: Icon; title: string; where?: string; href: string; external: boolean };
+type Entry = { key: string; at: string; verb: string; title: string; where?: string; href: string; external: boolean };
 
 /** How many entries the home page shows. */
 const SHOW = 5;
@@ -46,7 +46,6 @@ function fromGitHub(items: ActivityItem[]): Entry[] {
     key: it.url,
     at: it.at,
     verb: it.kind === "merged" ? "Merged" : it.kind === "review" ? "In review" : "Released",
-    icon: it.kind === "merged" ? GitMerge : it.kind === "review" ? GitPullRequest : Package,
     title: it.kind === "release" ? it.title : tidy(it.title),
     where: it.kind === "release" ? undefined : `${it.repo}#${it.number}`,
     href: it.url,
@@ -64,8 +63,8 @@ type Built = {
 };
 const built = delivery as Built;
 const writing: Entry[] = [
-  ...posts.map((p) => ({ key: p.slug, at: contentDay(p.date), verb: "Wrote", icon: PencilSimpleLine, title: p.title, href: `/writing/${p.slug}`, external: false })),
-  ...postmortems.map((p) => ({ key: p.slug, at: contentDay(p.date), verb: "Postmortem", icon: Siren, title: p.title, href: `/postmortems/${p.slug}`, external: false })),
+  ...posts.map((p) => ({ key: p.slug, at: contentDay(p.date), verb: "Wrote", title: p.title, href: `/writing/${p.slug}`, external: false })),
+  ...postmortems.map((p) => ({ key: p.slug, at: contentDay(p.date), verb: "Postmortem", title: p.title, href: `/postmortems/${p.slug}`, external: false })),
 ];
 
 /**
@@ -75,9 +74,9 @@ const writing: Entry[] = [
  */
 function latestDeploy(live: boolean): Entry | null {
   if (live && built.head)
-    return { key: built.head.sha, at: built.generated, verb: "Deployed", icon: RocketLaunch, title: built.head.title, where: "this site", href: `${REPO}/commit/${built.head.sha}`, external: true };
+    return { key: built.head.sha, at: built.generated, verb: "Deployed", title: built.head.title, where: "this site", href: `${REPO}/commit/${built.head.sha}`, external: true };
   const d = built.recent[0];
-  return d ? { key: d.sha, at: d.ended, verb: "Deployed", icon: RocketLaunch, title: d.title, where: "this site", href: "/status#replay", external: false } : null;
+  return d ? { key: d.sha, at: d.ended, verb: "Deployed", title: d.title, where: "this site", href: "/status#replay", external: false } : null;
 }
 
 const newest = (github: ActivityItem[], live: boolean) => {
@@ -121,8 +120,8 @@ export function Recently() {
   if (entries.length === 0) return null;
   const stale = asked !== null && asked - Date.parse(feed.updated) > STALE_MS;
   return (
-    <div className="mt-6 border-t border-line pt-5">
-      <h3 id="recently-title" className="font-mono text-xs text-ink-3">
+    <div>
+      <h3 id="recently-title" className="text-sm font-medium text-ink-3">
         Recently
       </h3>
       <ol aria-labelledby="recently-title" className="mt-3 space-y-2.5">
@@ -131,15 +130,12 @@ export function Recently() {
             <a
               href={e.href}
               {...(e.external ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="group grid grid-cols-[3.75rem_minmax(0,1fr)] gap-x-3 text-sm leading-relaxed sm:grid-cols-[3.75rem_7rem_minmax(0,1fr)]"
+              className="group grid grid-cols-[3.75rem_minmax(0,1fr)] gap-x-3 text-[15px] leading-relaxed sm:grid-cols-[3.75rem_5.75rem_minmax(0,1fr)]"
             >
-              <time dateTime={e.at} className="pt-px font-mono text-xs leading-relaxed text-ink-3">
+              <time dateTime={e.at} className="text-sm leading-[1.65] text-ink-3">
                 {day(e.at)}
               </time>
-              <span className="hidden items-center gap-1.5 self-start text-ink-2 sm:flex">
-                <e.icon size={14} aria-hidden className="shrink-0" />
-                {e.verb}
-              </span>
+              <span className="hidden self-start text-sm leading-[1.65] text-ink-2 sm:block">{e.verb}</span>
               <span className="min-w-0">
                 <span className="text-ink-2 sm:hidden">{e.verb}: </span>
                 <span className="font-medium text-ink decoration-accent-ink decoration-2 underline-offset-4 group-hover:underline">{e.title}</span>
@@ -160,7 +156,7 @@ export function Recently() {
           </li>
         ))}
       </ol>
-      {stale && <p className="mt-3 font-mono text-[11px] text-ink-3">GitHub entries as of {dayTime(feed.updated)} Singapore time</p>}
+      {stale && <p className="mt-3 text-xs text-ink-3">GitHub entries as of {dayTime(feed.updated)} Singapore time</p>}
     </div>
   );
 }

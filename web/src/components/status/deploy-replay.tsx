@@ -136,7 +136,7 @@ export function DeployReplay() {
           <button
             type="button"
             onClick={playing ? stop : play}
-            className="inline-flex items-center gap-2 rounded-full border border-line-strong px-4 py-2 text-sm font-medium transition-colors hover:border-ink-3"
+            className="inline-flex items-center gap-2 rounded-md border border-line-strong px-4 py-2 text-sm font-medium transition-colors hover:border-ink-3"
           >
             {playing ? <Stop size={14} aria-hidden /> : <Play size={14} aria-hidden />}
             {playing ? "Stop" : "Replay"}

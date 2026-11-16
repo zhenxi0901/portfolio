@@ -15,7 +15,7 @@ export function Latest() {
   return (
     <section id="latest" aria-labelledby="latest-title" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-28">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h2 id="latest-title" className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold tracking-[-0.04em]">
+        <h2 id="latest-title" className="text-[clamp(1.75rem,3.4vw,2.625rem)] font-semibold leading-[1.12] tracking-[-0.022em]">
           Latest writing
         </h2>
         <a href="/writing" className="group inline-flex items-center gap-1.5 text-sm font-medium text-ink-2 transition-colors hover:text-ink">
@@ -27,11 +27,12 @@ export function Latest() {
         {items.slice(0, 3).map((item, i) => (
           <Reveal key={item.href} as="li" delay={i * 0.05}>
             <a href={item.href} className="group grid gap-x-8 gap-y-1 py-6 sm:grid-cols-[9rem_1fr_auto] sm:items-baseline">
-              <span className="font-mono text-xs text-ink-3">
-                {item.date} · {item.kind}
+              <span className="text-sm text-ink-3">
+                {item.date}
+                <span className="block">{item.kind}</span>
               </span>
               <span>
-                <span className="block text-lg font-semibold leading-snug tracking-[-0.02em] group-hover:underline group-hover:decoration-accent-ink group-hover:underline-offset-4">
+                <span className="block text-lg font-semibold leading-snug tracking-[-0.015em] group-hover:underline group-hover:underline-offset-4">
                   {item.title}
                 </span>
                 <span className="mt-1 block max-w-[75ch] text-[15px] leading-relaxed text-ink-2">{item.summary}</span>

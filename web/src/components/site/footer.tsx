@@ -1,9 +1,11 @@
 import { profile } from "@/content/profile";
+import { TourButton } from "@/components/site/tour";
 
 export function Footer() {
   return (
     <footer className="border-t border-line">
-      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 pb-28 pt-10 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      {/* Room at the bottom for the phone tab bar; from lg up there is none. */}
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 pb-28 pt-10 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:pb-12">
         <div className="space-y-1.5">
           <p>Designed and built by {profile.name}. Next.js and Go on Cloud Run.</p>
           <p>
@@ -59,6 +61,10 @@ export function Footer() {
             <a className="hover:text-ink" href="/v1" title="The site as one long page, as it was until November 2026">
               Version 1
             </a>
+          </li>
+          <li>
+            {/* The tour's way in, now that the home page's first screen is the live map. */}
+            <TourButton className="inline-flex items-center gap-1.5 hover:text-ink" />
           </li>
           <li>
             <a className="hover:text-ink" href={profile.github} target="_blank" rel="noreferrer">

@@ -110,7 +110,7 @@ export function LiveCheck({ kind, describedBy }: { kind: Kind; describedBy?: str
         aria-label={`${s.phase === "done" ? "Check again" : "Check it now"}: ${checkName[kind]}`}
         aria-describedby={describedBy}
         aria-disabled={s.phase === "busy"}
-        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-[13px] font-medium text-on-accent transition-[transform,filter] hover:brightness-95 active:scale-[0.97] aria-disabled:opacity-60"
+        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-accent px-3.5 text-[13px] font-medium text-on-accent transition-[transform,filter] hover:opacity-85 aria-disabled:opacity-60"
       >
         {s.phase === "busy" ? <CircleNotch size={14} className="animate-spin" aria-hidden /> : s.phase === "done" ? <ArrowClockwise size={14} aria-hidden /> : <Play size={14} weight="fill" aria-hidden />}
         {s.phase === "done" ? "Check again" : "Check it now"}
@@ -118,8 +118,9 @@ export function LiveCheck({ kind, describedBy }: { kind: Kind; describedBy?: str
       <p className="min-w-0 flex-1 basis-64 text-sm leading-relaxed" aria-live="polite">
         {s.phase === "done" && (
           <>
-            <span className={s.ok ? "text-ink" : "text-critical"}>{s.text}</span>{" "}
-            <span className="font-mono text-xs text-ink-3">asked at {s.at.toLocaleTimeString("en-GB")}</span>
+            {/* A passing answer is a reading the server gave just now, so it is in the site's live colour. */}
+            <span className={s.ok ? "text-live-ink" : "text-critical"}>{s.text}</span>{" "}
+            <span className="text-xs text-ink-3">asked at {s.at.toLocaleTimeString("en-GB")}</span>
           </>
         )}
       </p>

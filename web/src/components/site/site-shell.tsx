@@ -3,7 +3,8 @@ import type { ProductKey } from "@/content/products";
 import { TopBar } from "@/components/site/top-bar";
 import { Footer } from "@/components/site/footer";
 import { Dock } from "@/components/site/dock";
-import { ProductTag } from "@/components/site/product-tag";
+import { productTone } from "@/components/site/product-tag";
+import { cn } from "@/lib/utils";
 import { pages } from "@/components/site/nav-items";
 
 /**
@@ -15,7 +16,7 @@ export function SiteShell({ path, title, children }: { path: string; title?: str
     <>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-on-accent"
       >
         Skip to content
       </a>
@@ -36,8 +37,9 @@ export function SiteShell({ path, title, children }: { path: string; title?: str
 export function ChapterHeader({ product, title, lead }: { product?: ProductKey; title: React.ReactNode; lead: React.ReactNode }) {
   return (
     <header className="mx-auto max-w-[1320px] px-4 pt-32 sm:px-8 sm:pt-40">
-      {product && <ProductTag p={product} className="mb-5" />}
-      <h1 className="max-w-4xl text-[clamp(2.5rem,6vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.05em]">{title}</h1>
+      {/* The product's colour as a short rule, as on the home page; its name is the title below. */}
+      {product && <span aria-hidden className={cn("mb-6 block h-[3px] w-12", productTone[product].bg)} />}
+      <h1 className="max-w-4xl text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">{title}</h1>
       <p className="mt-6 max-w-[62ch] text-lg leading-relaxed text-ink-2">{lead}</p>
     </header>
   );
@@ -54,7 +56,7 @@ function ChapterPager({ path }: { path: string }) {
       <div className="grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
         {prev ? (
           <a href={prev.href} rel="prev" className="group rounded-3xl border border-line bg-surface p-5 transition-colors hover:border-ink-3">
-            <span className="flex items-center gap-1.5 font-mono text-xs text-ink-3">
+            <span className="flex items-center gap-1.5 text-xs text-ink-3">
               <ArrowLeft size={13} aria-hidden /> Previous
             </span>
             <span className="mt-1 block text-lg font-semibold tracking-[-0.02em]">{prev.label}</span>
@@ -64,7 +66,7 @@ function ChapterPager({ path }: { path: string }) {
         )}
         {next && (
           <a href={next.href} rel="next" className="group rounded-3xl border border-line bg-surface p-5 text-right transition-colors hover:border-ink-3">
-            <span className="flex items-center justify-end gap-1.5 font-mono text-xs text-ink-3">
+            <span className="flex items-center justify-end gap-1.5 text-xs text-ink-3">
               Next <ArrowRight size={13} aria-hidden />
             </span>
             <span className="mt-1 block text-lg font-semibold tracking-[-0.02em]">{next.label}</span>

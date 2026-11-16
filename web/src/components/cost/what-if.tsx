@@ -206,7 +206,7 @@ export function WhatIf() {
               type="button"
               aria-pressed={v === s.visits}
               onClick={() => setVisits(s.visits)}
-              className="rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-pressed:border-accent-ink aria-pressed:text-ink"
+              className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-pressed:border-accent-ink aria-pressed:text-ink"
             >
               {s.label}{" "}
               <span className="ml-1 font-mono text-xs text-ink-3">{count(s.visits)}</span>

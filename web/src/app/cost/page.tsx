@@ -20,13 +20,10 @@ const ext = "inline-flex items-center gap-0.5 underline underline-offset-4 hover
 export default function CostPage() {
   return (
     <ArticleShell back={{ href: "/status", label: "Status" }} wide>
-      <p className="mt-8 font-mono text-xs text-ink-3">Cloud Run · asia-southeast1 · request-based billing</p>
-      <h1 id="cost" className="mt-4 scroll-mt-28 text-[clamp(2.25rem,5.5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]">
-        What this site costs
-      </h1>
+      <h1 id="cost" className="mt-10 scroll-mt-28 text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">What this site costs</h1>
       <p className="mt-4 max-w-[64ch] text-lg leading-relaxed text-ink-2">
-        Every request to this site is metered. This is the month so far, read from Cloud Monitoring and priced at Google&apos;s list prices:
-        what it costs, where the money goes, and what a busy day would do to it.
+        It runs on Cloud Run in Singapore with request-based billing, so every request is metered. This is the month so far, read from Cloud
+        Monitoring and priced at Google&apos;s list prices, and beside it what a busy day would add.
       </p>
 
       <div className="mt-12 grid items-start gap-10 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-12">

@@ -139,7 +139,7 @@ export function Lab() {
                   type="button"
                   aria-pressed={on}
                   onClick={() => setFaults(p.faults)}
-                  className="rounded-full border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-pressed:border-accent-ink aria-pressed:text-ink"
+                  className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink aria-pressed:border-accent-ink aria-pressed:text-ink"
                 >
                   {p.name}
                 </button>

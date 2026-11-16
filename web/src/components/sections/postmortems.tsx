@@ -6,7 +6,7 @@ import { Reveal } from "@/components/motion/reveal";
 
 export function KindChip({ kind }: { kind: Postmortem["kind"] }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-0.5 font-mono text-[11px] text-ink-2">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-0.5 font-mono text-[11px] text-ink-2">
       <span aria-hidden className={cn("size-1.5 rounded-full", kind === "Near miss" ? "bg-critical" : "bg-p-ai")} />
       {kind}
     </span>
@@ -17,11 +17,7 @@ export function Postmortems() {
   return (
     <section id="postmortems" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
       <SectionHeading
-        title={
-          <>
-            What broke here, <span className="text-accent-ink">written up properly</span>.
-          </>
-        }
+        title="What broke on this site, written up properly"
         lead="Blameless postmortems from building and running this site: timeline, root cause, how it was caught, and what changed. The times and numbers come from the commits, the CI history and Cloud Run's request logs."
       />
       <p className="mt-6 text-sm text-ink-2">
@@ -41,7 +37,7 @@ export function Postmortems() {
                 href={`/postmortems/${pm.slug}`}
                 className="group flex h-full flex-col rounded-3xl border border-line bg-surface p-6 transition-colors hover:border-ink-3 sm:p-7"
               >
-                <p className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-xs text-ink-3">
+                <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-ink-3">
                   <KindChip kind={pm.kind} />
                   {pm.date}
                 </p>
@@ -52,7 +48,7 @@ export function Postmortems() {
                   <span className="text-sm leading-snug text-ink-2">{lead.label}</span>
                 </p>
                 <p className="mt-auto flex items-center justify-between gap-3 pt-6 text-sm">
-                  <span className="font-mono text-xs text-ink-3">
+                  <span className="text-xs text-ink-3">
                     {done} of {pm.actions.length} actions done
                   </span>
                   <span className="inline-flex items-center gap-1 font-medium text-ink-2 group-hover:text-ink">

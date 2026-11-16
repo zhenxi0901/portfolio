@@ -65,7 +65,7 @@ function Constellation() {
           type="button"
           onClick={() => scrollToId(hub.target)}
           style={{ left: `${SPOTS[i].x}%`, top: `${SPOTS[i].y}%` }}
-          className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-1 font-mono text-[11px] text-ink shadow-soft max-[359px]:px-2 max-[359px]:text-[10px] transition-colors hover:border-accent-ink focus-visible:border-accent-ink"
+          className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-line bg-surface px-2.5 py-1 font-mono text-[11px] text-ink shadow-soft max-[359px]:px-2 max-[359px]:text-[10px] transition-colors hover:border-accent-ink focus-visible:border-accent-ink"
           aria-label={`${hub.label}: jump to related work`}
         >
           {hub.label}

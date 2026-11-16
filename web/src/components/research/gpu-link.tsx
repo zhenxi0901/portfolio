@@ -13,7 +13,7 @@ export function GpuLink() {
         <Box title="NSCC A100" lines={["SGLang server", "Qwen3-4B"]} />
         <div className="relative flex flex-col items-center justify-center py-2 sm:py-0" aria-hidden>
           <span className="tunnel h-px w-full" />
-          <span className="mt-2 rounded-full bg-surface-2 px-2.5 py-1 font-mono text-[11px] text-ink-2">SSH tunnel through IAP</span>
+          <span className="mt-2 rounded-md bg-surface-2 px-2.5 py-1 font-mono text-[11px] text-ink-2">SSH tunnel through IAP</span>
         </div>
         <Box title="Google Cloud VM" lines={["ARIES runner", "task sandboxes, live apps"]} />
       </div>

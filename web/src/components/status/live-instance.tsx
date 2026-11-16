@@ -82,7 +82,7 @@ export function LiveInstance({ commit = true }: { commit?: boolean }) {
       <ol className="mt-10 flex flex-wrap items-center gap-2 text-sm" aria-label="How this site is served">
         {FLOW.map((step, i) => (
           <li key={step} className="flex items-center gap-2">
-            <span className="rounded-full border border-line bg-surface px-3.5 py-1.5 font-mono text-xs text-ink-2">{step}</span>
+            <span className="rounded-md border border-line bg-surface px-3.5 py-1.5 font-mono text-xs text-ink-2">{step}</span>
             {i < FLOW.length - 1 && <ArrowRight size={14} className="text-ink-3" />}
           </li>
         ))}
@@ -123,7 +123,7 @@ export function LiveInstance({ commit = true }: { commit?: boolean }) {
             {tiles.map((t) => (
               <div key={t.label} className="rounded-3xl border border-line bg-surface p-5">
                 <dt className="text-sm text-ink-2">{t.label}</dt>
-                <dd className="mt-2 truncate text-2xl font-semibold tracking-[-0.03em]">{t.value}</dd>
+                <dd className="mt-2 truncate text-2xl font-semibold tracking-[-0.02em] text-live-ink">{t.value}</dd>
               </div>
             ))}
           </dl>
@@ -170,8 +170,8 @@ function Sparkline({ values }: { values: number[] }) {
         onMouseLeave={() => setHover(null)}
       >
         <line x1={0} x2={W} y1={H - pad} y2={H - pad} stroke="var(--line)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-        <path d={area} fill="var(--accent-ink)" opacity={0.1} />
-        <path d={d} fill="none" stroke="var(--accent-ink)" strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+        <path d={area} fill="var(--live-ink)" opacity={0.12} />
+        <path d={d} fill="none" stroke="var(--live-ink)" strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
         {hover !== null && (
           <line x1={x(hover)} x2={x(hover)} y1={pad} y2={H - pad} stroke="var(--ink-3)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         )}

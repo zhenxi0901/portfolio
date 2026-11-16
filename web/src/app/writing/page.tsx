@@ -11,8 +11,8 @@ export const metadata = pageMetadata({
 
 export default function WritingPage() {
   return (
-    <SiteShell path="/writing" title="Writing and postmortems">
-      <Writing />
+    <SiteShell path="/writing">
+      <Writing chapter />
       <Postmortems />
     </SiteShell>
   );

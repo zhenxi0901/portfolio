@@ -13,10 +13,14 @@ export function readMinutes(post: Post) {
   return Math.max(1, Math.round(words / 220));
 }
 
-export function Writing() {
+/** `chapter`: the section opens /writing, so its heading is the page's h1. */
+export function Writing({ chapter = false }: { chapter?: boolean } = {}) {
+  // Straight under the page's h1 on /writing, a post's title is an h2; under the section's h2 elsewhere, an h3.
+  const Title = chapter ? "h2" : "h3";
   return (
     <section id="writing" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
       <SectionHeading
+        as={chapter ? "h1" : "h2"}
         title="Writing"
         lead="Longer notes on what the measurements showed. The numbers are the same ones the rest of this site uses."
       />
@@ -29,11 +33,11 @@ export function Writing() {
             >
               <p className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <ProductTag p={post.product} />
-                <span className="font-mono text-xs text-ink-3">
+                <span className="text-xs text-ink-3">
                   {post.date} · {readMinutes(post)} min read
                 </span>
               </p>
-              <h3 className="mt-4 text-[1.6rem] font-semibold leading-tight tracking-[-0.03em]">{post.title}</h3>
+              <Title className="mt-4 text-[1.6rem] font-semibold leading-tight tracking-[-0.02em]">{post.title}</Title>
               <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{post.summary}</p>
               <span className="mt-auto inline-flex items-center gap-1 pt-6 text-sm font-medium text-ink-2 group-hover:text-ink">
                 Read it <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />

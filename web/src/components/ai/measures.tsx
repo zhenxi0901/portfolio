@@ -1,12 +1,13 @@
 import { measures } from "@/content/ai-platform";
 
 /** How I benchmark and watch an LLM service: the question, what answers it, and why. */
-export function Measures() {
+export function Measures({ level = 4 }: { level?: 3 | 4 }) {
+  const Question = level === 3 ? "h3" : "h4";
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {measures.map((m) => (
         <article key={m.question} className="flex flex-col rounded-3xl border border-line bg-surface p-5">
-          <h4 className="font-semibold">{m.question}</h4>
+          <Question className="font-semibold">{m.question}</Question>
           <ul className="mt-3 flex flex-wrap gap-1.5">
             {m.metrics.map((x) => (
               <li key={x}>

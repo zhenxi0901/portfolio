@@ -37,8 +37,9 @@ export const sections = [
     label: "Postmortems",
     keywords: ["incident", "outage", "rca", "root cause", "blameless", "near miss", "on-call", "what went wrong"],
   },
-  { id: "about", label: "About", keywords: ["about", "bio", "who", "background", "stack", "tools"] },
-  { id: "experience", label: "Experience", keywords: ["jobs", "primustech", "engie", "internship", "education", "ntu"] },
+  // "resume" and "cv": what a recruiter types first; the résumé itself is not published, its contents are here.
+  { id: "about", label: "About", keywords: ["about", "bio", "who", "background", "stack", "tools", "resume", "résumé", "cv"] },
+  { id: "experience", label: "Experience", keywords: ["jobs", "primustech", "engie", "internship", "education", "ntu", "resume", "résumé", "cv", "work history"] },
   { id: "ask", label: "Ask me", keywords: ["question", "chat", "search", "rag"] },
   { id: "status", label: "Live status", keywords: ["uptime", "latency", "live", "trace", "cold start", "server", "dora", "deploys"] },
   { id: "contact", label: "Contact", keywords: ["email", "hire", "message", "reach"] },
