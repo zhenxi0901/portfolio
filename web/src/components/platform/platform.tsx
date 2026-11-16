@@ -25,7 +25,8 @@ const TAB_IDS = TABS.map((t) => t.id);
  * Opened from elsewhere on the page with: window.dispatchEvent(new CustomEvent("platform-tab", { detail: "cost" })),
  * and from other pages with a link to /iot#platform-cost.
  */
-export function Platform() {
+/** `chapter`: on /iot, where the page already says which product this is. */
+export function Platform({ chapter = false }: { chapter?: boolean } = {}) {
   const [tab, setTab] = useState<Tab>("paths");
   useHashTab("platform", TAB_IDS, setTab);
 
@@ -41,7 +42,7 @@ export function Platform() {
   return (
     <section id="platform" className="scroll-mt-20 border-t border-line bg-surface-2/40">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
-        <ProductTag p="iot" className="mb-5" />
+        {!chapter && <ProductTag p="iot" className="mb-5" />}
         <SectionHeading
           title="Inside the IoT platform"
           lead="Start with the path a request takes through it. The alerts that page me, and why each one does, are in the next tab; the cost review that cut the bill by an estimated 15% is in the last."
@@ -52,7 +53,7 @@ export function Platform() {
             role="tablist"
             aria-label="Platform views"
             onKeyDown={(e) => onTabKeys(e, TABS.length, TAB_IDS.indexOf(tab), (k) => setTab(TABS[k].id))}
-            className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-surface p-1">
+            className="flex flex-wrap gap-2 sm:inline-flex sm:gap-1 sm:rounded-lg sm:border sm:border-line sm:bg-surface sm:p-1">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -63,8 +64,8 @@ export function Platform() {
                 aria-controls={`panel-${t.id}`}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "relative rounded-md px-4 py-2 text-sm font-medium transition-colors",
-                  tab === t.id ? "text-on-accent" : "text-ink-2 hover:text-ink",
+                  "relative rounded-md px-4 py-2 text-sm font-medium transition-colors max-sm:border",
+                  tab === t.id ? "text-on-accent max-sm:border-accent" : "text-ink-2 hover:text-ink max-sm:border-line",
                 )}
               >
                 {tab === t.id && (

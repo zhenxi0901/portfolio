@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ArrowUpRight, CheckCircle, Circle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, Circle, ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { postmortems, REPO, type TimelineTag } from "@/content/postmortems";
 import { ArticleShell, Bullets, Part, Prose, StatRow } from "@/components/article/article-shell";
 import { serif } from "@/components/article/serif";
@@ -137,7 +137,7 @@ export default async function PostmortemPage(props: PageProps<"/postmortems/[slu
                 <KindChip kind={o.kind} />
                 <p className="mt-3 font-semibold leading-snug tracking-[-0.01em]">{o.title}</p>
                 <p className="mt-2 inline-flex items-center gap-1 text-sm text-ink-3 group-hover:text-ink">
-                  Read it <ArrowUpRight size={13} />
+                  Read it <ArrowRight size={13} />
                 </p>
               </a>
             </li>

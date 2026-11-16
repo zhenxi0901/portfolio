@@ -51,7 +51,8 @@ export function SloPanel() {
   }, []);
 
   const r = report;
-  const budgetTone = !r?.available ? "" : r.budget_remaining >= 0.5 ? "text-good" : r.budget_remaining >= 0 ? "text-p-ai" : "text-critical";
+  // A healthy budget is just a live reading, lime like the figures beside it; amber and red still warn.
+  const budgetTone = !r?.available ? "" : r.budget_remaining >= 0.5 ? "text-live-ink" : r.budget_remaining >= 0 ? "text-p-ai" : "text-critical";
 
   return (
     <div ref={ref} className="mt-4 rounded-3xl border border-line bg-surface p-6">
@@ -60,7 +61,7 @@ export function SloPanel() {
           This site&apos;s own SLO, measured from outside{" "}
           <span className="ml-1 text-sm font-normal text-ink-3">· real data</span>
         </p>
-        <p className="font-mono text-xs text-ink-2">Objective: 99.9% over 30 days</p>
+        <p className="text-sm text-ink-2">Objective: 99.9% over 30 days</p>
       </div>
       <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-2">
         SLI: the share of Google Cloud uptime checks that get a 2xx from <code className="font-mono text-[13px]">/api/health</code> within
@@ -109,7 +110,7 @@ export function SloPanel() {
                 />
               ))}
             </div>
-            <p className="mt-2 flex justify-between font-mono text-[11px] text-ink-3">
+            <p className="mt-2 flex justify-between text-xs text-ink-3">
               <span>30 days ago</span>
               <span>each bar is 24 hours</span>
               <span>now</span>

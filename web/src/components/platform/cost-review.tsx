@@ -27,7 +27,7 @@ export function CostReview() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <ol role="tablist" aria-label="Cost moves" onKeyDown={(e) => onTabKeys(e, levers.length, i, setI)} className="flex min-w-0 gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+        <ol role="tablist" aria-label="Cost moves" onKeyDown={(e) => onTabKeys(e, levers.length, i, setI)} className="scroll-hint flex min-w-0 gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
           {levers.map((x, k) => (
             // presentation: a tablist must own its tabs directly.
             <li key={x.title} role="presentation" className="shrink-0">

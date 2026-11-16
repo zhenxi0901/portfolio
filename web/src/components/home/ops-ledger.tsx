@@ -88,7 +88,7 @@ export function OpsLedger() {
       label: "Error budget left",
       href: "/status",
       value: slo ? `${tenthDown(Math.max(0, slo.budget_minutes - slo.downtime_minutes))} min` : null,
-      note: slo ? `of ${slo.budget_minutes} for a 99.9% objective` : "for a 99.9% objective",
+      note: slo ? `of ${slo.budget_minutes} min for a 99.9% objective` : "for a 99.9% objective",
       live: true,
     },
     {
@@ -121,10 +121,22 @@ export function OpsLedger() {
     },
   ];
 
-  const tries: { title: string; text: string; href?: string; terminal?: boolean }[] = [
+  const code = "font-mono text-[13px] text-ink";
+  const tries: { title: string; text: React.ReactNode; href?: string; terminal?: boolean }[] = [
     { title: "Break it yourself", text: "Inject delays and 503s into your own requests, and watch retries, a breaker and hedging cope.", href: "/break" },
     { title: "Go on call", text: "Two incidents to work through, and a postmortem of your own at the end.", href: "/oncall" },
-    { title: "Open the terminal", text: "A shell over the live API. Try status, slo or oncall. Press ` anywhere.", terminal: true },
+    {
+      title: "Open the terminal",
+      // The commands are machine text, so mono; the key is a keycap, as in the top bar (a bare ` read as nothing).
+      text: (
+        <>
+          A shell over the live API. Try <code className={code}>status</code>, <code className={code}>slo</code> or{" "}
+          <code className={code}>oncall</code>. Press <kbd className="rounded border border-line-strong px-1 font-mono text-[12px] text-ink">`</kbd>{" "}
+          anywhere.
+        </>
+      ),
+      terminal: true,
+    },
     { title: "Ask about my work", text: "Answers from this site's own facts, with sources and a trace of how each was found.", href: "/about#ask" },
     { title: "Point an agent at it", text: "The site is an MCP server with five read-only tools.", href: "/agents" },
     { title: "Read the decisions", text: `${decisions.length} records of why the site is built the way it is, and what each one costs.`, href: "/decisions" },

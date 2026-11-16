@@ -379,7 +379,7 @@ const commands: Record<string, Command> = {
       line(t("Shell", BOLD)),
       ...["theme", "tour", "contact", "history", "clear", "exit"].map(helpRow),
       line(""),
-      dim("Tab completes, ↑ and ↓ walk the history, Ctrl+C cancels, Esc closes. The green words are buttons."),
+      dim("Tab completes, ↑ and ↓ walk the history, Ctrl+C cancels, Esc closes. The underlined words are buttons."),
     ],
   },
   whoami: {

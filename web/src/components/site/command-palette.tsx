@@ -51,6 +51,11 @@ export function rank(value: string, search: string, keywords: string[] = []): nu
   return query.every((q) => inLabel(q) || extra.includes(q)) ? 0.6 : 0.5;
 }
 
+/** Words a visitor would type for a case whose title doesn't say them. */
+const caseWords: Record<string, string[]> = {
+  reaper: ["cost", "bill", "savings", "finops", "kafka topics", "orphaned"],
+};
+
 /** `now`: the action needs the click's user activation (a new tab, the clipboard), so it cannot wait a frame. */
 type Entry = { id: string; group: string; label: string; keywords?: string[]; icon: React.ReactNode; action: () => void; now?: boolean };
 
@@ -87,7 +92,8 @@ export function CommandPalette() {
       id: `case-${c.id}`,
       group: "Case studies",
       label: c.title,
-      keywords: [...c.stack, ...c.products.map((p) => products[p].name), "case study"],
+      // The case's own name (its address: "reaper" found nothing before), and the words people use for the cost case.
+      keywords: [c.id, ...(caseWords[c.id] ?? []), ...c.stack, ...c.products.map((p) => products[p].name), "case study"],
       icon: page,
       action: () => goTo(`/work/${c.id}`),
     })),

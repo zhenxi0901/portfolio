@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { posts, type Post } from "@/content/writing";
 import { SectionHeading } from "@/components/site/section-heading";
 import { ProductTag } from "@/components/site/product-tag";
@@ -40,7 +40,7 @@ export function Writing({ chapter = false }: { chapter?: boolean } = {}) {
               <Title className="mt-4 text-[1.6rem] font-semibold leading-tight tracking-[-0.02em]">{post.title}</Title>
               <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{post.summary}</p>
               <span className="mt-auto inline-flex items-center gap-1 pt-6 text-sm font-medium text-ink-2 group-hover:text-ink">
-                Read it <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                Read it <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
               </span>
             </a>
           </Reveal>

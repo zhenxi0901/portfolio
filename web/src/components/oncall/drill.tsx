@@ -51,7 +51,7 @@ export function Drill({ scenario }: { scenario: Scenario }) {
 
   if (phase === "idle") {
     return (
-      <div className="mt-8 rounded-3xl border border-line bg-surface p-6 sm:p-8 lg:flex lg:items-start lg:justify-between lg:gap-10">
+      <div className="mt-8 border-y border-line py-6 sm:py-8 lg:flex lg:items-start lg:justify-between lg:gap-10">
         <div>
           <p className="font-semibold">How it works</p>
           <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-ink-2">

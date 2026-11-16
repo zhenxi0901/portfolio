@@ -101,7 +101,7 @@ export function Console() {
           role="tablist"
           aria-label="Tools"
           onKeyDown={(e) => onTabKeys(e, tools.length, tools.indexOf(tool), (i) => pick(tools[i].name))}
-          className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible"
+          className="scroll-hint flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible"
         >
           {tools.map((t) => (
             <button

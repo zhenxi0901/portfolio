@@ -49,7 +49,7 @@ export function Connect() {
         <CopyButton text={ENDPOINT} label="Copy URL" />
       </div>
 
-      <div role="tablist" aria-label="Ways to connect" onKeyDown={(e) => onTabKeys(e, WAYS.length, i, setI)} className="mt-6 flex gap-2 overflow-x-auto pb-1">
+      <div role="tablist" aria-label="Ways to connect" onKeyDown={(e) => onTabKeys(e, WAYS.length, i, setI)} className="scroll-hint mt-6 flex gap-2 overflow-x-auto pb-1">
         {WAYS.map((w, k) => (
           <button
             key={w.key}

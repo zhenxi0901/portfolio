@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { posts, type Block } from "@/content/writing";
 import { ArticleShell, Part } from "@/components/article/article-shell";
 import { serif } from "@/components/article/serif";
@@ -104,7 +104,11 @@ export default async function PostPage(props: PageProps<"/writing/[slug]">) {
                 className="group flex items-center justify-between gap-4 py-4 text-[15px] sm:text-base"
               >
                 <span className="text-ink-2 group-hover:text-ink">{l.label}</span>
-                <ArrowUpRight size={16} className="shrink-0 text-ink-3 group-hover:text-ink" />
+                {l.href.startsWith("http") ? (
+                  <ArrowUpRight size={16} className="shrink-0 text-ink-3 group-hover:text-ink" />
+                ) : (
+                  <ArrowRight size={16} className="shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+                )}
               </a>
             </li>
           ))}

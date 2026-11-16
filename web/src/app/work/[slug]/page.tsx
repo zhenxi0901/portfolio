@@ -90,7 +90,11 @@ export default async function CasePage(props: PageProps<"/work/[slug]">) {
               <li key={d.href}>
                 <a href={d.href} className="group flex items-center justify-between gap-4 py-4 text-[15px] transition-colors hover:text-ink sm:text-base">
                   <span className="text-ink-2 group-hover:text-ink">{d.label}</span>
-                  <ArrowUpRight size={16} className="shrink-0 text-ink-3 group-hover:text-ink" />
+                  {d.href.startsWith("http") ? (
+                    <ArrowUpRight size={16} className="shrink-0 text-ink-3 group-hover:text-ink" />
+                  ) : (
+                    <ArrowRight size={16} className="shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+                  )}
                 </a>
               </li>
             ))}

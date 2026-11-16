@@ -275,7 +275,7 @@ export const experience: Role[] = [
   {
     org: "Primustech",
     role: "DevOps Engineer Intern",
-    period: "May 2026 - now",
+    period: "May 2026 – now",
     place: "Singapore",
     // Work for a customer that runs on neither product.
     points: ["For a customer, outside both platforms: a read-only Modbus reader for 718 energy-meter channels, tested at full scale against a simulator."],
@@ -308,7 +308,7 @@ export const experience: Role[] = [
   {
     org: "NTU HyScale Lab",
     role: "Final-year research",
-    period: "Aug 2026 - now",
+    period: "Aug 2026 – now",
     place: "Singapore",
     points: [],
     tags: [],
@@ -329,7 +329,7 @@ export const experience: Role[] = [
   {
     org: "NTU Multidisciplinary Design Project",
     role: "Robot car: Android app and Raspberry Pi integration",
-    period: "Aug 2026 - Oct 2026",
+    period: "Aug 2026 – Oct 2026",
     place: "Singapore",
     points: [
       "Built the Android tablet controller, in Kotlin, for an autonomous robot car: an STM32 drives it, a Raspberry Pi links it to the tablet, and a laptop plans the route and recognises targets in the Pi's camera feed.",
@@ -340,7 +340,7 @@ export const experience: Role[] = [
   {
     org: "ENGIE South East Asia",
     role: "Control Systems Intern",
-    period: "May 2025 - Feb 2026",
+    period: "May 2025 – Feb 2026",
     place: "Singapore",
     points: [
       "Configured BMS-room networks and firewalls for multi-building projects across sites.",
@@ -352,7 +352,7 @@ export const experience: Role[] = [
   {
     org: "Shanghai Jiao Tong University",
     role: "Summer Research Intern",
-    period: "May 2024 - Aug 2024",
+    period: "May 2024 – Aug 2024",
     place: "Shanghai",
     points: ["Cut NeRF rendering time by 40% and raised image fidelity by 30% with CUDA and PyTorch."],
     tags: ["CUDA", "PyTorch", "NeRF"],
@@ -362,7 +362,7 @@ export const experience: Role[] = [
 export const education = {
   school: "Nanyang Technological University",
   degree: "Bachelor of Computer Science",
-  period: "Jul 2023 - Jun 2027",
+  period: "Jul 2023 – Jun 2027",
   exchanges: ["Tsinghua University", "Luleå University of Technology"],
 };
 

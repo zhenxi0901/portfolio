@@ -31,7 +31,7 @@
   /* One colour per product, so a visitor can tell which system a card or box belongs to. */
   --p-iot: #026398; /* 4.8:1 or better as tag text on its own tint, on every light surface */
   /* Product colours. Light values are dark enough for 12px text on their own 10% tint (4.5:1). */
-  --p-ai: #92400e;
+  --p-ai: #9a5a00;
   --p-aries: #6d28d9;
   --shadow: 0 1px 0 rgba(13, 13, 16, 0.04), 0 12px 32px -16px rgba(13, 13, 16, 0.18);
   /* The cost receipt's paper: a warm white, a step brighter than the surface it lies on. */
@@ -124,6 +124,13 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Headings break into lines of even length instead of leaving one word alone at the end ("…not / GKE"),
+ * and running text avoids a one-word last line. Browsers without support wrap as before.
+ */
+h1, h2, h3, h4 { text-wrap: balance; }
+p, li, dd, figcaption, blockquote { text-wrap: pretty; }
+
 ::selection { background: var(--accent); color: var(--on-accent); }
 
 :focus-visible {
@@ -184,12 +191,16 @@ html.js [data-reveal]:not([data-shown]) .draw { stroke-dashoffset: 1; }
   from { transform: translateY(14px); }
 }
 
-/* The section the guided tour is showing. */
+/*
+ * The section the guided tour is showing: a highlighter band behind the lower half of the heading.
+ * A thin ink underline read as a link now that links are ink; the band follows the lines as they wrap.
+ */
 h2[data-tour] {
   text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 0.12em;
-  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in oklab, var(--accent) 16%, transparent);
+  text-decoration-thickness: 0.4em;
+  text-underline-offset: -0.26em;
+  text-decoration-skip-ink: none;
 }
 
 /* The hop a request is travelling on the AI platform map. */
@@ -245,6 +256,43 @@ h2[data-tour] {
 }
 @keyframes strike {
   from { transform: scaleX(0); }
+}
+
+/*
+ * A row that scrolls sideways (the chip rows below lg): each edge fades while there is more to see that way,
+ * driven by the row's own scroll position, so a phone shows that two-thirds of the choices are off to the
+ * right. Where scroll-driven animations aren't supported, the row simply doesn't fade.
+ */
+@property --hint-l { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --hint-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes scroll-hint {
+  from { --hint-l: 0px; --hint-r: 2.5rem; }
+  8% { --hint-l: 2.5rem; }
+  92% { --hint-r: 2.5rem; }
+  to { --hint-l: 2.5rem; --hint-r: 0px; }
+}
+@supports (animation-timeline: scroll()) {
+  @media (max-width: 1023.98px) {
+    .scroll-hint {
+      mask-image: linear-gradient(to right, transparent, #000 var(--hint-l), #000 calc(100% - var(--hint-r)), transparent);
+      animation: scroll-hint linear both;
+      animation-timeline: scroll(self inline);
+    }
+  }
+}
+
+/* Sliders: a thumb-sized hit area on touch screens, where the native control is only 16 px tall. */
+@media (pointer: coarse) {
+  input[type="range"] { min-height: 2.75rem; }
+}
+
+/*
+ * Unused capacity in a bar (free GPU memory, the GPU idle while an agent runs its tools): hatched, so it
+ * reads as a part of the bar. Left as the bare track, the largest part of a turn looked like nothing at all.
+ */
+.hatch {
+  background-color: var(--surface-2);
+  background-image: repeating-linear-gradient(135deg, color-mix(in oklab, var(--ink-3) 55%, transparent) 0 1px, transparent 1px 5px);
 }
 
 /* The SSH tunnel between the research GPU and the agents. */

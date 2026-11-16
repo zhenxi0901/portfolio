@@ -131,7 +131,8 @@ export function Experience() {
         })}
       </ol>
 
-      <div className="mt-14 grid gap-2 rounded-3xl border border-line bg-surface p-6 sm:grid-cols-[9rem_1fr] sm:p-8">
+      <h3 className="mt-14 border-t border-line pt-6 text-sm font-medium text-ink-3">Education</h3>
+      <div className="mt-4 grid gap-2 sm:grid-cols-[9rem_1fr]">
         <p className="text-sm text-ink-3">{education.period}</p>
         <div>
           <p className="text-xl font-semibold tracking-[-0.02em]">{education.school}</p>

@@ -19,7 +19,7 @@ export function FlowExplorer() {
         role="tablist"
         aria-label="Traffic paths"
         onKeyDown={(e) => onTabKeys(e, flows.length, flows.findIndex((f) => f.id === active), (k) => setActive(flows[k].id))}
-        className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+        className="scroll-hint flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
         {flows.map((f) => (
           <button
             key={f.id}

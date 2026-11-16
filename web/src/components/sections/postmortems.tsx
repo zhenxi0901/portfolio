@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { postmortems, type Postmortem } from "@/content/postmortems";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "@/components/site/section-heading";
@@ -28,15 +28,16 @@ export function Postmortems() {
         </a>
         , and get a postmortem of your own response.
       </p>
-      <ol className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {/* Side by side, the cards share five rows (subgrid), so each card's figure and its rule line up across the row. */}
+      <ol className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-[repeat(5,auto)] lg:gap-y-0">
         {postmortems.map((pm, i) => {
           const done = pm.actions.filter((a) => a.done).length;
           const [lead] = pm.stats;
           return (
-            <Reveal key={pm.slug} as="li" delay={i * 0.06} className="h-full">
+            <Reveal key={pm.slug} as="li" delay={i * 0.06} className="h-full lg:row-span-5 lg:grid lg:grid-rows-subgrid">
               <a
                 href={`/postmortems/${pm.slug}`}
-                className="group flex h-full flex-col rounded-3xl border border-line bg-surface p-6 transition-colors hover:border-ink-3 sm:p-7"
+                className="group flex h-full flex-col rounded-3xl border border-line bg-surface p-6 transition-colors hover:border-ink-3 sm:p-7 lg:row-span-5 lg:grid lg:grid-rows-subgrid"
               >
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-ink-3">
                   <KindChip kind={pm.kind} />
@@ -53,7 +54,7 @@ export function Postmortems() {
                     {done} of {pm.actions.length} actions done
                   </span>
                   <span className="inline-flex items-center gap-1 font-medium text-ink-2 group-hover:text-ink">
-                    Read it <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    Read it <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </p>
               </a>

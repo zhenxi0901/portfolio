@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 import type { CaseStudy } from "@/content/profile";
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/motion/reveal";
@@ -41,7 +41,8 @@ export function CaseCard({
           wide && "lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[1fr_auto] lg:gap-x-10 lg:p-8",
           tone === "plain" && "bg-surface",
           tone === "raised" && "bg-surface-2",
-          tone === "tint" && "bg-[color-mix(in_oklab,var(--accent)_14%,var(--surface))]",
+          // Was a lime wash; now that --accent is ink, a mix of it read as a heavy grey. A quiet raised surface instead.
+          tone === "tint" && "bg-surface-2",
           tone === "dots" && "bg-surface",
         )}
       >
@@ -70,7 +71,7 @@ export function CaseCard({
             wide && "lg:col-start-1 lg:row-start-2 lg:self-end",
           )}
         >
-          Read the case <ArrowUpRight size={15} />
+          Read the case <ArrowRight size={15} />
         </a>
       </article>
     </Reveal>

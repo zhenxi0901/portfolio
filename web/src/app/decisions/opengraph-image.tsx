@@ -11,7 +11,7 @@ export default function Image() {
   return ogImage({
     eyebrow: "Architecture decision records",
     eyebrowColor: ogTone.accent,
-    title: "Why this site is built the way it is, and what each choice costs.",
+    title: "Why this site is built the way it is, and what each choice costs",
     summary: "Cloud Run over GKE, one Go binary, build once and check before traffic, an SLO measured from outside, and an error budget that gates releases.",
     stats: [
       { value: String(decisions.length), label: "decisions on record" },

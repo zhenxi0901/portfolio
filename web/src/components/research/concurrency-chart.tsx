@@ -65,11 +65,15 @@ export function ConcurrencyChart() {
               </text>
             </g>
           ))}
-          {LEVELS.map((l) => (
-            <text key={l} x={x(l)} y={H - 16} textAnchor="middle" className="fill-ink-3 font-mono text-[16px] sm:text-[11px]">
-              {l} at once
-            </text>
-          ))}
+          {LEVELS.map((l, k) => {
+            // The end labels lean inwards: centred, "4 at once" ran past the drawing's right edge and lost its last letters.
+            const edge = k === 0 ? "start" : k === LEVELS.length - 1 ? "end" : "middle";
+            return (
+              <text key={l} x={x(l) + (edge === "start" ? -8 : edge === "end" ? 8 : 0)} y={H - 16} textAnchor={edge} className="fill-ink-3 font-mono text-[16px] sm:text-[11px]">
+                {l} at once
+              </text>
+            );
+          })}
 
           <path d={ideal} fill="none" stroke="var(--ink-3)" strokeWidth={1} opacity={0.8} />
           <text x={x(4) - 6} y={y(base * 4) - 8} textAnchor="end" className="fill-ink-3 text-[16px] sm:text-[11px]">

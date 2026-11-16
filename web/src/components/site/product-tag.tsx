@@ -7,9 +7,9 @@ export const productIcon: Record<ProductKey, Icon> = { iot: Buildings, ai: Robot
 
 /** Tailwind classes per product. Written out in full so Tailwind can see them. */
 export const productTone: Record<ProductKey, { text: string; bg: string; border: string; soft: string }> = {
-  iot: { text: "text-p-iot", bg: "bg-p-iot", border: "border-p-iot/50", soft: "bg-p-iot/10" },
-  ai: { text: "text-p-ai", bg: "bg-p-ai", border: "border-p-ai/50", soft: "bg-p-ai/10" },
-  aries: { text: "text-p-aries", bg: "bg-p-aries", border: "border-p-aries/50", soft: "bg-p-aries/10" },
+  iot: { text: "text-p-iot", bg: "bg-p-iot", border: "border-p-iot", soft: "bg-p-iot/10" },
+  ai: { text: "text-p-ai", bg: "bg-p-ai", border: "border-p-ai", soft: "bg-p-ai/10" },
+  aries: { text: "text-p-aries", bg: "bg-p-aries", border: "border-p-aries", soft: "bg-p-aries/10" },
 };
 
 /**

@@ -5,7 +5,7 @@ import { count, usd, useCost, useServerStatus } from "./use-cost";
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <li className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
+    <li className="border-t border-line py-5 first:border-t-0 first:pt-0">
       <h3 className="text-lg font-semibold leading-snug tracking-[-0.02em]">{title}</h3>
       <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{children}</p>
     </li>
@@ -23,7 +23,7 @@ export function CostInsights() {
   const status = useServerStatus();
   if (!report?.available) {
     return (
-      <ul className="grid content-start gap-3" aria-busy={!report || undefined}>
+      <ul className="grid content-start" aria-busy={!report || undefined}>
         <Card title="Waiting for the meters">
           Once the month&apos;s meters can be read, this part reads them and says where the time and money went: how much of the traffic is the site
           watching itself, what Cloud Run&apos;s 100 ms billing step does to a fast server, and what the free tier does not cover.
@@ -41,7 +41,7 @@ export function CostInsights() {
   const p50 = status?.latency_ms.p50;
   const work = p50 === undefined ? "" : p50 < 0.1 ? "under 0.1 ms" : `${p50.toFixed(1)} ms`;
   return (
-    <ul className="grid content-start gap-3">
+    <ul className="grid content-start">
       <Card title={`${share(r.probe_share)} requests are the site checking on itself`}>
         Uptime checks call /api/health once a minute from three regions: about {count(r.probe_requests)} of this month&apos;s{" "}
         {count(r.usage.requests)} requests. Knowing the site is up is most of its traffic.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight } from "@phosphor-icons/react";
+import { ArrowRight, ArrowUpRight } from "@phosphor-icons/react";
 import { fyp } from "@/content/profile";
 import { postHref } from "@/content/writing";
 import { onTabKeys } from "@/lib/tabs";
@@ -57,7 +57,7 @@ export function Rootless() {
           role="tablist"
           aria-label="What the cluster does not allow"
           onKeyDown={(e) => onTabKeys(e, LIMITS.length, i, setI)}
-          className="flex gap-2 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible"
+          className="scroll-hint flex gap-2 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible"
         >
           {LIMITS.map((l, k) => (
             <button
@@ -88,7 +88,7 @@ export function Rootless() {
 
       <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <a href={postHref("agents-without-root")} className="inline-flex items-center gap-1.5 font-medium underline decoration-accent-ink decoration-2 underline-offset-4">
-          Read the write-up <ArrowUpRight size={14} />
+          Read the write-up <ArrowRight size={14} />
         </a>
         <a href={a.pr} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-medium underline decoration-accent-ink decoration-2 underline-offset-4">
           The pull request <ArrowUpRight size={14} />

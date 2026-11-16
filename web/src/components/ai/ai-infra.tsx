@@ -120,7 +120,7 @@ export function AiInfra({ chapter = false }: { chapter?: boolean } = {}) {
               role="tablist"
               aria-label="AI platform views"
               onKeyDown={(e) => onTabKeys(e, TABS.length, TAB_IDS.indexOf(tab), (k) => setTab(TABS[k].id))}
-              className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-surface p-1">
+              className="flex flex-wrap gap-2 sm:inline-flex sm:gap-1 sm:rounded-lg sm:border sm:border-line sm:bg-surface sm:p-1">
               {TABS.map((t) => (
                 <button
                   key={t.id}
@@ -131,8 +131,8 @@ export function AiInfra({ chapter = false }: { chapter?: boolean } = {}) {
                   aria-controls={`ai-panel-${t.id}`}
                   onClick={() => setTab(t.id)}
                   className={cn(
-                    "relative rounded-md px-4 py-2 text-sm font-medium transition-colors",
-                    tab === t.id ? "text-on-accent" : "text-ink-2 hover:text-ink",
+                    "relative rounded-md px-4 py-2 text-sm font-medium transition-colors max-sm:border",
+                    tab === t.id ? "text-on-accent max-sm:border-accent" : "text-ink-2 hover:text-ink max-sm:border-line",
                   )}
                 >
                   {tab === t.id && (

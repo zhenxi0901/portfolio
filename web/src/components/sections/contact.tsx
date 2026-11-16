@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/motion/reveal";
 
 const field =
-  "w-full rounded-[14px] border border-line-strong bg-surface px-4 py-3 text-[15px] text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-accent-ink";
+  "w-full rounded-md border border-line-strong bg-surface px-4 py-3 text-[15px] text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-accent-ink";
 
 export function Contact() {
   const [sending, setSending] = useState(false);

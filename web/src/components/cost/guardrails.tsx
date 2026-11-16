@@ -48,9 +48,9 @@ export function CostGuardrails() {
     },
   ];
   return (
-    <ul className="divide-y divide-line rounded-3xl border border-line bg-surface">
+    <ul className="divide-y divide-line border-y border-line">
       {rows.map((r) => (
-        <li key={r.what} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-baseline sm:gap-6 sm:p-5">
+        <li key={r.what} className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-6 sm:py-5">
           <span className="w-56 shrink-0 font-medium">{r.what}</span>
           <span className="flex-1 text-[15px] leading-relaxed text-ink-2">{r.how}</span>
         </li>

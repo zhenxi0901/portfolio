@@ -79,7 +79,8 @@ export function egressCost(g: number, p: CostPrices): number {
 export function bytes(b: number): string {
   if (b >= 2 ** 40) return `${(b / 2 ** 40).toFixed(2)} TiB`;
   if (b >= 100 * 2 ** 30) return `${Math.round(b / 2 ** 30).toLocaleString("en-US")} GiB`;
-  if (b >= 1 << 30) return `${(b / (1 << 30)).toFixed(2)} GiB`;
+  // From 100 MiB up in GiB, the unit the bill uses, so the receipt and its footer agree.
+  if (b >= 100 * (1 << 20)) return `${(b / (1 << 30)).toFixed(2)} GiB`;
   if (b >= 1 << 20) return `${(b / (1 << 20)).toFixed(1)} MiB`;
   return `${Math.round(b / 1024).toLocaleString("en-US")} KiB`;
 }

@@ -46,7 +46,8 @@ function readVisit(): Visit | null {
   };
 }
 
-const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : v >= 10 ? `${Math.round(v)} ms` : `${v.toFixed(1)} ms`);
+// The same precision as the readings below the map (ops-ledger.tsx): one Go-server time once read 0.1 here and 0.15 there.
+const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : v >= 10 ? `${Math.round(v)} ms` : v >= 1 ? `${v.toFixed(1)} ms` : `${v.toFixed(2)} ms`);
 const ago = (iso: string) => {
   const m = Math.max(0, (Date.now() - new Date(iso).getTime()) / 60000);
   return m < 1 ? "just now" : m < 60 ? `${Math.round(m)} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
@@ -298,7 +299,7 @@ export function LiveMap() {
           ))}
         </svg>
         <Card node="you" title="You" sub={place ?? "this browser"} href="/status#visit-trace" label={`You${place ? `, in ${place} time` : ""}. Your visit's trace is on the status page.`} live />
-        <Card node="gfe" title="Google front end" sub={visit?.protocol ?? "TLS · HTTP"} href="/decisions" label="Google's front end terminates TLS. Why the site runs this way: the decision records." />
+        <Card node="gfe" title="Google front end" sub={visit?.protocol ?? "TLS · HTTP"} href="/decisions" label="Google's front end terminates TLS. Why the site runs this way: the decision records." live />
         <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} live />
         <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} live />
         <Card node="api" title="/api" sub="status · slo · cost" href="/agents" label="The JSON API and the MCP server: for agents." />
@@ -386,7 +387,8 @@ export function LiveMap() {
             .{" "}
           </>
         )}
-        <span className="hidden md:inline">The lime path is what you just did; the dashed lines are what keeps watch over it. Every box opens a page.</span>
+        {/* "Green", not "lime" (the light theme draws it olive), and "dotted", not "dashed" (the request path moves in dashes). */}
+        <span className="hidden md:inline">The green path is the request you just made; the grey dotted lines are what keeps watch over it. Every box opens a page.</span>
         <span className="md:hidden">Watched by uptime checks from three regions: {avail}.</span>
       </figcaption>
     </figure>

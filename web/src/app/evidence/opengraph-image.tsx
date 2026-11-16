@@ -11,7 +11,7 @@ export default function Image() {
   return ogImage({
     eyebrow: "Evidence · claims and their proof",
     eyebrowColor: ogTone.accent,
-    title: "Don't take my word for it.",
+    title: "Don't take my word for it",
     summary: "Every headline claim on this site, sorted by how you can check it: live, on public record, or private and labelled as such.",
     stats: [
       { value: String(proofCounts.live), label: "you can check right now" },

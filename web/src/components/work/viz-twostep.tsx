@@ -37,8 +37,8 @@ export function TwoStepViz() {
                 broken ? "border-critical/50 text-critical" : "border-line text-ink-2",
               )}
             >
-              {c}
-              <span className="text-[10px] text-ink-3">{send ? "AUTH" : "no auth"}</span>
+              <span className="min-w-0">{c}</span>
+              <span className="shrink-0 whitespace-nowrap text-[10px] text-ink-3">{send ? "AUTH" : "no auth"}</span>
             </li>
           ))}
         </ul>
@@ -50,7 +50,7 @@ export function TwoStepViz() {
         <div className={cn("rounded-2xl border bg-surface p-4 text-center", done ? "border-good/50" : broken ? "border-critical/50" : "border-line")}>
           <LockKey size={22} weight={require ? "fill" : "regular"} className={cn("mx-auto", require ? "text-accent-ink" : "text-ink-3")} />
           <p className="mt-2 text-sm font-medium">Cache</p>
-          <p className="mt-0.5 font-mono text-[11px] text-ink-3">{require ? "password required" : "open"}</p>
+          <p className="mt-0.5 text-xs text-ink-3">{require ? "password required" : "open"}</p>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export function TwoStepViz() {
           >
             <input type="checkbox" checked={s.on} onChange={(e) => s.set(e.target.checked)} className="size-4 accent-[var(--accent-ink)]" />
             <span>
-              <span className="block font-mono text-[11px] text-ink-3">{s.step}</span>
+              <span className="block text-xs text-ink-3">{s.step}</span>
               {s.label}
             </span>
           </label>

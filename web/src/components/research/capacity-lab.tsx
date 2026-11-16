@@ -265,6 +265,7 @@ export function CapacityLab({ level = 3 }: { level?: 2 | 3 }) {
               <span className={cn("h-full", r.overBudget ? "bg-critical" : "bg-accent")} style={{ width: w(Math.min(r.kvInUseGiB, Math.max(0, usable - r.weightsGiB))) }} />
             )}
             {r.overBudget && r.fits && <span className="h-full bg-critical/40" style={{ width: w(r.kvInUseGiB - Math.max(0, usable - r.weightsGiB)) }} />}
+            {r.fits && free > 0 && <span className="hatch h-full flex-1" />}
           </div>
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
             <span>
@@ -278,6 +279,7 @@ export function CapacityLab({ level = 3 }: { level?: 2 | 3 }) {
               </span>
             )}
             <span>
+              {free >= 0 && <span className="hatch mr-1.5 inline-block size-2.5 rounded-sm border border-line-strong align-middle" aria-hidden />}
               {free >= 0 ? "free" : "over by"} {gib(Math.abs(free))} of {gib(usable)}
             </span>
           </p>
@@ -296,6 +298,7 @@ export function CapacityLab({ level = 3 }: { level?: 2 | 3 }) {
           <div className="mt-2 flex h-6 overflow-hidden rounded-lg border border-line bg-surface-2" role="img" aria-label={`The GPU works ${secs(r.modelSecondsPerTurn)} of a ${secs(turnTotal)} turn; the agent's own work is the rest.`}>
             <span className="h-full bg-p-aries" style={{ width: `${Math.max(0.6, prefillShare * 100)}%` }} />
             <span className="h-full bg-accent" style={{ width: `${decodeShare * 100}%` }} />
+            <span className="hatch h-full flex-1" />
           </div>
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
             <span>
@@ -307,8 +310,8 @@ export function CapacityLab({ level = 3 }: { level?: 2 | 3 }) {
               writing the reply {secs(r.modelSecondsPerTurn - r.prefillPerTurnMs / 1000)}
             </span>
             <span>
-              <span className="mr-1.5 inline-block size-2.5 rounded-sm border border-line bg-surface-2 align-middle" aria-hidden />
-              tools and commands {secs(s.outsideSeconds)}
+              <span className="hatch mr-1.5 inline-block size-2.5 rounded-sm border border-line-strong align-middle" aria-hidden />
+              GPU idle: tools and commands {secs(s.outsideSeconds)}
             </span>
           </p>
           {r.gpuBound && (

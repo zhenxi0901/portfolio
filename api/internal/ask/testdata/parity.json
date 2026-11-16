@@ -8,7 +8,7 @@
   },
   {
     "question": "What did the final-year project find?",
-    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 - now, on the ARIES agent benchmarks. Contributed a Go benchmark adapter to ARIES, the lab's open-source framework for agent-serving research. Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026). Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
+    "answer": "Final-year research at NTU HyScale Lab, Aug 2026 – now, on the ARIES agent benchmarks. Contributed a Go benchmark adapter to ARIES, the lab's open-source framework for agent-serving research. Added an Apptainer backend, so the whole agent stack runs without root on Singapore's national supercomputer (6,678 lines, merged Nov 2026). Benchmarked 320 LLM agent runs on a hosted API and self-hosted SGLang on an A100, then profiled what MCP tool servers cost across 48 instrumented runs.",
     "sources": [
       "role-ntu-hyscale-lab-aries"
     ]
@@ -46,7 +46,7 @@
   },
   {
     "question": "Where did ZhenXi study?",
-    "answer": "Bachelor of Computer Science at Nanyang Technological University, Jul 2023 - Jun 2027. Exchange semesters at Tsinghua University and Luleå University of Technology.",
+    "answer": "Bachelor of Computer Science at Nanyang Technological University, Jul 2023 – Jun 2027. Exchange semesters at Tsinghua University and Luleå University of Technology.",
     "sources": [
       "education"
     ]
@@ -105,7 +105,7 @@
   },
   {
     "question": "SCADA and PLC experience",
-    "answer": "Control Systems Intern at ENGIE South East Asia, May 2025 - Feb 2026. Configured BMS-room networks and firewalls for multi-building projects across sites. Mapped and validated 800+ BACnet/OPC points from DDCs and PLCs into SCADA. Programmed Siemens S7-1200 PLC logic and linked site data to central monitoring.",
+    "answer": "Control Systems Intern at ENGIE South East Asia, May 2025 – Feb 2026. Configured BMS-room networks and firewalls for multi-building projects across sites. Mapped and validated 800+ BACnet/OPC points from DDCs and PLCs into SCADA. Programmed Siemens S7-1200 PLC logic and linked site data to central monitoring.",
     "sources": [
       "role-engie-south-east-asia"
     ]

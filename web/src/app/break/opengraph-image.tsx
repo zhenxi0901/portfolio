@@ -8,9 +8,9 @@ export const dynamic = "force-static";
 
 export default function Image() {
   return ogImage({
-    eyebrow: "Fault injection · the Go server on Cloud Run",
+    eyebrow: "Break it yourself · the Go server on Cloud Run",
     eyebrowColor: ogTone.accent,
-    title: "Break it yourself: real faults on a live server, and four clients coping.",
+    title: "Real faults on a live server, and four ways a client copes",
     summary: "Pick the delays and 503s, send real requests, and watch give-up, retries with jitter, a circuit breaker and hedging handle them, attempt by attempt.",
     stats: [
       {

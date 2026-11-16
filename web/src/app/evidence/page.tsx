@@ -33,7 +33,7 @@ function Badge({ kind }: { kind: ProofKind }) {
 
 function ClaimCard({ c, id }: { c: Claim; id: string }) {
   return (
-    <li className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
+    <li className="border-t border-line py-5 sm:py-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Badge kind={c.kind} />
         <a href={c.seen.href} className="text-xs text-ink-3 underline decoration-line-strong underline-offset-4 hover:text-ink">
@@ -63,7 +63,7 @@ function ClaimCard({ c, id }: { c: Claim; id: string }) {
               <a
                 href={l.href}
                 {...(external(l.href) ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
               >
                 {l.label}
                 {external(l.href) && <ArrowUpRight size={12} aria-hidden />}
@@ -108,7 +108,7 @@ export default function EvidencePage() {
       {claimGroups.map((g) => (
         <Part key={g.id} title={g.title} aside={`${g.claims.length} claims`}>
           <p className="mb-5 max-w-[68ch] text-[15px] leading-relaxed text-ink-2">{g.lead}</p>
-          <ul className="space-y-3">
+          <ul className="border-b border-line">
             {g.claims.map((c, k) => (
               <ClaimCard key={c.claim} c={c} id={`claim-${g.id}-${k}`} />
             ))}

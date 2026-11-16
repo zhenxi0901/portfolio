@@ -1,5 +1,5 @@
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
-import { ArticleShell, Bullets, Part, StatRow } from "@/components/article/article-shell";
+import { ArticleShell, Bullets, Part } from "@/components/article/article-shell";
 import { Connect } from "@/components/agents/connect";
 import { Console } from "@/components/agents/console";
 import { TerminalCard } from "@/components/agents/terminal-card";
@@ -45,7 +45,7 @@ const sources = [
 
 export default function AgentsPage() {
   return (
-    <ArticleShell back={{ href: "/about#ask", label: "Ask me" }} wide>
+    <ArticleShell back={{ href: "/", label: "Home" }} wide>
       <h1 className="mt-10 max-w-[20ch] text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Ask this site with your own agent</h1>
       <p className="mt-6 max-w-[64ch] text-lg leading-relaxed text-ink-2">
         This portfolio is also an MCP server. Add one URL to Claude, Cursor or any client that speaks the Model Context Protocol, and your agent can
@@ -54,14 +54,6 @@ export default function AgentsPage() {
       <p className="mt-3 text-[15px] text-ink-2">
         The endpoint is <code className="font-mono text-ink">{host}/mcp</code>, speaking Model Context Protocol {MCP_PROTOCOL}.
       </p>
-
-      <StatRow
-        stats={[
-          { value: String(agentTools.length), label: "read-only tools over the site's facts and live numbers" },
-          { value: "2", label: "protocol eras served: stateless 2026 and the older handshake" },
-          { value: "0", label: "models on my side: your agent brings its own" },
-        ]}
-      />
 
       <Part title="Connect" aside="one URL">
         <Connect />
@@ -128,7 +120,7 @@ export default function AgentsPage() {
           <li>
             <a
               href="/decisions#mcp-without-sessions-or-a-model"
-              className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+              className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
             >
               ADR 10: why it has no sessions and no model
             </a>

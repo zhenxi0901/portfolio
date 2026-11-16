@@ -188,7 +188,7 @@ export function GkeViz() {
       <LayoutGroup>
         {mode === "before" ? (
           <motion.div layout className="rounded-2xl border border-line-strong bg-surface/85 p-3.5 backdrop-blur-[2px]">
-            <motion.p layout="position" className="mb-3 font-mono text-[11px] text-ink-3">
+            <motion.p layout="position" className="mb-3 text-xs text-ink-3">
               One VM, Docker Compose, one in-memory queue
             </motion.p>
             <div className="flex flex-wrap gap-1.5">
@@ -211,7 +211,7 @@ export function GkeViz() {
             </Zone>
 
             <motion.div layout className="rounded-2xl border border-line-strong bg-surface/85 p-3.5 backdrop-blur-[2px]">
-              <motion.p layout="position" className="mb-3 flex flex-wrap justify-between gap-2 font-mono text-[11px] text-ink-3">
+              <motion.p layout="position" className="mb-3 flex flex-wrap justify-between gap-2 text-xs text-ink-3">
                 <span>Regional GKE, 3 zones</span>
                 <span className="text-ink" aria-live="polite">
                   {nodeCount} of 9 nodes, {replicas} Core API pods
@@ -220,7 +220,7 @@ export function GkeViz() {
               <div className="grid grid-cols-3 gap-2">
                 {ZONES.map((zone) => (
                   <div key={zone} className="flex flex-col gap-2">
-                    <p className="font-mono text-[10px] text-ink-3">zone {zone}</p>
+                    <p className="text-[11px] text-ink-3">zone {zone}</p>
                     <AnimatePresence mode="popLayout" initial={false}>
                       {nodes
                         .filter((n) => n.zone === zone)
@@ -261,14 +261,14 @@ export function GkeViz() {
                     exit={{ opacity: 0 }}
                     className="mt-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-dashed border-accent-ink/70 p-2"
                   >
-                    <span className="font-mono text-[10px] text-ink-2">Pending, needs 3 GiB, no node has room:</span>
+                    <span className="text-[11px] text-ink-2">Pending, needs 3 GiB, no node has room:</span>
                     {Array.from({ length: pending }, (_, i) => (
                       <Pod key={i} id={`pending-${i}`} text="Core API" small tone="pending" />
                     ))}
                   </motion.div>
                 )}
               </AnimatePresence>
-              <p className="mt-2 font-mono text-[10px] text-ink-3">Rule engine, web UI and cache pods not shown.</p>
+              <p className="mt-2 text-[11px] text-ink-3">Rule engine, web UI and cache pods not shown.</p>
             </motion.div>
 
             <Zone title="Managed, over private service access">
@@ -288,7 +288,7 @@ export function GkeViz() {
           >
             <label className="flex items-center justify-between gap-3 text-sm">
               <span className="font-medium">Traffic</span>
-              <span className="font-mono text-xs text-ink-2">
+              <span className="text-xs text-ink-2">
                 {traffic.toFixed(1)}x load, {replicas} pods, {nodeCount} nodes
               </span>
             </label>
@@ -331,7 +331,7 @@ export function GkeViz() {
         </div>
       )}
 
-      <p className="mt-auto font-mono text-[11px] text-ink-3">
+      <p className="mt-auto text-xs text-ink-3">
         {mode === "before"
           ? "One failure domain, deployed by hand, and a queue that could not be shared."
           : "Time is compressed: the real windows are 2 min to scale up, 5 min to scale down."}
@@ -343,7 +343,7 @@ export function GkeViz() {
 function Zone({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <motion.div layout className="rounded-2xl border border-line-strong bg-surface/85 p-3.5 backdrop-blur-[2px]">
-      <motion.p layout="position" className="mb-3 font-mono text-[11px] text-ink-3">
+      <motion.p layout="position" className="mb-3 text-xs text-ink-3">
         {title}
       </motion.p>
       <div className="flex flex-wrap gap-1.5">{children}</div>
@@ -370,7 +370,8 @@ function Pod({
       exit={{ opacity: 0, scale: 0.5 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
       className={
-        "rounded-full border font-medium " +
+        // Small corners, like every other chip and button since the brand refresh (these were full pills).
+        "rounded-md border font-medium " +
         (small ? "px-2 py-0.5 text-[11px] " : "px-2.5 py-1 text-xs ") +
         (tone === "edge"
           ? "border-transparent bg-accent text-on-accent"

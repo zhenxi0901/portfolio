@@ -14,7 +14,7 @@ export default function Image() {
   return ogImage({
     eyebrow: "Changelog · written by the pipeline",
     eyebrowColor: ogTone.accent,
-    title: "Every release of this site, and what it shipped.",
+    title: "Every release of this site, and what it shipped",
     summary: "Built once, checked before it takes traffic, rolled back on its own if the live checks fail. Drills included.",
     stats: [
       { value: String(totals.releases), label: "releases to production" },

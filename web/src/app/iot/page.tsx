@@ -20,7 +20,7 @@ export default function IotPage() {
         lead={`${products.iot.what} I run it on GKE at Primustech. Below are six changes I shipped on it, each as a model you can run, and after them the platform seen from the inside.`}
       />
       <Work chapter="iot" />
-      <Platform />
+      <Platform chapter />
     </SiteShell>
   );
 }

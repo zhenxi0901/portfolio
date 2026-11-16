@@ -1,4 +1,4 @@
-import { ArrowUpRight, MagnifyingGlassPlus } from "@phosphor-icons/react/dist/ssr";
+import { MagnifyingGlassPlus, ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { fyp, publication } from "@/content/profile";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Reveal } from "@/components/motion/reveal";
@@ -49,7 +49,7 @@ export function Research({ chapter = false }: { chapter?: boolean } = {}) {
                   href={postHref("serving-llm-agents")}
                   className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-accent-ink decoration-2 underline-offset-4"
                 >
-                  Read the write-up <ArrowUpRight size={14} />
+                  Read the write-up <ArrowRight size={14} />
                 </a>
                 <a
                   href={fyp.aries}

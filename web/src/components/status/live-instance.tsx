@@ -82,7 +82,7 @@ export function LiveInstance({ commit = true }: { commit?: boolean }) {
       <ol className="mt-10 flex flex-wrap items-center gap-2 text-sm" aria-label="How this site is served">
         {FLOW.map((step, i) => (
           <li key={step} className="flex items-center gap-2">
-            <span className="rounded-md border border-line bg-surface px-3.5 py-1.5 font-mono text-xs text-ink-2">{step}</span>
+            <span className="text-sm text-ink-2">{step}</span>
             {i < FLOW.length - 1 && <ArrowRight size={14} className="text-ink-3" />}
           </li>
         ))}
@@ -95,7 +95,7 @@ export function LiveInstance({ commit = true }: { commit?: boolean }) {
             <span className="inline-flex items-center gap-2 text-sm text-ink-2" role="status">
               {data && !offline ? (
                 <>
-                  <span className="size-2 rounded-full bg-good" /> Live
+                  <span className="size-2 rounded-full bg-live ring-1 ring-live-ink/40" /> Live
                 </>
               ) : (
                 <>
@@ -184,6 +184,22 @@ function Sparkline({ values }: { values: number[] }) {
           {vals[hover].toFixed(2)} ms
         </div>
       )}
+      {/* The scale in words: the chart has no axis, and a flat line with one spike means little without it. */}
+      <p className="mt-2 flex justify-between gap-4 text-xs text-ink-3" aria-hidden>
+        <span>
+          last {vals.length} requests, oldest on the left
+        </span>
+        <span>
+          highest <span className="font-medium text-live-ink">{Math.max(...vals).toFixed(1)} ms</span>, median{" "}
+          <span className="font-medium text-live-ink">{median(vals).toFixed(1)} ms</span>
+        </span>
+      </p>
     </div>
   );
 }
+
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};

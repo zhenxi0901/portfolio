@@ -61,9 +61,10 @@ export function LiveState() {
         </p>
       </div>
       <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
-        <Fact label="answered your browser in" value={r?.status ? `${Math.round(r.ms)} ms` : "n/a"} />
-        <Fact label="live commit" value={r?.status?.commit ?? "n/a"} mono />
-        <Fact label="region" value={r?.status?.region ?? "n/a"} mono />
+        {/* Read from the API just now, so lime, like every live figure on the site. */}
+        <Fact label="answered your browser in" value={r?.status ? `${Math.round(r.ms)} ms` : "n/a"} live={!!r?.status} />
+        <Fact label="live commit" value={r?.status?.commit ?? "n/a"} mono live={!!r?.status} />
+        <Fact label="region" value={r?.status?.region ?? "n/a"} mono live={!!r?.status} />
         <Fact
           label="releases"
           value={!r?.slo?.releases || r.slo.releases === "unknown" ? "n/a" : r.slo.releases === "open" ? "open" : "frozen: fixes only"}
@@ -73,11 +74,11 @@ export function LiveState() {
   );
 }
 
-function Fact({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function Fact({ label, value, mono = false, live = false }: { label: string; value: string; mono?: boolean; live?: boolean }) {
   return (
     <div className="flex flex-col-reverse justify-end">
       <dt className="mt-1 text-ink-2">{label}</dt>
-      <dd className={cn("text-lg font-semibold", mono && "font-mono text-base")}>{value}</dd>
+      <dd className={cn("text-lg font-semibold", mono && "font-mono text-base", live && "text-live-ink")}>{value}</dd>
     </div>
   );
 }

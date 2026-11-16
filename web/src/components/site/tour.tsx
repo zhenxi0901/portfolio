@@ -153,6 +153,8 @@ export function Tour() {
         if (e.key === "ArrowRight") go(i + 1);
         if (e.key === "ArrowLeft") go(i - 1);
       }}
+      // Bottom right on wide screens. The left side holds each stop's main content (the hero's buttons on a
+      // 1366x768 laptop, the live readings, the first chapter), so the card covers less there.
       className="fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg overflow-hidden rounded-3xl border border-line-strong bg-surface/95 shadow-soft outline-none backdrop-blur-md lg:inset-x-auto lg:bottom-6 lg:right-6 lg:mx-0 lg:w-[24rem]"
     >
       <div className="h-1 bg-surface-2" aria-hidden>

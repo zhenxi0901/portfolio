@@ -52,7 +52,7 @@ export function Monitoring() {
         role="tablist"
         aria-label="Monitoring views"
         onKeyDown={(e) => onTabKeys(e, VIEWS.length, VIEWS.findIndex((v) => v.id === view), (k) => setView(VIEWS[k].id))}
-        className="mt-6 inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1">
+        className="mt-6 flex flex-wrap gap-2 sm:inline-flex sm:gap-1 sm:rounded-lg sm:border sm:border-line sm:bg-surface sm:p-1">
         {VIEWS.map((v) => (
           <button
             key={v.id}
@@ -63,8 +63,8 @@ export function Monitoring() {
             tabIndex={view === v.id ? 0 : -1}
             onClick={() => setView(v.id)}
             className={cn(
-              "rounded-xl px-3.5 py-1.5 text-sm font-medium transition-colors",
-              view === v.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink",
+              "rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors max-sm:border",
+              view === v.id ? "bg-ink text-bg max-sm:border-ink" : "text-ink-2 hover:text-ink max-sm:border-line",
             )}
           >
             {v.label}

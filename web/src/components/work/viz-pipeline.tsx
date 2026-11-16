@@ -69,7 +69,7 @@ export function PipelineViz() {
             >
               <StageIcon state={s} />
               <span className={s === "pending" ? "text-ink-3" : "text-ink"}>{stage}</span>
-              <span className="ml-auto font-mono text-[11px] text-ink-3">
+              <span className="ml-auto text-xs text-ink-3">
                 {s === "passed" && "passed"}
                 {s === "running" && "running"}
                 {s === "failed" && <span className="text-critical">1 critical CVE</span>}
@@ -98,7 +98,7 @@ export function PipelineViz() {
           </Button>
         )}
       </div>
-      <p className="min-h-5 font-mono text-[11px] text-ink-3" aria-live="polite">
+      <p className="min-h-5 text-xs text-ink-3" aria-live="polite">
         {run.phase === "done" && "Deployed the exact digest that passed every gate."}
         {run.phase === "failed" && "Stopped at the scan. Nothing reached production."}
         {run.phase === "idle" && "A simulation of the real release gates."}

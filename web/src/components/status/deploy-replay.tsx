@@ -44,7 +44,7 @@ const OUTCOME: Record<string, string> = { failure: "failed", cancelled: "cancell
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
 
 /**
  * The latest deploy to production replayed from its own run: every step at its real start and length,
@@ -114,7 +114,7 @@ export function DeployReplay() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="font-semibold">Replay the latest deploy</p>
         <p className="font-mono text-xs text-ink-2">
-          commit {last.sha} · {when(last.ended)} UTC · {clock(last.seconds)} end to end
+          commit {last.sha} · {when(last.ended)} SGT · {clock(last.seconds)} end to end
         </p>
       </div>
       <p className="mt-2 max-w-[75ch] text-sm leading-relaxed text-ink-2">

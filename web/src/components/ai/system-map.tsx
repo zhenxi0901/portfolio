@@ -67,6 +67,10 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
+  const narrow = () => {
+    const el = panRef.current;
+    return !!el && el.scrollWidth > el.clientWidth + 4;
+  };
 
   const journey = journeys.find((j) => j.id === jid)!;
   const steps = journey.steps;
@@ -81,7 +85,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
       ([e]) => {
         if (e.isIntersecting && !started.current) {
           started.current = true;
-          setPlaying(true);
+          setPlaying(!narrow());
           io.disconnect();
         }
       },
@@ -112,7 +116,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
     started.current = true;
     setJid(id);
     setI(0);
-    setPlaying(!reduce);
+    setPlaying(!reduce && !narrow());
   };
   const go = (n: number) => {
     setPlaying(false);
@@ -133,7 +137,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
           role="tablist"
           aria-label="Journeys through the AI products"
           onKeyDown={(e) => onTabKeys(e, journeys.length, journeys.findIndex((j) => j.id === jid), (k) => choose(journeys[k].id))}
-          className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+          className="scroll-hint flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
           {journeys.map((j) => (
             <button
               key={j.id}
@@ -172,7 +176,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
         </button>
       </div>
 
-      <div id="journey-panel" role="tabpanel" aria-labelledby={`journey-tab-${jid}`} className="min-w-0 overflow-hidden rounded-3xl border border-line bg-surface">
+      <div id="journey-panel" role="tabpanel" aria-labelledby={`journey-tab-${jid}`} className="flex min-w-0 flex-col overflow-hidden rounded-3xl border border-line bg-surface">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-5 sm:px-7 sm:pt-6">
           {journey.product ? (
             <ProductTag p={journey.product} />
@@ -183,7 +187,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
         </div>
 
         {/* Wider than a phone: focusable, so it can be scrolled from the keyboard too. */}
-        <div ref={panRef} tabIndex={0} role="region" aria-label="Map of the AI products (scrolls sideways on small screens)" className="overflow-x-auto px-2 pb-2 pt-3 sm:px-4">
+        <div ref={panRef} tabIndex={0} role="region" aria-label="Map of the AI products (scrolls sideways on small screens)" className="overflow-x-auto px-2 pb-2 pt-3 max-lg:order-2 sm:px-4">
           <svg
             viewBox="0 0 1000 640"
             className="block w-full min-w-[720px] font-sans"
@@ -283,7 +287,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
             })}
           </svg>
         </div>
-        <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pb-4 text-xs text-ink-2 sm:px-7" aria-label="Colour key">
+        <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pb-4 text-xs text-ink-2 max-lg:order-3 sm:px-7" aria-label="Colour key">
           {(["ai", "iot"] as const).map((p) => (
             <li key={p} className="flex items-center gap-1.5">
               <span aria-hidden className={cn("h-3 w-1 rounded-full", productTone[p].bg)} />
@@ -296,7 +300,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
           </li>
         </ul>
 
-        <div className="border-t border-line px-5 py-5 sm:px-7">
+        <div className="border-t border-line px-5 py-5 max-lg:order-1 max-lg:border-b sm:px-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-ink-3">
               Step {i + 1} of {steps.length}

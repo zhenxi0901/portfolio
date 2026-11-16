@@ -40,7 +40,7 @@ const dayLabel = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 const asOf = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
 
 /** DORA's four keys for this site itself, plus the deploy timeline behind them. */
 const count = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
@@ -74,8 +74,8 @@ export function DeliveryPanel() {
     <div className="mt-4 rounded-3xl border border-line bg-surface p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="font-semibold">How this site ships, measured</p>
-        <p className="font-mono text-xs text-ink-2">
-          DORA metrics, last {d.windowDays} days, as of {asOf(d.generated)} UTC
+        <p className="text-sm text-ink-2">
+          DORA metrics, last {d.windowDays} days, as of {asOf(d.generated)} SGT
         </p>
       </div>
 
@@ -101,7 +101,7 @@ export function DeliveryPanel() {
             ) : (
               "rollback drill"
             )}
-            , {asOf(s.lastDrill.ended)} UTC: traffic back on the old revision{s.lastDrill.restoreSeconds != null ? ` ${s.lastDrill.restoreSeconds} s after the switch` : ""}.
+            , {asOf(s.lastDrill.ended)} SGT: traffic back on the old revision{s.lastDrill.restoreSeconds != null ? ` ${s.lastDrill.restoreSeconds} s after the switch` : ""}.
           </>
         ) : (
           "No rollback drill in this window yet."
@@ -123,7 +123,7 @@ export function DeliveryPanel() {
             />
           ))}
         </div>
-        <p className="mt-2 flex justify-between font-mono text-[11px] text-ink-3">
+        <p className="mt-2 flex justify-between text-xs text-ink-3">
           <span>{d.windowDays} days ago</span>
           <span>deploys per day, Singapore time</span>
           <span>today</span>

@@ -34,13 +34,13 @@ export function ProductKey() {
                   <Icon size={20} weight="duotone" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-mono text-[11px] text-ink-3">{products[p].org}</span>
+                  <span className="block text-xs text-ink-3">{products[p].org}</span>
                   <span className="flex items-center gap-1.5 font-semibold">
                     {products[p].name}
                     <ArrowRight size={13} className="text-ink-3 transition-transform group-hover:translate-x-0.5" />
                   </span>
                   <span className="mt-1 block text-sm leading-snug text-ink-2">{products[p].what}</span>
-                  <span className={cn("mt-2 block font-mono text-xs", tone.text)}>{products[p].runs}</span>
+                  <span className={cn("mt-2 block text-xs", tone.text)}>{products[p].runs}</span>
                 </span>
               </button>
             </li>

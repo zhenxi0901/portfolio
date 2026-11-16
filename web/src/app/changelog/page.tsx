@@ -65,12 +65,12 @@ export default function ChangelogPage() {
   const days = [...new Set(entries.map((e) => dayKey(e.at)))];
 
   return (
-    <ArticleShell back={{ href: "/status", label: "How this site runs" }}>
+    <ArticleShell back={{ href: "/status", label: "Status" }}>
       <h1 className="mt-10 text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Changelog</h1>
       <p className="mt-6 max-w-[62ch] text-lg leading-relaxed text-ink-2">
         Every release of this site to production, with the commits it shipped: {totals.releases} releases and {totals.commits} commits so
         far{listed < totals.releases ? `; the latest ${listed} are listed here` : ""}. Each line is written as a release note; a linked
-        commit id opens the commit as it was made.{" "}
+        commit id opens the commit as it was made. Days and times are Singapore time (SGT, UTC+8).{" "}
         {firstTag && (
           <>
             Since {firstTag}, each one is also a{" "}

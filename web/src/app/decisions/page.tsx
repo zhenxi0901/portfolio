@@ -21,7 +21,7 @@ const day = (iso: string) =>
  */
 export default function DecisionsPage() {
   return (
-    <ArticleShell back={{ href: "/status", label: "How this site runs" }} wide className={serif.variable}>
+    <ArticleShell back={{ href: "/status", label: "Status" }} wide className={serif.variable}>
       <h1 className="mt-10 max-w-[24ch] font-serif text-[clamp(2.25rem,4.8vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.012em]">
         Why this site is built the way it is
       </h1>
@@ -61,7 +61,7 @@ export default function DecisionsPage() {
                 <span>{day(d.date)}</span>
                 <span>{d.status}</span>
               </p>
-              <h2 id={`${d.slug}-title`} className="mt-2 max-w-[30ch] font-serif text-[1.75rem] font-semibold leading-snug tracking-[-0.01em] sm:text-[2rem]">
+              <h2 id={`${d.slug}-title`} className="mt-2 max-w-[34ch] text-[1.5rem] font-semibold leading-snug tracking-[-0.015em] sm:text-[1.75rem]">
                 {d.title}
               </h2>
 

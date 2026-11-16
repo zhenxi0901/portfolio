@@ -10,7 +10,7 @@ export default function Image() {
   return ogImage({
     eyebrow: "Cloud Run · request-based billing · Singapore",
     eyebrowColor: ogTone.accent,
-    title: "What this site costs to run, from its own meters.",
+    title: "What this site costs to run, from its own meters",
     summary: "This month's bill as a receipt at Google's list prices, where the money goes, and what a busy day would do to it.",
     stats: [
       {

@@ -120,7 +120,7 @@ export function Signals() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="min-w-0">
           <p className="mb-3 text-sm text-ink-3">Pick a way the platform fails:</p>
-          <div role="tablist" aria-label="Failure modes" onKeyDown={(e) => onTabKeys(e, signals.length, idx, choose)} className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+          <div role="tablist" aria-label="Failure modes" onKeyDown={(e) => onTabKeys(e, signals.length, idx, choose)} className="scroll-hint flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
             {signals.map((s, k) => (
               <button
                 key={s.question}

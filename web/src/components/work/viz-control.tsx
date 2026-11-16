@@ -67,21 +67,21 @@ export function ControlViz() {
     <div className="flex h-full flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-line bg-surface p-3.5">
-          <p className="font-mono text-[11px] text-ink-3">control bridge</p>
+          <p className="text-xs text-ink-3">Control bridge</p>
           <p className="mt-1 flex items-center gap-2 text-sm font-medium">
             <span className={cn("size-2 rounded-full", state === "armed" ? "bg-critical" : state === "dry run" ? "bg-good" : "bg-ink-3")} aria-hidden />
             {state}
           </p>
-          <p className="mt-2 font-mono text-[11px] text-ink-3">
+          <p className="mt-2 text-xs text-ink-3">
             commands this hour <span className="text-ink">{sent}</span>/{CAP}
           </p>
         </div>
         <div className="rounded-2xl border border-line bg-surface p-3.5">
-          <p className="font-mono text-[11px] text-ink-3">air-conditioning unit</p>
+          <p className="text-xs text-ink-3">Air-conditioning unit</p>
           <p className="mt-1 text-sm font-medium">
             {readback} °C <span className="font-normal text-ink-2">from the plant&apos;s readback</span>
           </p>
-          <p className="mt-2 font-mono text-[11px] text-ink-3">
+          <p className="mt-2 text-xs text-ink-3">
             selector <span className="text-ink">{selector === "auto" ? "auto" : "manual"}</span>
           </p>
         </div>
@@ -97,7 +97,7 @@ export function ControlViz() {
             options={[
               { value: "true", label: "true" },
               { value: "false", label: "false" },
-              { value: "fals", label: "fals" },
+              { value: "fals", label: "fals (a typo)" },
             ]}
           />
         </div>
@@ -122,7 +122,7 @@ export function ControlViz() {
           >
             <Minus size={14} />
           </button>
-          <span className="w-14 text-center font-mono text-sm tabular-nums" aria-live="polite">
+          <span className="w-14 text-center text-sm tabular-nums" aria-live="polite">
             {want} °C
           </span>
           <button
