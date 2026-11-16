@@ -23,19 +23,14 @@ export function InfraStack({ level = 4 }: { level?: 3 | 4 }) {
             style={{ marginInline: `${k * 0.25}rem` }}
           >
             <div className="flex items-center gap-3">
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 font-mono text-[11px] text-ink-2">{k + 1}</span>
+              <span className="w-5 shrink-0 text-sm text-ink-3">{k + 1}.</span>
               <Name className="font-semibold">{l.name}</Name>
               {l.mine && <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent sm:hidden">mine</span>}
             </div>
             <div className="min-w-0">
-              <ul className="flex flex-wrap gap-1.5">
-                {l.tools.map((t) => (
-                  <li key={t} className="rounded-lg border border-line bg-surface-2/70 px-2 py-1 font-mono text-[12px] leading-snug text-ink">
-                    {t}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2.5 text-sm leading-relaxed text-ink-2">{l.does}</p>
+              {/* The layer's tools as a line of text rather than a row of chips that look pressable. */}
+              <p className="text-[15px] font-medium leading-snug text-ink">{l.tools.join(", ")}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{l.does}</p>
               {l.mine && (
                 <p className="mt-2 inline-flex items-start gap-2 text-sm text-ink">
                   <span className="mt-0.5 hidden rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent sm:inline">mine</span>

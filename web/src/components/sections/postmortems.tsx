@@ -6,7 +6,8 @@ import { Reveal } from "@/components/motion/reveal";
 
 export function KindChip({ kind }: { kind: Postmortem["kind"] }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-0.5 font-mono text-[11px] text-ink-2">
+    // A label, not a button: the kind in words with a dot of colour, and no box around it.
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-2">
       <span aria-hidden className={cn("size-1.5 rounded-full", kind === "Near miss" ? "bg-critical" : "bg-p-ai")} />
       {kind}
     </span>

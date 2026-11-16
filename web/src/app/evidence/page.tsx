@@ -23,8 +23,9 @@ const home = { postmortems: "/writing#postmortems", contact: "/#contact" };
 function Badge({ kind }: { kind: ProofKind }) {
   const Icon = icons[kind];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 font-mono text-[11px]", tones[kind])}>
-      <Icon size={12} weight={kind === "live" ? "fill" : "regular"} aria-hidden />
+    // A label, not a button, so no box: the icon and the kind in words.
+    <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium", tones[kind])}>
+      <Icon size={14} weight={kind === "live" ? "fill" : "regular"} aria-hidden />
       {proofKinds[kind].label}
     </span>
   );
@@ -35,7 +36,7 @@ function ClaimCard({ c, id }: { c: Claim; id: string }) {
     <li className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Badge kind={c.kind} />
-        <a href={c.seen.href} className="font-mono text-xs text-ink-3 underline decoration-line-strong underline-offset-4 hover:text-ink">
+        <a href={c.seen.href} className="text-xs text-ink-3 underline decoration-line-strong underline-offset-4 hover:text-ink">
           claimed in: {c.seen.label}
         </a>
       </div>
@@ -85,11 +86,12 @@ export default function EvidencePage() {
         right now, something on public record, or work in a private repository that I cannot show you. The third kind is labelled as such.
       </p>
 
-      <dl className="mt-10 grid gap-3 sm:grid-cols-3">
+      {/* Three counts, not three buttons: figures under a rule, as on the case pages, with no boxes. */}
+      <dl className="mt-10 grid gap-x-8 gap-y-6 border-y border-line py-6 sm:grid-cols-3">
         {order.map((k) => {
           const Icon = icons[k];
           return (
-            <div key={k} className="flex flex-col-reverse justify-end rounded-3xl border border-line bg-surface p-5">
+            <div key={k} className="flex flex-col-reverse justify-end">
               <dt className="mt-2 text-sm leading-snug text-ink-2">
                 <span className={cn("flex items-center gap-1.5 font-medium", tones[k] === "text-ink-3" ? "text-ink-2" : tones[k])}>
                   <Icon size={14} weight={k === "live" ? "fill" : "regular"} aria-hidden />

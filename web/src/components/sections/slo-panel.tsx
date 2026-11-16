@@ -58,9 +58,7 @@ export function SloPanel() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="font-semibold">
           This site&apos;s own SLO, measured from outside{" "}
-          <span className="ml-1 rounded-md border border-line px-2 py-0.5 align-middle font-mono text-[11px] font-normal text-ink-2">
-            real data
-          </span>
+          <span className="ml-1 text-sm font-normal text-ink-3">· real data</span>
         </p>
         <p className="font-mono text-xs text-ink-2">Objective: 99.9% over 30 days</p>
       </div>

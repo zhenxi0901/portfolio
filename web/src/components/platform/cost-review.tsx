@@ -46,7 +46,7 @@ export function CostReview() {
               >
                 <span
                   className={cn(
-                    "grid size-6 shrink-0 place-items-center rounded-full font-mono text-[11px]",
+                    "grid size-6 shrink-0 place-items-center rounded-full text-xs",
                     k === i
                       ? "bg-accent text-on-accent"
                       : x.status === "done"
@@ -58,7 +58,7 @@ export function CostReview() {
                 </span>
                 <span className="min-w-0">
                   <span className="block font-medium">{x.title}</span>
-                  <span className="block font-mono text-[11px] text-ink-3">
+                  <span className="block text-xs text-ink-3">
                     {x.area}
                     {x.status === "in review" ? ", in review" : ""}
                   </span>
@@ -74,7 +74,7 @@ export function CostReview() {
           <div aria-live="polite">
             <div key={i} className="step-in">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] text-ink-2">{l.area}</span>
+                <span className="text-xs font-medium text-ink-2">{l.area}</span>
                 <span className="inline-flex items-center gap-1 text-xs text-ink-2">
                   {l.status === "done" ? (
                     <CheckCircle size={14} weight="fill" className="text-good" />
@@ -115,8 +115,8 @@ export function CostReview() {
             >
               <ArrowLeft size={14} /> Previous
             </button>
-            <span className="font-mono text-xs text-ink-3">
-              {i + 1} / {levers.length}
+            <span className="text-xs text-ink-3">
+              {i + 1} of {levers.length}
             </span>
             <button
               type="button"

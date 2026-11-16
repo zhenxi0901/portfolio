@@ -22,15 +22,12 @@ function Points({ points }: { points: string[] }) {
   );
 }
 
+/** The tools as a line of text: a row of chips read as buttons that did nothing. */
 function Tags({ tags }: { tags: string[] }) {
   return (
-    <ul className="mt-5 flex flex-wrap gap-2" aria-label="Tools">
-      {tags.map((t) => (
-        <li key={t} className="rounded-md border border-line px-3 py-1 font-mono text-xs text-ink-2">
-          {t}
-        </li>
-      ))}
-    </ul>
+    <p className="mt-5 max-w-[70ch] text-sm leading-relaxed text-ink-3">
+      <span className="font-medium text-ink-2">Tools:</span> {tags.join(", ")}
+    </p>
   );
 }
 
@@ -50,7 +47,7 @@ export function Experience() {
                 aria-expanded={isOpen}
                 className="group grid w-full grid-cols-[1fr_auto] items-center gap-x-6 gap-y-1 py-5 text-left sm:grid-cols-[9rem_1fr_auto] sm:py-6"
               >
-                <span className="order-2 col-span-2 font-mono text-xs text-ink-3 sm:order-none sm:col-span-1">{role.period}</span>
+                <span className="order-2 col-span-2 text-sm text-ink-3 sm:order-none sm:col-span-1">{role.period}</span>
                 <span className="min-w-0">
                   <span className="block text-[clamp(1.25rem,2.2vw,1.75rem)] font-semibold leading-tight tracking-[-0.03em] transition-colors group-hover:text-accent-ink">
                     {role.org}
