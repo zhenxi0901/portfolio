@@ -2,8 +2,8 @@ name: claims
 
 # Tests what the live site claims (/evidence), against records the site does not keep: its API as any visitor gets
 # it, GitHub's record of the runs and releases, other people's repositories. One claim is false on purpose, and the
-# run fails if its test passes. The results go on the tested release's commit as a check named "claims", which is
-# where the site reads them from (api/internal/claims).
+# run fails if its test passes. The results are the job's annotations, part of GitHub's own record of the run, which
+# is where the site reads them from (api/internal/claims).
 on:
   workflow_run:
     workflows: [deploy]
@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Not called "claims": GitHub gives a job a check of its own, under the job's name.
-  test:
+  # The site reads the results off the job of this name (api/internal/claims).
+  claims:
     # After a deploy that released something: a skipped or failed one changed nothing the claims are about.
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
@@ -32,7 +32,6 @@ jobs:
       contents: read
       actions: read # the deploy runs and their steps
       attestations: read # the newest releases' attestations
-      checks: write # the check the results go in
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -44,10 +43,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node claims/run.mjs
-      # Also when a claim fails: that is when the results matter most.
-      - name: Put the results on the release
-        if: always() && hashFiles('check.json') != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/check-runs" --input check.json --jq '"\(.conclusion): \(.output.title) \(.html_url)"'

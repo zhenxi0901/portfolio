@@ -70,6 +70,25 @@ export function headline(v) {
   return `${v.holding} of ${v.total} claims hold${unknown}; the false one fails, as it should`;
 }
 
+/** A workflow command, which the runner turns into an annotation on its job. */
+export const annotation = (level, title, message) =>
+  `::${level} title=${title}::${message.replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}`;
+
+/** The runner keeps 4,096 characters of a message. */
+const MESSAGE_MAX = 3600;
+
+/** The results as annotations: over as many as it takes, each whole JSON by itself, numbered so that a reader can tell when one is missing. */
+export function annotations({ claims, ...run }) {
+  const message = (some, part, of) => JSON.stringify({ part, of, ...run, claims: some });
+  const parts = [[]];
+  for (const c of claims) {
+    const last = parts.at(-1);
+    if (last.length && message([...last, c], 9, 9).length > MESSAGE_MAX) parts.push([c]);
+    else last.push(c);
+  }
+  return parts.map((some, i) => annotation("notice", `claims ${i + 1} of ${parts.length}`, message(some, i + 1, parts.length)));
+}
+
 const WORD = { holds: "holds", fails: "**fails**", unknown: "could not be checked" };
 const cell = (s) => s.replaceAll("|", "\\|");
 

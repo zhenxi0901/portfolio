@@ -1,13 +1,13 @@
 // Tests what the live site claims. `node claims/run.mjs [address]`; GITHUB_TOKEN raises GitHub's limit from 60 requests
-// an hour. In the workflow it also writes check.json, the check run that the site reads its own results from.
-import { appendFile, writeFile } from "node:fs/promises";
+// an hour. In the workflow it also leaves the results as annotations, which is where the site reads them from.
+import { appendFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import { CannotTell, headline, table, testClaims } from "./harness.mjs";
+import { annotation, annotations, CannotTell, headline, table, testClaims } from "./harness.mjs";
 import { tests } from "./tests.mjs";
 
 const REPO = "zhenxi0901/portfolio";
 const base = (process.argv[2] ?? "https://portfolio-emsghin2iq-as.a.run.app").replace(/\/$/, "");
-const { GITHUB_TOKEN, GITHUB_STEP_SUMMARY, GITHUB_SERVER_URL, GITHUB_RUN_ID } = process.env;
+const { GITHUB_TOKEN, GITHUB_STEP_SUMMARY, GITHUB_ACTIONS } = process.env;
 
 /** One request. What the other side does wrong (nothing, 429, 5xx) is not evidence about a claim. */
 async function ask(url, { allow = [], ...init } = {}) {
@@ -89,20 +89,11 @@ console.log(`\n${headline(v)}`);
 
 const summary = `${headline(v)}. Tested on commit ${commit} of ${base}.\n\n${table(v, textOf)}\n`;
 if (GITHUB_STEP_SUMMARY) await appendFile(GITHUB_STEP_SUMMARY, summary);
-if (process.env.GITHUB_ACTIONS === "true") {
-  // The check goes on the release that was tested, so the server of any release can find its own results.
-  const release = await github(`/repos/${REPO}/commits/${commit}`);
-  const result = { commit, tested: new Date().toISOString(), trustworthy: v.trustworthy, claims: v.claims, false_claim: v.false_claim };
-  await writeFile(
-    "check.json",
-    JSON.stringify({
-      name: "claims",
-      head_sha: release?.sha ?? process.env.GITHUB_SHA,
-      status: "completed",
-      conclusion: !v.ok ? "failure" : v.holding ? "success" : "neutral",
-      details_url: `${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}`,
-      output: { title: headline(v), summary, text: JSON.stringify(result) },
-    }),
-  );
+if (GITHUB_ACTIONS === "true") {
+  const { trustworthy, claims, false_claim } = v;
+  // For a person first, and then for the site.
+  console.log(annotation("notice", "Result", headline(v)));
+  for (const c of claims) if (c.verdict === "fails") console.log(annotation("error", "Does not hold", `${textOf(c.id)} ${c.saw}`));
+  for (const line of annotations({ commit, tested: new Date().toISOString(), trustworthy, claims, false_claim })) console.log(line);
 }
 process.exitCode = v.ok ? 0 : 1;

@@ -1,12 +1,13 @@
 // Package claims is what became of the site's claims when they were last tested: /claims in the repository has
-// a test for each one that can be checked from outside, a GitHub workflow runs them after every deploy and on a
-// schedule, and it records the results on the commit it tested, as a check run named "claims". The server reads
-// that record back, so the results it shows are GitHub's and not its own.
+// a test for each one that can be checked from outside, and a GitHub workflow runs them after every deploy and on
+// a schedule. The results are annotations on the workflow's job, so they are part of GitHub's own record of the
+// run. The server reads that record back, and the results it shows are GitHub's and not its own.
 //
-// GitHub is read without a token, like internal/activity: a check run on a public repository is public.
+// GitHub is read without a token, like internal/activity: a workflow's runs in a public repository are public.
 package claims
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,7 +17,9 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -67,11 +70,14 @@ const (
 	limit   = 2 * time.Hour
 	retry   = 3 * time.Minute
 	readFor = 8 * time.Second
-	// The most of a response body this reads. A check run's text is at most 64 KB, and there are a few.
+	// The most of a response body this reads: a page of runs is the largest, at a few hundred kilobytes.
 	maxBody = 1 << 20
 	// More than this site will ever claim; a longer list is not one of its own.
 	maxClaims = 100
 	maxSaw    = 300
+	// The workflow, and the job in it that the results are on.
+	workflow = "claims.yml"
+	job      = "claims"
 )
 
 // Config says whose claims, on which release.
@@ -88,6 +94,8 @@ type Service struct {
 	live    bool
 	now     func() time.Time
 	reading *fresh.Reading[Report]
+	// The newest run, once it is known to have tested another release: what is in it need not be read again.
+	other atomic.Int64
 }
 
 // New reads the results of cfg's release from GitHub when live is set, and has none to give otherwise.
@@ -128,50 +136,65 @@ func (s *Service) Warm(ctx context.Context, limit time.Duration) bool {
 
 func unavailable(reason string) Report { return Report{Reason: reason, Claims: []Result{}} }
 
-type checkRuns struct {
-	CheckRuns []struct {
-		Name        string    `json:"name"`
-		CompletedAt time.Time `json:"completed_at"`
-		DetailsURL  string    `json:"details_url"`
-		App         struct {
-			Slug string `json:"slug"`
-		} `json:"app"`
-		Output struct {
-			Text string `json:"text"`
-		} `json:"output"`
-	} `json:"check_runs"`
+type workflowRun struct {
+	ID         int64  `json:"id"`
+	Conclusion string `json:"conclusion"`
+	URL        string `json:"html_url"`
 }
 
-// read finds the newest "claims" check on this release. None yet is an answer, not a failure.
+type annotation struct {
+	Title   string `json:"title"`
+	Message string `json:"message"`
+}
+
+// read finds the newest run of the tests and what it left. A run of another release is an answer too: this one has
+// not been tested yet.
 func (s *Service) read(ctx context.Context, now time.Time) (Report, error) {
-	var runs checkRuns
-	path := "/repos/" + s.cfg.Repo + "/commits/" + s.cfg.Commit + "/check-runs?" + url.Values{"check_name": {"claims"}, "status": {"completed"}, "per_page": {"20"}}.Encode()
-	if err := s.get(ctx, path, &runs); err != nil {
+	notYet := unavailable("This release has not been tested yet.")
+	notYet.Updated = now.UTC()
+
+	var runs struct {
+		Runs []workflowRun `json:"workflow_runs"`
+	}
+	query := url.Values{"branch": {"main"}, "status": {"completed"}, "per_page": {"10"}}
+	if err := s.get(ctx, "/repos/"+s.cfg.Repo+"/actions/workflows/"+workflow+"/runs?"+query.Encode(), &runs); err != nil {
 		return Report{}, err
 	}
-	best := -1
-	for i, r := range runs.CheckRuns {
-		// The workflow's own checks only (any app may add one called "claims"), and only those with results in
-		// them: GitHub makes a check for every job too, and a job of that name would have nothing to say.
-		if r.Name != "claims" || r.App.Slug != "github-actions" || r.Output.Text == "" {
+	// Newest first. A cancelled run was overtaken by a newer one, and a skipped one had nothing to test.
+	i := slices.IndexFunc(runs.Runs, func(r workflowRun) bool { return r.Conclusion == "success" || r.Conclusion == "failure" })
+	if i < 0 || runs.Runs[i].ID == s.other.Load() {
+		return notYet, nil
+	}
+	run := runs.Runs[i]
+
+	var jobs struct {
+		Jobs []struct {
+			ID   int64  `json:"id"` // also its check's
+			Name string `json:"name"`
+		} `json:"jobs"`
+	}
+	if err := s.get(ctx, fmt.Sprintf("/repos/%s/actions/runs/%d/jobs", s.cfg.Repo, run.ID), &jobs); err != nil {
+		return Report{}, err
+	}
+	var notes []annotation
+	for _, j := range jobs.Jobs {
+		if j.Name != job {
 			continue
 		}
-		if best < 0 || r.CompletedAt.After(runs.CheckRuns[best].CompletedAt) {
-			best = i
+		if err := s.get(ctx, fmt.Sprintf("/repos/%s/check-runs/%d/annotations?per_page=50", s.cfg.Repo, j.ID), &notes); err != nil {
+			return Report{}, err
 		}
 	}
-	if best < 0 {
-		r := unavailable("This release has not been tested yet.")
-		r.Updated = now.UTC()
-		return r, nil
-	}
-	run := runs.CheckRuns[best]
-	r, err := parse(run.Output.Text)
+	r, err := parse(notes)
 	if err != nil {
 		return Report{}, err
 	}
-	if onGitHub(run.DetailsURL) {
-		r.Run = run.DetailsURL
+	if !strings.HasPrefix(s.cfg.Commit, r.Commit) {
+		s.other.Store(run.ID)
+		return notYet, nil
+	}
+	if onGitHub(run.URL) {
+		r.Run = run.URL
 	}
 	r.Updated = now.UTC()
 	return r, nil
@@ -181,23 +204,51 @@ var (
 	fullCommit = regexp.MustCompile(`^[0-9a-f]{40}$`)
 	anyCommit  = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
 	claimID    = regexp.MustCompile(`^[a-z0-9-]{1,40}$`)
+	// The titles run.mjs gives its annotations. Any other is the runner's own: a step that failed, a deprecation.
+	partTitle = regexp.MustCompile(`^claims [0-9]+ of [0-9]+$`)
 )
 
-// parse reads the results out of a check run's text, and refuses anything that is not what run.mjs writes: the
-// page shows them without anyone reading them first.
-func parse(text string) (Report, error) {
-	var in struct {
-		Commit      string    `json:"commit"`
-		Tested      time.Time `json:"tested"`
-		Trustworthy bool      `json:"trustworthy"`
-		Claims      []Result  `json:"claims"`
-		FalseClaim  *Result   `json:"false_claim"`
+// part is one annotation's share of the results.
+type part struct {
+	Part        int       `json:"part"`
+	Of          int       `json:"of"`
+	Commit      string    `json:"commit"`
+	Tested      time.Time `json:"tested"`
+	Trustworthy bool      `json:"trustworthy"`
+	Claims      []Result  `json:"claims"`
+	FalseClaim  *Result   `json:"false_claim"`
+}
+
+// parse puts the results back together, and refuses anything that is not what run.mjs writes: the page shows them
+// without anyone reading them first.
+func parse(notes []annotation) (Report, error) {
+	var parts []part
+	for _, n := range notes {
+		if !partTitle.MatchString(n.Title) {
+			continue
+		}
+		var p part
+		if err := json.Unmarshal([]byte(n.Message), &p); err != nil {
+			return Report{}, fmt.Errorf("the run's results do not parse: %w", err)
+		}
+		parts = append(parts, p)
 	}
-	if err := json.Unmarshal([]byte(text), &in); err != nil {
-		return Report{}, fmt.Errorf("the check's results do not parse: %w", err)
+	if len(parts) == 0 {
+		return Report{}, errors.New("the run left no results")
+	}
+	slices.SortFunc(parts, func(a, b part) int { return cmp.Compare(a.Part, b.Part) })
+	in := parts[0]
+	for i, p := range parts {
+		if p.Part != i+1 || p.Of != len(parts) || p.Commit != in.Commit || !p.Tested.Equal(in.Tested) {
+			return Report{}, errors.New("some of the run's results are missing")
+		}
+		if i > 0 {
+			in.Claims = append(in.Claims, p.Claims...)
+			in.Trustworthy = in.Trustworthy && p.Trustworthy
+		}
 	}
 	if !anyCommit.MatchString(in.Commit) || in.Tested.IsZero() || in.FalseClaim == nil || len(in.Claims) == 0 || len(in.Claims) > maxClaims {
-		return Report{}, errors.New("the check's results are not in the expected form")
+		return Report{}, errors.New("the run's results are not in the expected form")
 	}
 	r := Report{Available: true, Commit: in.Commit, Tested: in.Tested.UTC(), Total: len(in.Claims), Claims: in.Claims, FalseClaim: in.FalseClaim}
 	for i := range r.Claims {

@@ -1,7 +1,7 @@
 // The claims' tests are only worth something if the harness can say no. Run with `node --test "claims/*.test.mjs"`.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CannotTell, headline, table, testClaims } from "./harness.mjs";
+import { annotations, CannotTell, headline, table, testClaims } from "./harness.mjs";
 import { tests as realTests } from "./tests.mjs";
 
 const yes = async () => ({ holds: true, saw: "yes" });
@@ -163,4 +163,28 @@ test("pull requests are checked for their author, and for what became of them", 
   // "Open and in review" stops being true the day it merges.
   assert.equal((await realTests.plugins(world({ state: "open", merged_at: null }), facts)).holds, true);
   assert.equal((await realTests.plugins(world({}), facts)).holds, false);
+});
+
+test("the results fit in the annotations a runner keeps, and can be put back together", () => {
+  const claims = Array.from({ length: 40 }, (_, i) => ({ id: `c${i}`, verdict: "holds", saw: `${"100% of them, “held”, `twice`; ".repeat(8).slice(0, 230)}${i}` }));
+  const run = { commit: "4a87353", tested: "2026-11-23T07:00:00.000Z", trustworthy: true, false_claim: { id: "lie", verdict: "fails", saw: "no" } };
+  const lines = annotations({ ...run, claims });
+  assert.ok(lines.length > 1 && lines.length < 10, `${lines.length} annotations; the runner keeps ten a step`);
+  // As the runner reads them.
+  const read = lines.map((line) => {
+    const [, title, message] = /^::notice title=([^:,]+)::(.+)$/s.exec(line);
+    assert.ok(!/[\r\n]/.test(line), "a line break would end the command");
+    const text = message.replaceAll("%0D", "\r").replaceAll("%0A", "\n").replaceAll("%25", "%");
+    assert.ok(text.length <= 4096, `${text.length} characters`);
+    return { title, ...JSON.parse(text) };
+  });
+  assert.deepEqual(read.map((p) => p.title), read.map((_, i) => `claims ${i + 1} of ${lines.length}`));
+  assert.deepEqual(read.flatMap((p) => p.claims), claims);
+  for (const { title, part, of, claims: _, ...rest } of read) assert.deepEqual([rest, of], [run, lines.length]);
+});
+
+test("a run of no more than a message holds is one annotation", () => {
+  const [line, ...more] = annotations({ commit: "4a87353", claims: [{ id: "a", verdict: "holds", saw: "yes" }] });
+  assert.deepEqual(more, []);
+  assert.equal(line, '::notice title=claims 1 of 1::{"part":1,"of":1,"commit":"4a87353","claims":[{"id":"a","verdict":"holds","saw":"yes"}]}');
 });
