@@ -23,6 +23,9 @@
     "f3a7cf2": "Fixes to releases, the changelog, the profile card and claims",
     "400cf43": "Dependency updates: GitHub Actions",
     "733fcba": "Dependency updates: Go modules",
-    "03b7ac7": "Focus, live regions, timers and facts: fixes across the site"
+    "03b7ac7": "Focus, live regions, timers and facts: fixes across the site",
+    "efb6033": "Dependency updates: GitHub Actions",
+    "0c69ac8": "Dependency updates: Docker base images",
+    "21b29c0": "Dependency updates: npm packages"
   }
 }

@@ -272,7 +272,7 @@ jobs:
             if [ -n "$prev_sha" ]; then
               echo "## Changes since $prev"
               gh api "repos/$GH_REPO/compare/$prev_sha...$SHA" \
-                --jq '.commits[] | "- " + (.commit.message | split("\n")[0]) + " (" + .sha[0:7] + ")"'
+                --jq '.commits[] | select((.parents | length) < 2) | "- " + (.commit.message | split("\n")[0]) + " (" + .sha[0:7] + ")"'
             else
               echo "## Changes"
               gh api "repos/$GH_REPO/commits/$SHA" --jq '"- " + (.commit.message | split("\n")[0]) + " (" + .sha[0:7] + ")"'

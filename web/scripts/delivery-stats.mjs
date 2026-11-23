@@ -66,7 +66,12 @@ const since = new Date(today - (WINDOW_DAYS - 1) * 864e5 - SGT);
 // Release-note titles for commits whose subject line was a note to self (release-titles.json says
 // which and why). Every title this script writes goes through display(); the commits keep their messages.
 const RELEASE_TITLES = JSON.parse(await readFile(new URL("./release-titles.json", import.meta.url), "utf8")).titles;
-const display = (sha, subject) => RELEASE_TITLES[sha.slice(0, 7)] ?? subject;
+const display = (sha, message) => RELEASE_TITLES[sha.slice(0, 7)] ?? subject(message);
+/** A commit's subject. A merged pull request's says only which branch it came from; its own title is the next line. */
+function subject(message) {
+  const [first, next] = message.split("\n").filter((line) => line.trim());
+  return /^Merge pull request #\d+ from /.test(first) ? (next ?? first) : first;
+}
 // The history was rewritten on 16 Nov 2026 and every commit got a new id, but GitHub Actions keeps the
 // old ids in its run records. A run's commit goes through this map, so deploys are compared and dated
 // on main as it is now (comparing an old id with a new one fails: the two histories share no commit).
@@ -82,7 +87,7 @@ const kept = await readFile(HISTORY_FILE, "utf8")
     if (err.code === "ENOENT") return [];
     throw err;
   });
-const toCommit = (c) => ({ sha: c.sha, at: new Date(c.commit.committer.date), title: display(c.sha, c.commit.message.split("\n")[0]) });
+const toCommit = (c) => ({ sha: c.sha, at: new Date(c.commit.committer.date), title: display(c.sha, c.commit.message) });
 // Every commit reachable from main, newest first by date. Date order is not ancestry order once
 // pull requests merge (a branch's commits can be older than main's latest), so what each deploy
 // shipped comes from the compare API below, never from positions in this list.
@@ -240,7 +245,7 @@ const perDay = Array.from({ length: WINDOW_DAYS }, (_, k) => {
 
 const titles = new Map(commits.map((c) => [c.sha, c.title]));
 const titleOf = async (sha) => {
-  if (!titles.has(sha)) titles.set(sha, display(sha, (await gh(`/commits/${sha}`)).commit.message.split("\n")[0]));
+  if (!titles.has(sha)) titles.set(sha, display(sha, (await gh(`/commits/${sha}`)).commit.message));
   return titles.get(sha);
 };
 const drills = events.filter((e) => e.kind === "drill");
