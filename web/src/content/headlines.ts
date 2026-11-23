@@ -11,10 +11,12 @@ export function heroStat(value: number) {
 }
 
 const ai = cases.find((c) => c.id === "ai-platform")!.numbers[1];
+// A result, not an activity: the pull request count is in the sentence at the top of the page.
+const iot = cases.find((c) => c.id === "two-step")!.numbers[2];
 
 /** One number per chapter: the home page's cards and its share image show these three. */
 export const chapterHeadline: Record<ProductKey, { value: string; label: string }> = {
-  iot: heroStat(169),
+  iot: { value: iot.value, label: iot.short ?? iot.label },
   ai: { value: ai.value, label: ai.label },
   aries: heroStat(320),
 };

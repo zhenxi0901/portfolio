@@ -78,6 +78,22 @@ function RequestPath() {
   );
 }
 
+/** A figure as the site writes it. Its arrow is drawn: Plex's latin file has none, and one borrowed from another font makes this line taller than the rest. */
+function Figure({ value }: { value: string }) {
+  const [from, to] = value.split(" → ");
+  return (
+    <div style={{ fontSize: 44, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.3, display: "flex", alignItems: "center", gap: 14 }}>
+      <span>{from}</span>
+      {to && (
+        <svg width="34" height="20" viewBox="0 0 34 20" fill="none" stroke={C.ink} strokeWidth="4">
+          <path d="M1 10h29M22 2l8 8-8 8" />
+        </svg>
+      )}
+      {to && <span>{to}</span>}
+    </div>
+  );
+}
+
 export async function ogImage({ eyebrow, eyebrowColor = C.ink3, title, summary, stats = [], big = false }: OgCard) {
   const host = new URL(SITE_URL).host;
   return new ImageResponse(
@@ -124,7 +140,7 @@ export async function ogImage({ eyebrow, eyebrowColor = C.ink3, title, summary, 
         <div style={{ marginTop: "auto", paddingTop: 22, display: "flex", gap: 36, borderTop: stats.length ? `2px solid ${C.line}` : "none" }}>
           {stats.slice(0, 3).map((s) => (
             <div key={s.label} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{ fontSize: 44, fontWeight: 600, letterSpacing: "-0.02em", display: "flex" }}>{s.value}</div>
+              <Figure value={s.value} />
               <div style={{ marginTop: 6, fontSize: 21, color: C.ink2, lineHeight: 1.3, display: "flex" }}>{s.label}</div>
             </div>
           ))}
