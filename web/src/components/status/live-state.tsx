@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { api, type SloReport, type Status } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Reading = { at: Date; ms: number; status: Status | null; slo: SloReport | null };
+/** `slo` is undefined until it has answered: it can be the slower of the two, and the state does not wait for it. */
+type Reading = { at: Date; ms: number; status: Status | null; slo: SloReport | null | undefined };
 
 const EVERY = 60_000;
 
@@ -21,12 +22,15 @@ export function LiveState() {
       if (busy || document.hidden) return;
       busy = true;
       const t0 = performance.now();
+      const pending = api.slo().catch(() => null);
       const status = await api.status().catch(() => null);
       const ms = performance.now() - t0;
-      const slo = await api.slo().catch(() => null);
+      // The last reading of the budget stands while this one is on its way.
+      if (alive) setR((old) => ({ at: new Date(), ms, status, slo: old?.slo }));
+      const slo = await pending;
       busy = false;
       if (!alive) return;
-      setR({ at: new Date(), ms, status, slo });
+      setR((old) => old && { ...old, slo });
       timer = setTimeout(check, EVERY);
     };
     const onVisible = () => {
@@ -56,7 +60,8 @@ export function LiveState() {
           <span className={cn("size-3 rounded-full", tone, r && up && "animate-pulse")} aria-hidden />
           {state}
         </p>
-        <p className="text-xs text-ink-3">
+        {/* A row of its own on a phone before and after the first answer, so nothing below it moves. */}
+        <p className="basis-full text-xs text-ink-3 sm:basis-auto">
           {r ? `checked ${r.at.toLocaleTimeString("en-GB")} your time, again every minute` : "checking from your browser…"}
         </p>
       </div>
@@ -67,7 +72,7 @@ export function LiveState() {
         <Fact label="region" value={r?.status?.region ?? "n/a"} mono live={!!r?.status} />
         <Fact
           label="releases"
-          value={!r?.slo?.releases || r.slo.releases === "unknown" ? "n/a" : r.slo.releases === "open" ? "open" : "frozen: fixes only"}
+          value={r && r.slo === undefined ? "reading…" : !r?.slo?.releases || r.slo.releases === "unknown" ? "n/a" : r.slo.releases === "open" ? "open" : "frozen: fixes only"}
         />
       </dl>
     </div>

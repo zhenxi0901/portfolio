@@ -53,7 +53,7 @@ export default function CostPage() {
             <a href="/status" className="underline underline-offset-4 hover:text-ink">
               SLO
             </a>
-            , at most once an hour.{" "}
+            , about once an hour.{" "}
             <a href={`${REPO}/tree/main/api/internal/cost`} target="_blank" rel="noreferrer" className={ext}>
               The code
               <ArrowUpRight size={12} aria-hidden />

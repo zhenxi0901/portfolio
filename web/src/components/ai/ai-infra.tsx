@@ -52,7 +52,7 @@ export function AiInfra({ chapter = false }: { chapter?: boolean } = {}) {
   const Sub = chapter ? "h2" : "h3";
 
   return (
-    <section id="ai" className="scroll-mt-20 border-t border-line">
+    <section id="ai" className="-scroll-mt-14 sm:-scroll-mt-22 border-t border-line">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
         {/* On its own page the product's colour is a short rule, as on /iot; its name is the title below. */}
         {chapter ? <span aria-hidden className={cn("mb-6 block h-[3px] w-12", tone.bg)} /> : <ProductTag p="ai" className="mb-5" />}
@@ -109,7 +109,7 @@ export function AiInfra({ chapter = false }: { chapter?: boolean } = {}) {
         })}
 
         {/* The views: what the case card's "follow a request" link and openAiTab() scroll to. */}
-        <div id="ai-views" className="mt-20 scroll-mt-24">
+        <div id="ai-views" className="mt-20 scroll-mt-4">
           <SectionHeading
             as={chapter ? "h2" : "h3"}
             title="Inside the platform"

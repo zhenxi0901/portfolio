@@ -255,7 +255,8 @@ export function CommandPalette() {
         value={search}
         onValueChange={setSearch}
         placeholder="Where to? Try “research” or “copy email”"
-        className="h-14 w-full border-b border-line bg-transparent px-5 text-base text-ink outline-none placeholder:text-ink-3 sm:text-[15px]"
+        // The site's focus ring would be cut to a stray line by the box's edges: the caret and a darker rule show it instead.
+        className="h-14 w-full border-b border-line bg-transparent px-5 text-base text-ink outline-none! placeholder:text-ink-3 focus:border-ink-3 sm:text-[15px]"
       />
       <Command.List className="max-h-[50vh] overflow-y-auto p-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-ink-3">
         <Command.Empty className="px-4 py-8 text-center text-sm text-ink-3">Nothing matches that.</Command.Empty>

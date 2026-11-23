@@ -15,7 +15,7 @@ export default function Image() {
     title: profile.name,
     summary: profile.intro,
     stats: [
-      { value: education.period.split(" - ")[1], label: `graduating, ${education.degree}` },
+      { value: education.graduates, label: `graduating, ${education.degree}` },
       { value: String(experience.length), label: "roles, from a building's control room to Kubernetes" },
     ],
   });

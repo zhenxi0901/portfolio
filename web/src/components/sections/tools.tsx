@@ -7,7 +7,7 @@ import { skillGroups } from "@/content/profile";
  */
 export function Tools() {
   return (
-    <section id="stack" aria-labelledby="stack-title" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-20 sm:px-8 sm:py-24">
+    <section id="stack" aria-labelledby="stack-title" className="mx-auto max-w-[1320px] -scroll-mt-10 sm:-scroll-mt-14 px-4 py-20 sm:px-8 sm:py-24">
       <h2 id="stack-title" className="text-[clamp(1.75rem,3.4vw,2.625rem)] font-semibold leading-[1.12] tracking-[-0.022em]">
         The tools I use
       </h2>

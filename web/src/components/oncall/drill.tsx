@@ -25,7 +25,12 @@ export function Drill({ scenario }: { scenario: Scenario }) {
     if (!target) return;
     focusNext.current = null;
     // On a phone the result of the rollback is what to see next; the focused button is just below it.
-    root.current?.querySelector<HTMLElement>(`[data-focus="${target}"]`)?.focus({ preventScroll: target === "verify" && latest.current?.offsetParent != null });
+    const stay = target === "pager" || (target === "verify" && latest.current?.offsetParent != null);
+    root.current?.querySelector<HTMLElement>(`[data-focus="${target}"]`)?.focus({ preventScroll: stay });
+    // The page that fires gets the screen: left where it was, the alert began near the bottom of a laptop's,
+    // and the first finding came up below it, where pressing a dashboard seemed to do nothing.
+    if (target === "pager" && (root.current?.getBoundingClientRect().top ?? 0) + 640 > window.innerHeight)
+      root.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [phase, log.length]);
 
   const used = new Set(log.map((e) => e.move.id));
@@ -75,9 +80,10 @@ export function Drill({ scenario }: { scenario: Scenario }) {
   const { looks, acts } = movesNow(scenario, s);
 
   return (
-    <div ref={root} className="mt-10 grid gap-4 lg:grid-cols-12">
-      {/* The incident: pager, clock, budget, and what you have found. */}
-      <div className="flex flex-col gap-4 lg:col-span-7">
+    <div ref={root} className="mt-10 grid scroll-mt-4 gap-4 lg:grid-cols-12">
+      {/* The incident: pager, clock, budget, and what you have found. Beside the moves it stays on the screen,
+          so a finding shows up wherever the button that found it was. */}
+      <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:col-span-7 lg:self-start">
         <div
           className={cn(
             "rounded-3xl border p-5 sm:p-6",
@@ -118,7 +124,7 @@ export function Drill({ scenario }: { scenario: Scenario }) {
             role="region"
             aria-labelledby={`oncall-found-${scenario.id}`}
             tabIndex={0}
-            className="mt-3 max-h-[26rem] space-y-3 overflow-y-auto rounded-2xl pr-1"
+            className="mt-3 max-h-[26rem] space-y-3 overflow-y-auto rounded-2xl pr-1 lg:max-h-[max(9rem,min(26rem,calc(100dvh-27rem)))]"
             aria-live="polite"
           >
             {/* Inset: the box's rounded corners would clip the first letter of a line that touches them. */}
@@ -147,7 +153,7 @@ export function Drill({ scenario }: { scenario: Scenario }) {
         {/* Phones stack the columns, so the latest result also shows here, next to the buttons. The
             feed above is the live region; this copy is not announced twice. */}
         {phase !== "resolved" && log.length > 0 && (
-          <div ref={latest} aria-hidden className="scroll-mt-20 rounded-3xl border border-line-strong bg-surface-2/60 p-4 lg:hidden">
+          <div ref={latest} aria-hidden className="scroll-mt-2 rounded-3xl border border-line-strong bg-surface-2/60 p-4 lg:hidden">
             {/* The incident card is a screen or more above: its status and budget come along. */}
             <p className="flex flex-wrap items-baseline gap-x-2 font-mono text-[11px]">
               <span className={phase === "paged" ? "text-critical" : "text-good"}>{statusLabel(s)}</span>

@@ -26,11 +26,15 @@ function contentDay(s: string): string {
 // Singapore days, like the changelog and the deploys-per-day chart. A fixed zone, so the server's render
 // and the browser's agree; content dates (midnight UTC) fall on the same day either way.
 const TZ = "Asia/Singapore";
-/** "13 Nov". */
-const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: TZ });
-/** "13 Nov, 10:50". */
+const yearOf = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { year: "2-digit", timeZone: TZ });
+/** "13 Nov", or "13 Nov 25" in another year than this build's (fixed at build, so the server and the browser agree). */
+const day = (iso: string) => {
+  const d = new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: TZ });
+  return yearOf(iso) === yearOf(delivery.generated) ? d : `${d} ${yearOf(iso)}`;
+};
+/** "13 Nov 2026, 10:50". */
 const dayTime = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: TZ });
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: TZ });
 
 /** Whether two commit ids name the same commit, one perhaps abbreviated (as the live map compares them). */
 const sameCommit = (a: string, b: string) => !!a && !!b && (a.startsWith(b) || b.startsWith(a));
@@ -139,10 +143,12 @@ export function Recently() {
               <span className="min-w-0">
                 <span className="text-ink-2 sm:hidden">{e.verb}: </span>
                 <span className="font-medium text-ink decoration-accent-ink decoration-2 underline-offset-4 group-hover:underline">{e.title}</span>
-                {/* The repository and the arrow wrap as one, so neither is left alone on a line. */}
+                {/* The repository and the arrow wrap as one, so neither is left alone on a line; where even that is
+                    too long for a line (a 320 px screen), it breaks inside rather than widening the page. */}
+                {(e.where || e.external) && " "}
                 {(e.where || e.external) && (
-                  <span className="whitespace-nowrap text-ink-3">
-                    {e.where && <> · {e.where}</>}
+                  <span className="inline-block max-w-full text-ink-3 [overflow-wrap:anywhere]">
+                    {e.where}
                     {e.external && (
                       <>
                         <ArrowUpRight size={12} aria-hidden className="ml-1 inline-block" />

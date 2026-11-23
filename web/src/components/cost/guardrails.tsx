@@ -8,8 +8,8 @@ export function CostGuardrails() {
   const p = report?.prices;
   const rows: { what: string; how: React.ReactNode }[] = [
     {
-      what: "Scale to zero",
-      how: "No instance runs while nobody is visiting, so a quiet hour costs only its uptime checks.",
+      what: "Nothing billed between requests",
+      how: "An instance that is answering nobody is not billed, however long Cloud Run keeps it up, so a quiet hour costs only its uptime checks. With no requests at all, it scales to zero.",
     },
     {
       what: `At most ${p?.max_instances ?? 3} instances`,

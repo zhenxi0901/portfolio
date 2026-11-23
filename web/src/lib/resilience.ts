@@ -216,7 +216,8 @@ export function summarise(results: RequestResult[]) {
     ok,
     failed: n - ok,
     p50: pct(0.5),
-    p95: pct(0.95),
+    // Not a p95: a run is 12 or 20 requests, and the tail of so few is one of them. The chart shows it too.
+    longest: waits.length ? waits[waits.length - 1] : 0,
     calls: sent.length,
     callsPerRequest: n ? sent.length / n : 0,
     failedCalls,

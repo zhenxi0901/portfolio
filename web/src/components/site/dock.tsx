@@ -26,7 +26,7 @@ export function Dock() {
     <nav
       data-print-hide
       aria-label="Pages"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden short:static"
     >
       <ul className="mx-auto flex h-14 max-w-xl items-stretch px-1">
         {tabs.map((t) => {

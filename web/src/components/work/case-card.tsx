@@ -37,7 +37,7 @@ export function CaseCard({
       <article
         id={`case-${study.id}`}
         className={cn(
-          "group relative flex h-full scroll-mt-24 flex-col overflow-hidden rounded-3xl border border-line p-6 sm:p-7",
+          "group relative flex h-full scroll-mt-4 flex-col overflow-hidden rounded-3xl border border-line p-6 sm:p-7",
           wide && "lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[1fr_auto] lg:gap-x-10 lg:p-8",
           tone === "plain" && "bg-surface",
           tone === "raised" && "bg-surface-2",
@@ -60,6 +60,11 @@ export function CaseCard({
           </div>
           <Title className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.02em] sm:text-[1.65rem]">{study.title}</Title>
           <p className="mt-2 max-w-[48ch] text-[15px] leading-relaxed text-ink-2">{study.summary}</p>
+          {study.measured !== undefined && (
+            <p className="mt-3 max-w-[48ch] text-[15px] leading-relaxed text-ink-2">
+              <span className="font-semibold text-ink">{study.numbers[study.measured].value}</span> {study.numbers[study.measured].label}
+            </p>
+          )}
         </header>
 
         <div className={cn("mt-6 flex-1", wide && "lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0")}>{children}</div>

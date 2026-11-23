@@ -16,7 +16,7 @@ export function KindChip({ kind }: { kind: Postmortem["kind"] }) {
 
 export function Postmortems() {
   return (
-    <section id="postmortems" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
+    <section id="postmortems" className="mx-auto max-w-[1320px] -scroll-mt-14 sm:-scroll-mt-22 px-4 py-24 sm:px-8 sm:py-32">
       <SectionHeading
         title="What broke on this site, written up properly"
         lead="Blameless postmortems from building and running this site: timeline, root cause, how it was caught, and what changed. The times and numbers come from the commits, the CI history and Cloud Run's request logs."

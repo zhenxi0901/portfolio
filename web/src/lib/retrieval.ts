@@ -60,7 +60,8 @@ export function tokenize(s: string): string[] {
   const add = (w: string) => {
     if (!w || STOP.has(w)) return;
     out.push(stem(w));
-    ALIASES[w]?.forEach((a) => out.push(stem(a)));
+    // hasOwn: "constructor" and the like are words too, and an object already has those.
+    if (Object.hasOwn(ALIASES, w)) ALIASES[w].forEach((a) => out.push(stem(a)));
   };
   for (const raw of words) {
     const w = raw.replace(/[.]+$/, "");

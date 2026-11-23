@@ -45,7 +45,7 @@ const groups = productOrder
  */
 export function Work({ chapter }: { chapter?: ProductKey } = {}) {
   return (
-    <section id="work" className={cn("mx-auto max-w-[1320px] scroll-mt-20 px-4 sm:px-8", chapter ? "pb-20 pt-14 sm:pb-28 sm:pt-16" : "py-24 sm:py-32")}>
+    <section id="work" className={cn("mx-auto max-w-[1320px] px-4 sm:px-8", chapter ? "-scroll-mt-10 pb-20 pt-14 sm:-scroll-mt-12 sm:pb-28 sm:pt-16" : "-scroll-mt-14 sm:-scroll-mt-22 py-24 sm:py-32")}>
       {!chapter && (
         <>
           <SectionHeading
@@ -60,7 +60,7 @@ export function Work({ chapter }: { chapter?: ProductKey } = {}) {
         const GroupTitle = chapter ? "h2" : "h3";
         const tone = productTone[p];
         return (
-          <div key={p} id={`work-${p}`} className={cn(!chapter && "mt-16", "scroll-mt-24")} role="group" aria-labelledby={`work-${p}-title`}>
+          <div key={p} id={`work-${p}`} className={cn(!chapter && "mt-16", "scroll-mt-4")} role="group" aria-labelledby={`work-${p}-title`}>
             <Reveal>
               <div className={cn("flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b pb-4", tone.border)}>
                 <div>

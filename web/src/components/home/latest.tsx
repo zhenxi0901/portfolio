@@ -13,7 +13,7 @@ const items: Item[] = [
 
 export function Latest() {
   return (
-    <section id="latest" aria-labelledby="latest-title" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-28">
+    <section id="latest" aria-labelledby="latest-title" className="mx-auto max-w-[1320px] -scroll-mt-14 sm:-scroll-mt-18 px-4 py-24 sm:px-8 sm:py-28">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h2 id="latest-title" className="text-[clamp(1.75rem,3.4vw,2.625rem)] font-semibold leading-[1.12] tracking-[-0.022em]">
           Latest writing

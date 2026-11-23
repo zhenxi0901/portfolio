@@ -50,22 +50,24 @@ function readVisit(): Visit | null {
 const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : v >= 10 ? `${Math.round(v)} ms` : v >= 1 ? `${v.toFixed(1)} ms` : `${v.toFixed(2)} ms`);
 const ago = (iso: string) => {
   const m = Math.max(0, (Date.now() - new Date(iso).getTime()) / 60000);
-  return m < 1 ? "just now" : m < 60 ? `${Math.round(m)} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
+  return m < 1 ? "just now" : m < 60 ? `${Math.floor(m)} min ago` : m < 48 * 60 ? `${Math.floor(m / 60)} h ago` : `${Math.floor(m / 1440)} days ago`;
 };
-const up = (s: number) => (s < 3600 ? `${Math.max(1, Math.round(s / 60))} min` : s < 172800 ? `${Math.round(s / 3600)} h` : `${Math.round(s / 86400)} days`);
-// The city in the browser's time zone ("Asia/Singapore" is Singapore). Read in the browser only and
-// never sent anywhere; the server renders without it.
-let tzCity: string | null | undefined;
-const city = () => {
-  if (tzCity === undefined) {
+// Whole units that have passed, as the profile's map counts them: 5.6 days up is "5 days", not 6.
+const up = (s: number) => (s < 3600 ? `${Math.max(1, Math.floor(s / 60))} min` : s < 172800 ? `${Math.floor(s / 3600)} h` : `${Math.floor(s / 86400)} days`);
+// The clock the browser keeps ("Singapore time", "Pacific time"). Not a place: a time zone's city is
+// often not the visitor's (Seattle's is Los Angeles). Read in the browser only and never sent anywhere;
+// the server renders without it.
+let clockName: string | null | undefined;
+const clock = () => {
+  if (clockName === undefined) {
     try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
-      tzCity = tz.includes("/") ? tz.split("/").pop()!.replace(/_/g, " ") : null;
+      const part = new Intl.DateTimeFormat("en-GB", { timeZoneName: "longGeneric" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName");
+      clockName = part?.value.replace(/ Standard/, "").replace(/ Time$/, " time") ?? null;
     } catch {
-      tzCity = null;
+      clockName = null;
     }
   }
-  return tzCity;
+  return clockName;
 };
 const never = () => () => {};
 /** "connect 41 ms", "setup 150 ms", or "connection reused": only claimed when nothing was set up. */
@@ -80,7 +82,9 @@ function useLive(on: boolean) {
   const [slo, setSlo] = useState<SloReport | null>(null);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [polls, setPolls] = useState(0);
-  const place = useSyncExternalStore(never, city, () => null);
+  // The commit that was serving when this page was: the first one a poll reported.
+  const [served, setServed] = useState<string | null>(null);
+  const zone = useSyncExternalStore(never, clock, () => null);
 
   useEffect(() => {
     let alive = true;
@@ -116,6 +120,7 @@ function useLive(on: boolean) {
         .then((s) => {
           if (!alive) return;
           setStatus(s);
+          setServed((c) => c ?? s.commit);
           setPolls((n) => n + 1);
         })
         .catch(() => {});
@@ -128,7 +133,7 @@ function useLive(on: boolean) {
     };
   }, [on]);
 
-  return { visit, status, slo, delivery, polls, place };
+  return { visit, status, served, slo, delivery, polls, zone };
 }
 
 // Nodes in a 100 x 80 box: the request runs left to right through the middle, delivery comes in
@@ -204,8 +209,6 @@ export function LiveMap() {
   const [onScreen, setOnScreen] = useState(false);
   const live = useLive(onScreen);
   const motion = useRef<Record<Route, SVGAnimateMotionElement | null>>({ request: null, poll: null, probe: null, deploy: null });
-  const firstCommit = useRef<string | null>(null);
-  const [newRelease, setNewRelease] = useState(false);
 
   useEffect(() => {
     const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting));
@@ -228,15 +231,13 @@ export function LiveMap() {
   }, [live.visit]);
   // Each poll is a real request from this browser to /api/status; a new commit is a new release.
   useEffect(() => {
-    if (!live.polls || !live.status) return;
-    pulse("poll");
-    if (firstCommit.current === null) firstCommit.current = live.status.commit;
-    else if (live.status.commit !== firstCommit.current) {
-      firstCommit.current = live.status.commit;
-      setNewRelease(true);
-      pulse("deploy");
-    }
-  }, [live.polls, live.status]);
+    if (live.polls) pulse("poll");
+  }, [live.polls]);
+  const latest = live.status?.commit ?? null;
+  const newRelease = !!latest && !!live.served && !sameCommit(latest, live.served);
+  useEffect(() => {
+    if (newRelease) pulse("deploy");
+  }, [newRelease, latest]);
   // The uptime checks: three a minute, so one every 20 s.
   useEffect(() => {
     if (!onScreen) return;
@@ -248,12 +249,16 @@ export function LiveMap() {
     };
   }, [onScreen]);
 
-  const { visit, status, slo, delivery, place } = live;
+  const { visit, status, served, slo, delivery, zone } = live;
   // Only a measured figure is shown as one; until there is one, the objective it is measured against.
   const avail = slo?.available ? `${uptime(slo.availability)} up` : "99.9% objective";
   const commit = status?.commit ?? delivery?.head?.sha ?? "…";
-  // delivery.json is written by the build; its time is the deploy's only if that build is what's live.
-  const deployed = delivery?.head && status && sameCommit(status.commit, delivery.head.sha) ? ago(delivery.generated) : null;
+  // The commit this page came from, which a release that goes out while it is open does not change.
+  const from = served ?? delivery?.head?.sha ?? "…";
+  // delivery.json is written by the build; its time is a commit's only if that build is the commit's.
+  const builtAgo = (sha: string | null) => (delivery?.head && sha && sameCommit(sha, delivery.head.sha) ? ago(delivery.generated) : null);
+  const deployed = builtAgo(status?.commit ?? null);
+  const fromBuilt = builtAgo(served);
   // The instance a poll reached; the cold start belongs to the one that served this page.
   const instance = status ? `up ${up(status.uptime_seconds)}` : "asia-southeast1";
   const page = visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB · ${ms(visit.total)}${visit.cold ? " · cold" : ""}` : "static export";
@@ -298,7 +303,7 @@ export function LiveMap() {
             </circle>
           ))}
         </svg>
-        <Card node="you" title="You" sub={place ?? "this browser"} href="/status#visit-trace" label={`You${place ? `, in ${place} time` : ""}. Your visit's trace is on the status page.`} live />
+        <Card node="you" title="You" sub={zone ?? "this browser"} href="/status#visit-trace" label={`You${zone ? `, on ${zone}` : ""}. Your visit's trace is on the status page.`} live />
         <Card node="gfe" title="Google front end" sub={visit?.protocol ?? "TLS · HTTP"} href="/decisions" label="Google's front end terminates TLS. Why the site runs this way: the decision records." live />
         <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} live />
         <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} live />
@@ -336,8 +341,8 @@ export function LiveMap() {
       {/* Phones: the same live numbers as a path, top to bottom. */}
       <ol className="space-y-2 md:hidden" aria-label="Your request, step by step">
         {[
-          ["You", place ? `${place} · ${visit?.protocol ?? "HTTP"}` : (visit?.protocol ?? "this browser"), visit ? link(visit) : "", "/status#visit-trace"],
-          ["Google front end", "terminates TLS", visit ? `first byte ${ms(visit.ttfb)}` : "", "/decisions"],
+          ["You", zone ?? "this browser", visit ? link(visit) : "", "/status#visit-trace"],
+          ["Google front end", visit?.protocol ? `${visit.protocol} · ends TLS` : "terminates TLS", visit ? `first byte ${ms(visit.ttfb)}` : "", "/decisions"],
           ["Cloud Run · Go server", status ? `asia-southeast1 · ${instance}` : "asia-southeast1", visit?.server != null ? `Go ${ms(visit.server)}` : "", "/status"],
           ["This page", visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB${visit.cold ? " · cold start" : ""}` : "static export", visit ? `${ms(visit.total)} end to end` : "", "/cost"],
         ].map(([title, sub, time, href], i) => (
@@ -360,27 +365,22 @@ export function LiveMap() {
       <figcaption className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-ink-2 md:mt-2">
         {visit ? (
           <>
-            You asked{place ? (
-              <>
-                {" "}from <Live>{place}</Live>
-              </>
-            ) : null}
-            ; the first byte came back in <Live>{ms(visit.ttfb)}</Live>
+            You asked, and the first byte came back in <Live>{ms(visit.ttfb)}</Live>
             {visit.server !== null && (
               <>
                 , <Live>{ms(visit.server)}</Live> of it in the Go server
               </>
             )}
-            , from commit <Live>{commit}</Live>
-            {deployed ? `, built ${deployed}` : ""}.{" "}
+            , from commit <Live>{from}</Live>
+            {fromBuilt ? `, built ${fromBuilt}` : ""}.{" "}
           </>
         ) : (
           <>Your request to this page, drawn as it happens. </>
         )}
         {newRelease && (
-          // Straight after the commit it refers to: that is what's live now, but this page is still the build before it.
+          // Straight after the commit this page came from, which the newer one has replaced on the server.
           <>
-            {visit ? "It" : "A new release"} went out while you were here.{" "}
+            Commit <Live>{latest}</Live> went out while you were here.{" "}
             <button type="button" onClick={() => window.location.reload()} className="font-medium text-ink underline underline-offset-4">
               Reload for it
             </button>

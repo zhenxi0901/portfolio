@@ -2,17 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Pause, Play, X } from "@phosphor-icons/react";
-import { goTo, modalOpen, scrollToId } from "@/lib/utils";
+import { cn, goTo, modalOpen, scrollToId } from "@/lib/utils";
 
-type Stop = { id: string; title: string; text: string };
+/** `left`: what the stop is about is on the right of a wide screen, so its card goes on the left. */
+type Stop = { id: string; title: string; text: string; left?: boolean };
 
 // The tour walks the home page, which since the split into chapters (decision 11) is short enough
 // to see in a minute; every stop is on it, so the tour never leaves the page.
 const STOPS: Stop[] = [
   {
     id: "top",
+    left: true,
     title: "Your request, live",
-    text: "The map is the request you just made: where it came from, how long it took, and the commit that answered it. Every box opens the page behind it.",
+    text: "The map is the request you just made: the path it took, how long each part took, and the commit that answered it. Every box opens the page behind it.",
   },
   {
     id: "now",
@@ -153,9 +155,12 @@ export function Tour() {
         if (e.key === "ArrowRight") go(i + 1);
         if (e.key === "ArrowLeft") go(i - 1);
       }}
-      // Bottom right on wide screens. The left side holds each stop's main content (the hero's buttons on a
-      // 1366x768 laptop, the live readings, the first chapter), so the card covers less there.
-      className="fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg overflow-hidden rounded-3xl border border-line-strong bg-surface/95 shadow-soft outline-none backdrop-blur-md lg:inset-x-auto lg:bottom-6 lg:right-6 lg:mx-0 lg:w-[24rem]"
+      // Bottom right on wide screens. The left side holds most stops' main content (the live readings, the first
+      // chapter), so the card covers less there; the first stop is the map, on the right.
+      className={cn(
+        "fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg overflow-hidden rounded-3xl border border-line-strong bg-surface/95 shadow-soft outline-none backdrop-blur-md lg:bottom-6 lg:mx-0 lg:w-[24rem] short:bottom-3",
+        stop.left ? "lg:left-6 lg:right-auto" : "lg:left-auto lg:right-6",
+      )}
     >
       <div className="h-1 bg-surface-2" aria-hidden>
         <div className="h-full bg-accent-ink transition-[width] duration-100 ease-linear" style={{ width: `${((i + Math.min(1, elapsed / STEP_MS)) / STOPS.length) * 100}%` }} />

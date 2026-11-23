@@ -18,7 +18,7 @@ export function Writing({ chapter = false }: { chapter?: boolean } = {}) {
   // Straight under the page's h1 on /writing, a post's title is an h2; under the section's h2 elsewhere, an h3.
   const Title = chapter ? "h2" : "h3";
   return (
-    <section id="writing" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
+    <section id="writing" className="mx-auto max-w-[1320px] -scroll-mt-14 sm:-scroll-mt-22 px-4 py-24 sm:px-8 sm:py-32">
       <SectionHeading
         as={chapter ? "h1" : "h2"}
         title="Writing"

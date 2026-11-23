@@ -96,6 +96,11 @@ export function CostReceipt() {
               ? "The meters didn't answer just now. Try again in a minute."
               : "Reading this month's meters…"}
         </p>
+        <noscript>
+          <p className="text-center text-ink-2">
+            Scripts are off in this browser, so nothing is being read. The same figures, as JSON: <a href="/api/cost">/api/cost</a>.
+          </p>
+        </noscript>
       </Paper>
     );
   }

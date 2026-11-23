@@ -31,7 +31,7 @@ export default function AboutPage() {
             <dt className="text-xs text-ink-3">Studying</dt>
             <dd className="mt-1 text-sm font-medium">{education.degree}</dd>
             <dd className="text-sm text-ink-2">
-              {education.school}, graduating {education.period.split(" - ")[1]}
+              {education.school}, graduating {education.graduates}
             </dd>
           </div>
           <div>

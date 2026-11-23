@@ -12,7 +12,7 @@ import { decisions } from "@/content/decisions";
  */
 export function Status() {
   return (
-    <section id="status" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-32">
+    <section id="status" className="mx-auto max-w-[1320px] -scroll-mt-14 sm:-scroll-mt-22 px-4 py-24 sm:px-8 sm:py-32">
       <SectionHeading
         title="This page is a production service"
         lead="The Go server that sent you this page also reports on itself. These numbers are live and refresh every five seconds. Below them: the site's own SLO as Google's uptime checks see it, how it ships (DORA metrics), and the trace of your own visit."

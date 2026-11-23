@@ -1,7 +1,19 @@
 @import "tailwindcss";
 
-/* next-themes toggles the `dark` class on <html>; Tailwind's dark: variant follows it. */
-@custom-variant dark (&:where(.dark, .dark *));
+/* next-themes toggles the `dark` class on <html>; Tailwind's dark: variant follows it. Paper has one theme, the light one. */
+@custom-variant dark {
+  @media not print {
+    &:where(.dark, .dark *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * A short screen: a phone on its side, or a page zoomed far in. There the top bar and the tab bar together
+ * would cover a third of it or more, so neither stays: the bar scrolls away and the tabs end the page.
+ */
+@custom-variant short (@media (max-height: 31rem));
 
 /*
  * One neutral family, both modes, and one rule for colour: lime means live. Anything read from the
@@ -39,6 +51,7 @@
   --paper-shadow: rgba(13, 13, 16, 0.16);
 }
 
+@media not print {
 .dark {
   --bg: #0a0a0c;
   --surface: #111114;
@@ -61,6 +74,7 @@
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
   --paper: #1c1c21;
   --paper-shadow: rgba(0, 0, 0, 0.7);
+}
 }
 
 @theme inline {
@@ -112,7 +126,12 @@ html {
   scroll-padding-bottom: 6rem;
   color-scheme: light;
 }
-html.dark { color-scheme: dark; }
+@media not print {
+  html.dark { color-scheme: dark; }
+}
+@media (max-height: 31rem) {
+  html { scroll-padding-top: 1rem; scroll-padding-bottom: 1rem; }
+}
 
 body {
   background: var(--bg);
@@ -346,7 +365,20 @@ h2[data-tour] {
   }
 }
 
+/* A disclosure opens to its height, where the browser can animate to it; elsewhere it just opens. */
+@supports (interpolate-size: allow-keywords) {
+  .disclosure { interpolate-size: allow-keywords; }
+  .disclosure::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size 0.35s cubic-bezier(0.16, 1, 0.3, 1), content-visibility 0.35s allow-discrete;
+  }
+  .disclosure[open]::details-content { block-size: auto; }
+}
+
 @media print {
   [data-print-hide] { display: none !important; }
   body { background: #fff; color: #111; }
+  /* Paper has nothing to press: everything folded away on screen is printed. */
+  details::details-content { content-visibility: visible !important; block-size: auto !important; }
 }

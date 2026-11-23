@@ -55,7 +55,7 @@ export default function DecisionsPage() {
 
         <div>
           {decisions.map((d, i) => (
-            <section key={d.slug} id={d.slug} aria-labelledby={`${d.slug}-title`} className={i === 0 ? "mt-14 scroll-mt-28 lg:mt-0" : "mt-20 scroll-mt-28"}>
+            <section key={d.slug} id={d.slug} aria-labelledby={`${d.slug}-title`} className={i === 0 ? "mt-14 scroll-mt-6 lg:mt-0" : "mt-20 scroll-mt-6"}>
               <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-3">
                 <span>ADR {d.id}</span>
                 <span>{day(d.date)}</span>

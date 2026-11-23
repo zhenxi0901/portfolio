@@ -68,6 +68,8 @@ export type CaseStudy = {
   /** Headline numbers for the case's own page. Each restates a figure from the text above. */
   /** `short` stands in on the share card, where a long label would crowd the title. */
   numbers: { value: string; label: string; short?: string }[];
+  /** Which of those numbers the card shows under its summary: the one that is a result, not a size. */
+  measured?: number;
   /** Where the site goes further into this work. */
   deeper: { label: string; href: string }[];
 };
@@ -94,6 +96,7 @@ export const cases: CaseStudy[] = [
       { value: "3", label: "Kafka brokers, beside Cloud SQL, EMQX and Redis" },
       { value: "1", label: "restore drill passed before deletion protection went on" },
     ],
+    measured: 2,
     deeper: [
       { label: "How traffic, telemetry and commands move through the platform", href: "/iot#platform-paths" },
       { label: "What I alert on there, and the SLOs", href: "/iot#platform-signals" },
@@ -120,6 +123,7 @@ export const cases: CaseStudy[] = [
       { value: "1", label: "image digest per release: built once, then promoted" },
       { value: "0", label: "red merges that reached production" },
     ],
+    measured: 2,
     deeper: [
       { label: "The same habit on this site: the smoke test that gates every deploy, and its postmortem", href: "/postmortems/smoke-test" },
     ],
@@ -146,6 +150,7 @@ export const cases: CaseStudy[] = [
       { value: "914", label: "orphaned Kafka topics reaped, 86% of all topics" },
       { value: "10,386 → 2,891", label: "samples per scrape from the Kafka exporter" },
     ],
+    measured: 2,
     deeper: [
       { label: "The full cost review, one move at a time", href: "/iot#platform-cost" },
       { label: "The write-up: finding a metrics bill in 914 orphaned Kafka topics", href: "/writing/metrics-bill-kafka-topics" },
@@ -171,6 +176,7 @@ export const cases: CaseStudy[] = [
       { value: "40", label: "tiles on the platform dashboard" },
       { value: "0", label: "drift between Terraform and what is live" },
     ],
+    measured: 2,
     deeper: [
       { label: "SLOs, error budgets and burn-rate alerts, on a Grafana-style board", href: "/iot#platform-signals" },
       { label: "Postmortems I wrote for this site", href: "/writing#postmortems" },
@@ -200,6 +206,7 @@ export const cases: CaseStudy[] = [
       { value: "431", label: "tests on the bridge that drives the control lanes" },
       { value: "6-12", label: "commands per unit per hour at most, set per lane" },
     ],
+    measured: 1,
     deeper: [
       { label: "How a command reaches the plant, hop by hop", href: "/iot#platform-paths" },
       { label: "The same idea on this site: releases that roll themselves back", href: "/decisions#build-once-check-before-traffic" },
@@ -232,6 +239,7 @@ export const cases: CaseStudy[] = [
         short: "without a command route when a transport pod moves: one replica, then two",
       },
     ],
+    measured: 2,
     deeper: [
       { label: "What I alert on there, and the SLOs", href: "/iot#platform-signals" },
       { label: "This site's own two-step: check a release before it takes traffic", href: "/decisions#build-once-check-before-traffic" },
@@ -257,6 +265,7 @@ export const cases: CaseStudy[] = [
       { value: "3", label: "environments deployed the same way: dev, staging and production" },
       { value: "2,014", label: "BMS devices in the demo building I built for the agents to query" },
     ],
+    measured: 2,
     deeper: [
       { label: "Follow a request through the platform", href: "/ai#ai-map" },
       { label: "The AI infra stack, layer by layer", href: "/ai#ai-stack" },
@@ -372,6 +381,8 @@ export const education = {
   school: "Nanyang Technological University",
   degree: "Bachelor of Computer Science",
   period: "Jul 2023 – Jun 2027",
+  /** Said on its own too. (It was cut out of the period, and went blank when the dash in it changed.) */
+  graduates: "Jun 2027",
   exchanges: ["Tsinghua University", "Luleå University of Technology"],
 };
 

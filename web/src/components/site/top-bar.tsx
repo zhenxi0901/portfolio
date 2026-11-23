@@ -40,7 +40,7 @@ export function TopBar({ home = false }: { home?: boolean }) {
     let alive = true;
     api
       .status()
-      .then((s) => alive && setServing({ ok: true, commit: s.commit }))
+      .then((s) => alive && setServing({ ok: true, commit: String(s.commit) }))
       .catch(() => alive && setServing({ ok: false }));
     return () => {
       alive = false;
@@ -49,13 +49,13 @@ export function TopBar({ home = false }: { home?: boolean }) {
   const live = serving?.ok ? serving : null;
 
   return (
-    <header data-print-hide className="fixed inset-x-0 top-0 z-30">
+    <header data-print-hide className="fixed inset-x-0 top-0 z-30 short:absolute">
       {/* Once the page scrolls, a tinted strip behind the bar, so text scrolling under it does not show through. */}
       <div
         aria-hidden
         className={cn(
           "absolute inset-0 -z-10 border-b border-line/70 bg-bg/85 backdrop-blur-md transition-opacity duration-200 motion-reduce:transition-none",
-          away ? "opacity-100" : "opacity-0",
+          away ? "opacity-100 short:opacity-0" : "opacity-0",
         )}
       />
       <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between gap-4 px-4 sm:px-8">

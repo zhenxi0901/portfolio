@@ -18,6 +18,8 @@ const presets: { name: string; faults: Faults }[] = [
 ];
 
 type Run = { id: number; strategy: Strategy; faults: Faults; results: RequestResult[] };
+/** A comparison under way or just finished: every strategy against the same faults, filled in as each ends. */
+type Comparison = { faults: Faults; done: Run[] };
 
 const name = (s: Strategy) => strategies.find((x) => x.id === s)!.name;
 const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`);
@@ -50,7 +52,7 @@ function takeaway(r: Run): string {
         ? `The breaker opened and turned away ${plural(s.rejected, "call")} without sending them: those users got an instant error instead of a slow one, and the server got room to recover. Overall ${failedFor}.${busy}`
         : `The breaker never opened (it needs 4 failures in a row), so this behaved like plain retries: ${failedFor}.${busy}`;
     case "hedge":
-      return `Hedging sent ${plural(s.calls - s.requests, "extra copy", "extra copies")} (${s.callsPerRequest.toFixed(2)} calls per request) and ${failedFor}; the slowest 5% waited ${ms(s.p95)}. Hedges cut waiting on slow answers, not errors.${busy}`;
+      return `Hedging sent ${plural(s.calls - s.requests, "extra copy", "extra copies")} (${s.callsPerRequest.toFixed(2)} calls per request) and ${failedFor}; the longest wait was ${ms(s.longest)}. Hedges cut waiting on slow answers, not errors.${busy}`;
   }
 }
 
@@ -88,7 +90,10 @@ export function Lab() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [verdict, setVerdict] = useState<string | null>(null);
+  const [comparison, setComparison] = useState<Comparison | null>(null);
   const ids = useRef(0);
+  const controls = useRef<HTMLDivElement>(null);
+  const result = useRef<HTMLElement>(null);
   const radioName = useId();
 
   const go = async (list: Strategy[], count: number) => {
@@ -98,6 +103,13 @@ export function Lab() {
     const seed = Math.random().toString(36).slice(2, 8);
     const done: Run[] = [];
     setVerdict(null);
+    setComparison(list.length > 1 ? { faults: f, done: [] } : null);
+    // Where the result would be drawn below the fold (any laptop), the buttons go to the top of the screen
+    // and it comes up right under them.
+    if ((result.current?.getBoundingClientRect().top ?? 0) + 480 > window.innerHeight) {
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      controls.current?.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" });
+    }
     for (const s of list) {
       setBusy(list.length > 1 ? `Running ${name(s)}…` : "Sending…");
       setResults([]);
@@ -107,12 +119,13 @@ export function Lab() {
       done.push(r);
       setCurrent(r);
       setResults(res);
+      if (list.length > 1) setComparison({ faults: f, done: [...done] });
     }
     if (done.length > 1) {
       setVerdict(
         `Compared against ${describe(f)}, the same faults for each: ` +
           done.map((r) => `${name(r.strategy)} ${summarise(r.results).ok} of ${count}`).join(", ") +
-          " succeeded for the user. All four are side by side below.",
+          " succeeded for the user.",
       );
     }
     setRuns((old) => [...done.reverse(), ...old].slice(0, 12));
@@ -193,7 +206,7 @@ export function Lab() {
         </section>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div ref={controls} className="flex flex-wrap items-center gap-3">
         <Button size="lg" aria-disabled={busy ? true : undefined} onClick={() => go([strategy], COUNT)}>
           <Lightning weight="fill" /> Send {COUNT} requests
         </Button>
@@ -205,7 +218,7 @@ export function Lab() {
         </p>
       </div>
 
-      <section aria-labelledby="lab-result" className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
+      <section ref={result} aria-labelledby="lab-result" className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
         <h2 id="lab-result" className="text-lg font-semibold tracking-[-0.02em]">
           3. What happened
         </h2>
@@ -215,11 +228,55 @@ export function Lab() {
           </p>
         ) : (
           <>
-            {s && (
+            {comparison && (
+              <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="The four clients compared, which scrolls sideways on small screens">
+                <table className="w-full text-left text-sm">
+                  <caption className="pb-2 text-left text-sm text-ink-2">
+                    The four clients against {describe(comparison.faults)}: the same {COMPARE_COUNT} requests, the same faults
+                  </caption>
+                  <thead className="text-ink-3">
+                    <tr>
+                      {["Client", "Succeeded", "Longest wait", "Calls each"].map((h) => (
+                        <th key={h} scope="col" className="py-2 pr-4 font-normal">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {strategies.map((st, k) => {
+                      const r = comparison.done[k];
+                      const x = r && summarise(r.results);
+                      return (
+                        <tr key={st.id} className="border-t border-line">
+                          <th scope="row" className="py-2 pr-4 font-medium">
+                            {st.name}
+                          </th>
+                          {x ? (
+                            <>
+                              <td className="py-2 pr-4 tabular-nums">
+                                {x.ok} of {x.requests}
+                              </td>
+                              <td className="py-2 pr-4 tabular-nums">{ms(x.longest)}</td>
+                              <td className="py-2 tabular-nums">{x.callsPerRequest.toFixed(2)}</td>
+                            </>
+                          ) : (
+                            <td colSpan={3} className="py-2 text-ink-3">
+                              {k === comparison.done.length ? "running…" : "waiting its turn"}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {s && !comparison && (
               <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
                 {[
                   ["succeeded for the user", `${s.ok} of ${s.requests}`],
-                  ["slowest 5% waited", ms(s.p95)],
+                  ["the longest wait", ms(s.longest)],
                   ["calls to the server", `${s.calls} (${s.callsPerRequest.toFixed(2)} each)`],
                   ["calls that failed", `${s.failedCalls}${s.rejected ? `, ${s.rejected} not sent` : ""}`],
                 ].map(([k, v]) => (
@@ -232,6 +289,7 @@ export function Lab() {
             )}
             <p className="mt-4 font-mono text-xs text-ink-3">
               {name(live.strategy)} · {describe(live.faults)}
+              {comparison && finished ? ", the last of the four" : ""}
             </p>
             <div className="mt-2">
               <Timeline
@@ -313,7 +371,7 @@ export function Lab() {
               <caption className="sr-only">Every run so far, newest first</caption>
               <thead className="text-ink-3">
                 <tr>
-                  {["Client", "Faults", "Succeeded", "Slowest 5%", "Calls each"].map((h) => (
+                  {["Client", "Faults", "Succeeded", "Longest wait", "Calls each"].map((h) => (
                     <th key={h} scope="col" className={cn("py-2 pr-4 font-normal", h === "Faults" && "hidden sm:table-cell")}>
                       {h}
                     </th>
@@ -332,7 +390,7 @@ export function Lab() {
                       <td className="py-2 pr-4 tabular-nums">
                         {x.ok}/{x.requests}
                       </td>
-                      <td className="py-2 pr-4 tabular-nums">{ms(x.p95)}</td>
+                      <td className="py-2 pr-4 tabular-nums">{ms(x.longest)}</td>
                       <td className="py-2 tabular-nums">{x.callsPerRequest.toFixed(2)}</td>
                     </tr>
                   );

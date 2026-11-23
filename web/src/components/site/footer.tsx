@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="border-t border-line">
       {/* Room at the bottom for the phone tab bar; from lg up there is none. */}
-      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 pb-28 pt-10 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:pb-12">
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 pb-28 pt-10 text-sm short:pb-10 text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:pb-12">
         <div className="space-y-1.5">
           <p>Designed and built by {profile.name}. Next.js and Go on Cloud Run.</p>
           <p>
@@ -17,6 +17,11 @@ export function Footer() {
           </p>
         </div>
         <ul className="flex flex-wrap gap-x-5 gap-y-2">
+          <li>
+            <a className="text-ink-2 hover:text-ink" href="/#contact">
+              Get in touch
+            </a>
+          </li>
           <li>
             <a className="hover:text-ink" href="/status">
               Status

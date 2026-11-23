@@ -8,7 +8,7 @@ import { Recently } from "@/components/home/recently";
  */
 export function Now() {
   return (
-    <section id="now" aria-labelledby="now-title" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 sm:px-8">
+    <section id="now" aria-labelledby="now-title" className="mx-auto max-w-[1320px] px-4 sm:px-8">
       <div className="grid gap-12 border-t border-line pt-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <h2 id="now-title" className="text-sm font-medium text-ink-3">

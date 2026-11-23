@@ -12,9 +12,9 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-/** "7 in 10" for a share of at least one in ten, a percentage below that. */
+/** "7 in 10 requests are", for a share of at least one in ten; "4% of requests are" below that. */
 function share(x: number): string {
-  return x >= 0.095 ? `${Math.round(x * 10)} in 10` : `${Math.max(1, Math.round(x * 100))}%`;
+  return x >= 0.095 ? `${Math.round(x * 10)} in 10 requests are` : `${x < 0.005 ? "Under 1" : Math.round(x * 100)}% of requests are`;
 }
 
 /** Three things the receipt says that are not obvious from a price list. */
@@ -42,12 +42,14 @@ export function CostInsights() {
   const work = p50 === undefined ? "" : p50 < 0.1 ? "under 0.1 ms" : `${p50.toFixed(1)} ms`;
   return (
     <ul className="grid content-start">
-      <Card title={`${share(r.probe_share)} requests are the site checking on itself`}>
+      <Card title={`${share(r.probe_share)} the site checking on itself`}>
         Uptime checks call /api/health once a minute from three regions: about {count(r.probe_requests)} of this month&apos;s{" "}
-        {count(r.usage.requests)} requests. Knowing the site is up is most of its traffic.
+        {count(r.usage.requests)} requests.{" "}
+        {r.probe_share > 0.5 ? "Knowing the site is up is most of its traffic." : "The rest is people, crawlers, agents and this site's own tests."}
       </Card>
       <Card title={`Billed ${Math.round(billedMs)} ms a request${work ? `, for ${work} of work` : ""}`}>
-        Cloud Run bills an instance&apos;s busy time in 100 ms steps, and a lone uptime check keeps an instance busy for a whole step. About{" "}
+        Cloud Run bills an instance&apos;s busy time in 100 ms steps, and a lone uptime check keeps an instance busy for a whole step (a few an
+        hour for longer: those also read Cloud Monitoring and GitHub, so no visitor waits for it). At least{" "}
         {Math.round(r.probe_billed_share * 100)}% of the billed time is the site answering its own checks
         {p50 === undefined ? "" : p50 < 1 ? "; the median request takes the server well under a millisecond" : `; the median request takes the server ${work}`}.
       </Card>

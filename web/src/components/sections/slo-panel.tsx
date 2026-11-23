@@ -9,6 +9,12 @@ import { uptime } from "@/lib/uptime";
 // and none of them shows 100% while some of the budget is spent. The nudge absorbs float error.
 const pct = (x: number, digits = 3) => `${(Math.floor(x * 100 * 10 ** digits + 1e-6) / 10 ** digits).toFixed(digits)}%`;
 
+/** Rounded down, and up, to a tenth: a budget left is never shown as more than it is, nor downtime as less. */
+const tenthDown = (x: number) => (Math.floor(x * 10 + 1e-6) / 10).toFixed(1);
+const tenthUp = (x: number) => (Math.ceil(x * 10 - 1e-6) / 10).toFixed(1);
+/** Whether the 30-day window is still filling (the Go server's UptimeLabel rule): once full, its start just slides. */
+const filling = (r: SloReport) => !!r.since && Date.parse(r.updated) - Date.parse(r.since) < (r.window_days * 24 - 1) * 36e5;
+
 /** How long the checks have been running, from the report's own timestamps. */
 function span(since: string, updated: string) {
   const h = (Date.parse(updated) - Date.parse(since)) / 36e5;
@@ -34,7 +40,7 @@ export function SloPanel() {
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Fetch once, when the panel is close to view; the server caches for five minutes anyway.
+  // Fetch once, when the panel is close to view; the server reads again only every half an hour anyway.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -86,13 +92,13 @@ export function SloPanel() {
             </div>
             <div className="flex flex-col-reverse justify-end">
               <dt className="mt-1 text-sm text-ink-2">
-                error budget left: {Math.max(0, r.budget_minutes - r.downtime_minutes).toFixed(1)} of {r.budget_minutes.toFixed(1)} min
+                error budget left: {tenthDown(Math.max(0, r.budget_minutes - r.downtime_minutes))} of {r.budget_minutes.toFixed(1)} min
               </dt>
               <dd className={cn("text-3xl font-semibold tracking-[-0.03em]", budgetTone)}>{pct(Math.max(-9.99, r.budget_remaining), 1)}</dd>
             </div>
             <div className="col-span-2 flex flex-col-reverse justify-end sm:col-span-1">
               <dt className="mt-1 text-sm text-ink-2">downtime the checks saw</dt>
-              <dd className="text-3xl font-semibold tracking-[-0.02em] text-live-ink">{r.downtime_minutes.toFixed(1)} min</dd>
+              <dd className="text-3xl font-semibold tracking-[-0.02em] text-live-ink">{tenthUp(r.downtime_minutes)} min</dd>
             </div>
           </dl>
 
@@ -133,9 +139,9 @@ export function SloPanel() {
           )}
 
           <p className="mt-4 text-xs leading-relaxed text-ink-3">
-            {r.since && `Measured since ${dayTime(r.since)} your time; the 30-day window fills in from there. `}
-            Read from Cloud Monitoring by this site&apos;s Go API, cached for five minutes
-            {r.stale ? "; this is the last good reading, the latest fetch failed." : "."}
+            {r.since && filling(r) && `Measured since ${dayTime(r.since)} your time; the 30-day window fills in from there. `}
+            Read from Cloud Monitoring by this site&apos;s Go API at {dayTime(r.updated)} your time
+            {r.stale ? "; that is the last good reading, the latest fetch failed." : "."}
           </p>
         </>
       )}

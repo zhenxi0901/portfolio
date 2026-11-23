@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  */
 export function Chapters() {
   return (
-    <section id="chapters" className="mx-auto max-w-[1320px] scroll-mt-20 px-4 py-24 sm:px-8 sm:py-28">
+    <section id="chapters" className="mx-auto max-w-[1320px] -scroll-mt-14 sm:-scroll-mt-18 px-4 py-24 sm:px-8 sm:py-28">
       <SectionHeading
         title="Two platforms in production, and the research behind my final-year project"
         lead="I run both platforms at Primustech; the research is at NTU's HyScale Lab. Each chapter has what I built, a working model of it you can press, and the numbers."

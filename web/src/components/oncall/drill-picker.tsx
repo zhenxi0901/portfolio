@@ -26,7 +26,7 @@ export function DrillPicker() {
     window.history.replaceState(null, "", `#oncall-${next}`);
   };
   return (
-    <div id="oncall" className="mt-10 scroll-mt-24">
+    <div id="oncall" className="mt-10 scroll-mt-4">
       <div
         role="tablist"
         aria-label="Which incident"

@@ -189,7 +189,7 @@ export function buildKnowledge(): Fact[] {
     anchor: "research",
     text:
       `My final-year project at NTU HyScale Lab benchmarks long-horizon LLM agent workloads. I contributed a Go benchmark adapter to ARIES, ` +
-      `the lab's open-source agent-serving framework, so Toolathlon tasks (108 tasks, 34 MCP servers) run with live applications in isolated containers.` +
+      `the lab's open-source agent-serving framework, so Toolathlon tasks (108 tasks, 34 MCP servers) run with live applications in isolated containers. ` +
       `Findings: ${fyp.findings.map((f) => `${f.value} ${f.label}`).join("; ")}. ` +
       `Running 4 tasks at once gave ${fyp.concurrency[2].attempts} attempts per hour against ${fyp.concurrency[0].attempts} at 1, a 3.02x throughput, ` +
       `using ${fyp.concurrency[2].memGiB} GiB of memory. Self-hosted Qwen3-4B was served with SGLang on an NVIDIA A100 at NSCC, reached from the Google Cloud benchmark VM over an SSH tunnel through IAP. ` +
@@ -289,7 +289,7 @@ export function buildKnowledge(): Fact[] {
     anchor: "cost",
     lead: "So far it costs well under a US dollar a month to run: the /cost page prints the month's bill as a receipt, from the service's own meters.",
     text:
-      "The Go server reads the month's usage from Cloud Monitoring (requests, billed instance time, CPU and memory, bytes sent to the internet) at most once an hour " +
+      "The Go server reads the month's usage from Cloud Monitoring (requests, billed instance time, CPU and memory, bytes sent to the internet) about once an hour " +
       "and prices it at Google's list prices for Cloud Run with request-based billing in Singapore. " +
       "The free tier covers the compute, so what is left to pay, so far well under a US dollar a month, is almost all data leaving Google's network. " +
       "Most requests come from its own monitoring, and Cloud Run bills in 100 ms steps, so each of those is billed far longer than the server spends on it. " +

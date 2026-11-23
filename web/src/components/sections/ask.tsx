@@ -60,6 +60,11 @@ export function Ask() {
       if (status === 429 || status === 400) {
         setError((e as Error).message);
       } else {
+        // Neither the server nor the facts file could be reached: that is not "nothing found".
+        if (facts.length === 0) {
+          setError("Couldn't reach the server, so there is nothing to answer from right now. Try again in a moment.");
+          return;
+        }
         // API unreachable (static hosting or offline): answer from the same facts in the browser.
         const t0 = performance.now();
         const r = retrieve(text, facts);
@@ -80,7 +85,7 @@ export function Ask() {
   };
 
   return (
-    <section id="ask" className="scroll-mt-20 border-t border-line bg-surface-2/40">
+    <section id="ask" className="-scroll-mt-14 sm:-scroll-mt-22 border-t border-line bg-surface-2/40">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
         <SectionHeading
           title="Ask about my experience"

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CloudSlash } from "@phosphor-icons/react";
-import { api, type Status as StatusT } from "@/lib/api";
+import { api, ApiError, type Status as StatusT } from "@/lib/api";
 
 const FLOW = ["Your browser", "Cloud Run: Go server", "Static site + /api", "/metrics for Prometheus"];
 
@@ -22,7 +22,9 @@ function uptime(s: number) {
  */
 export function LiveInstance({ commit = true }: { commit?: boolean }) {
   const [data, setData] = useState<StatusT | null>(null);
-  const [offline, setOffline] = useState(false);
+  // "absent": this copy of the site has no API (a 404). "down": it has one, and it did not answer.
+  const [problem, setProblem] = useState<"absent" | "down" | null>(null);
+  const offline = problem !== null;
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,9 +34,9 @@ export function LiveInstance({ commit = true }: { commit?: boolean }) {
         .status()
         .then((s) => {
           setData(s);
-          setOffline(false);
+          setProblem(null);
         })
-        .catch(() => setOffline(true));
+        .catch((err: unknown) => setProblem(err instanceof ApiError && err.status === 404 ? "absent" : "down"));
     const io = new IntersectionObserver(([e]) => {
       if (e.isIntersecting && !timer) {
         poll();
@@ -93,14 +95,16 @@ export function LiveInstance({ commit = true }: { commit?: boolean }) {
           <div className="flex items-center justify-between">
             <p className="font-semibold">Latency of the last requests</p>
             <span className="inline-flex items-center gap-2 text-sm text-ink-2" role="status">
-              {data && !offline ? (
+              {offline ? (
+                <>
+                  <CloudSlash size={16} /> Offline
+                </>
+              ) : data ? (
                 <>
                   <span className="size-2 rounded-full bg-live ring-1 ring-live-ink/40" /> Live
                 </>
               ) : (
-                <>
-                  <CloudSlash size={16} /> Offline
-                </>
+                "Connecting"
               )}
             </span>
           </div>
@@ -112,82 +116,115 @@ export function LiveInstance({ commit = true }: { commit?: boolean }) {
             </>
           ) : (
             <div className="mt-6 grid h-40 place-items-center rounded-2xl bg-surface-2 px-6 text-center text-sm text-ink-2">
-              {offline
+              {problem === "absent"
                 ? "The status API isn't reachable from this copy of the site. On the Cloud Run deploy this panel is live."
-                : "Connecting to the status API..."}
+                : problem === "down"
+                  ? "The status API didn't answer just now. Trying again every five seconds."
+                  : "Connecting to the status API…"}
             </div>
           )}
         </div>
-        {tiles.length ? (
-          <dl className="grid grid-cols-2 gap-4 lg:col-span-5">
-            {tiles.map((t) => (
-              <div key={t.label} className="rounded-3xl border border-line bg-surface p-5">
-                <dt className="text-sm text-ink-2">{t.label}</dt>
-                <dd className="mt-2 truncate text-2xl font-semibold tracking-[-0.02em] text-live-ink">{t.value}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          // Placeholders while the API answers; the message beside them says what is happening.
-          <div className="grid grid-cols-2 gap-4 lg:col-span-5" aria-hidden>
-            {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="rounded-3xl border border-line bg-surface p-5">
-                <div className="h-4 w-20 animate-pulse rounded-full bg-surface-2" />
-                <div className="mt-3 h-7 w-24 animate-pulse rounded-full bg-surface-2" />
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="lg:col-span-5">
+          {tiles.length ? (
+            <dl className="grid grid-cols-2 gap-4">
+              {tiles.map((t) => (
+                <div key={t.label} className="rounded-3xl border border-line bg-surface p-5">
+                  <dt className="text-sm text-ink-2">{t.label}</dt>
+                  <dd className="mt-2 truncate text-2xl font-semibold tracking-[-0.02em] text-live-ink">{t.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            // Placeholders while the API answers; the message beside them says what is happening.
+            <div className="grid grid-cols-2 gap-4" aria-hidden>
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="rounded-3xl border border-line bg-surface p-5">
+                  <div className="h-4 w-20 animate-pulse rounded-full bg-surface-2" />
+                  <div className="mt-3 h-7 w-24 animate-pulse rounded-full bg-surface-2" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+      {/* What the numbers count, and over what: without it, a p95 of one window beside a chart of another reads as a contradiction. */}
+      <p className="mt-4 max-w-[92ch] text-sm leading-relaxed text-ink-3">
+        Requests and latencies are visitors&apos; pages and API calls, as the server timed them; uptime checks, agents and the fault lab are left
+        out. p50 and p95 cover the last 512 of them, the chart the last 60.
+      </p>
+      <noscript>
+        <p className="mt-3 text-sm text-ink-2">
+          These readings are taken by a script, and scripts are off in this browser. The same figures, as JSON: <a href="/api/status">/api/status</a>.
+        </p>
+      </noscript>
     </div>
   );
 }
 
+const tick = (ms: number) => (ms >= 1000 ? `${ms / 1000} s` : `${ms} ms`);
+
+/**
+ * On a log scale, a decade a gridline: a page takes the server a fifth of a millisecond and an answer from the
+ * model seconds, and on a straight scale one of those turned every other request into a flat line at zero.
+ */
 function Sparkline({ values }: { values: number[] }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 600;
   const H = 160;
   const pad = 8;
-  const vals = values.length > 1 ? values : [0, 0];
-  const max = Math.max(1, ...vals) * 1.15;
+  const FLOOR = 0.01; // the server times in microseconds; a zero has no place on a log scale
+  const vals = (values.length > 1 ? values : [FLOOR, FLOOR]).map((v) => Math.max(v, FLOOR));
+  const lo = Math.floor(Math.log10(Math.min(...vals)));
+  const hi = Math.max(lo + 1, Math.ceil(Math.log10(Math.max(...vals))));
   const x = (i: number) => pad + (i / (vals.length - 1)) * (W - pad * 2);
-  const y = (v: number) => H - pad - (v / max) * (H - pad * 2);
+  const y = (v: number) => H - pad - ((Math.log10(v) - lo) / (hi - lo)) * (H - pad * 2);
   const d = vals.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(" ");
-  const area = `${d} L${x(vals.length - 1)},${H - pad} L${x(0)},${H - pad} Z`;
+  const decades = Array.from({ length: hi - lo + 1 }, (_, i) => Number((10 ** (lo + i)).toPrecision(1)));
   return (
-    <div className="relative mt-6">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="h-40 w-full"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`Latency of the last ${vals.length} requests, up to ${Math.max(...vals).toFixed(1)} ms`}
-        onMouseMove={(e) => {
-          const r = e.currentTarget.getBoundingClientRect();
-          const i = Math.round(((e.clientX - r.left) / r.width) * (vals.length - 1));
-          setHover(Math.max(0, Math.min(vals.length - 1, i)));
-        }}
-        onMouseLeave={() => setHover(null)}
-      >
-        <line x1={0} x2={W} y1={H - pad} y2={H - pad} stroke="var(--line)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-        <path d={area} fill="var(--live-ink)" opacity={0.12} />
-        <path d={d} fill="none" stroke="var(--live-ink)" strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-        {hover !== null && (
-          <line x1={x(hover)} x2={x(hover)} y1={pad} y2={H - pad} stroke="var(--ink-3)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-        )}
-      </svg>
-      {hover !== null && (
-        <div
-          className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-xl border border-line bg-surface px-2.5 py-1.5 font-mono text-xs shadow-soft"
-          style={{ left: `${(x(hover) / W) * 100}%` }}
-        >
-          {vals[hover].toFixed(2)} ms
+    <div className="mt-6">
+      <div className="flex gap-2">
+        <div className="relative h-40 w-12 shrink-0 font-mono text-[11px] text-ink-3" aria-hidden>
+          {decades.map((v) => (
+            <span key={v} className="absolute right-0 -translate-y-1/2 whitespace-nowrap" style={{ top: `${(y(v) / H) * 100}%` }}>
+              {tick(v)}
+            </span>
+          ))}
         </div>
-      )}
-      {/* The scale in words: the chart has no axis, and a flat line with one spike means little without it. */}
+        <div className="relative min-w-0 flex-1">
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="h-40 w-full"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`Latency of the last ${vals.length} requests, up to ${Math.max(...vals).toFixed(1)} ms, median ${median(vals).toFixed(1)} ms`}
+            onMouseMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              const i = Math.round(((e.clientX - r.left) / r.width) * (vals.length - 1));
+              setHover(Math.max(0, Math.min(vals.length - 1, i)));
+            }}
+            onMouseLeave={() => setHover(null)}
+          >
+            {decades.map((v) => (
+              <line key={v} x1={0} x2={W} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            ))}
+            <path d={d} fill="none" stroke="var(--live-ink)" strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+            {hover !== null && (
+              <line x1={x(hover)} x2={x(hover)} y1={pad} y2={H - pad} stroke="var(--ink-3)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            )}
+          </svg>
+          {hover !== null && hover < vals.length && (
+            <div
+              className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-xl border border-line bg-surface px-2.5 py-1.5 font-mono text-xs shadow-soft"
+              style={{ left: `${(x(hover) / W) * 100}%` }}
+            >
+              {vals[hover].toFixed(2)} ms
+            </div>
+          )}
+        </div>
+      </div>
       <p className="mt-2 flex justify-between gap-4 text-xs text-ink-3" aria-hidden>
         <span>
-          last {vals.length} requests, oldest on the left
+          last {vals.length} requests, oldest on the left, log scale
         </span>
         <span>
           highest <span className="font-medium text-live-ink">{Math.max(...vals).toFixed(1)} ms</span>, median{" "}

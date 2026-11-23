@@ -163,7 +163,7 @@ export function CapacityLab({ level = 3 }: { level?: 2 | 3 }) {
   const alone = `With one agent at a time the GPU works ${pct(r.aloneBusyShare)} of the time${r.aloneBusyShare < 0.995 && s.outsideSeconds > 0 ? ": the rest it waits for tools and commands" : ""}.`;
 
   return (
-    <section id="capacity" aria-labelledby="capacity-title" className="scroll-mt-24 rounded-3xl border border-line bg-surface p-5 sm:p-8">
+    <section id="capacity" aria-labelledby="capacity-title" className="scroll-mt-4 rounded-3xl border border-line bg-surface p-5 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm text-ink-3">Capacity lab, a first-order model</p>

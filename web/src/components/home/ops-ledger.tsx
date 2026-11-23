@@ -21,13 +21,22 @@ const tenthDown = (x: number) => (Math.floor(x * 10) / 10).toFixed(1);
 // Two decimals under a millisecond: a static page takes a few hundredths of one in the Go server.
 const ms = (v: number) => (v >= 10 ? `${Math.round(v)} ms` : v >= 1 ? `${v.toFixed(1)} ms` : `${v.toFixed(2)} ms`);
 
-type Readings = { slo: SloReport | null; cost: CostReport | null; status: Status | null; mine: number | null; done: boolean };
+type Readings = {
+  slo: SloReport | null;
+  cost: CostReport | null;
+  status: Status | null;
+  mine: number | null;
+  /** Which readings have answered, one way or the other. */
+  settled: { slo: boolean; cost: boolean; status: boolean };
+};
+
+/** When a reading that could not be refreshed was taken, in the visitor's own time. */
+const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /**
  * What the Go server spent on this visitor's own request for the page, from its Server-Timing header
- * (the map at the top reads the same). The instance's own p95 is no headline: it includes the hourly
- * reads of Cloud Monitoring and GitHub that run inside a request, so it reads in seconds while pages
- * are served in a fraction of a millisecond.
+ * (the map at the top reads the same). The instance's own p95 is no headline: it is everyone's requests, the
+ * model's answers that take seconds among them, while this is the one page the visitor knows about.
  */
 function myServerTime(): number | null {
   const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
@@ -43,7 +52,7 @@ function myServerTime(): number | null {
 export function OpsLedger() {
   const { setOpen } = useTerminal();
   const ref = useRef<HTMLElement>(null);
-  const [r, setR] = useState<Readings>({ slo: null, cost: null, status: null, mine: null, done: false });
+  const [r, setR] = useState<Readings>({ slo: null, cost: null, status: null, mine: null, settled: { slo: false, cost: false, status: false } });
 
   // Read once, when the ledger is near the screen: the first visitor after a cold start would
   // otherwise wait on Cloud Monitoring for a section they may never scroll to.
@@ -55,11 +64,14 @@ export function OpsLedger() {
       ([e]) => {
         if (!e.isIntersecting) return;
         io.disconnect();
-        Promise.allSettled([api.slo(), api.cost(), api.status()]).then(([slo, cost, status]) => {
-          if (!alive) return;
-          const ok = <T,>(p: PromiseSettledResult<T>) => (p.status === "fulfilled" ? p.value : null);
-          setR({ slo: ok(slo), cost: ok(cost), status: ok(status), mine: myServerTime(), done: true });
-        });
+        // Each on its own: a reading that is slow to answer must not hold back the others.
+        const land = <K extends "slo" | "cost" | "status">(key: K, reading: Promise<NonNullable<Readings[K]>>) =>
+          reading
+            .catch(() => null)
+            .then((v) => alive && setR((old) => ({ ...old, [key]: v, mine: myServerTime(), settled: { ...old.settled, [key]: true } })));
+        land("slo", api.slo());
+        land("cost", api.cost());
+        land("status", api.status());
       },
       { rootMargin: "300px 0px" },
     );
@@ -73,23 +85,29 @@ export function OpsLedger() {
   const slo = r.slo?.available ? r.slo : null;
   const cost = r.cost?.available ? r.cost : null;
   const bill = cost ? printed(cost) : null;
-  // Until the reading arrives, a quiet placeholder; if it never does, say so rather than show a stale number.
-  const pending = r.done ? "not available" : "reading…";
+  // Until a reading arrives, a quiet placeholder; if it never does, say so rather than show a number it isn't.
+  const pending = (of: keyof Readings["settled"]) => (r.settled[of] ? "not available" : "reading…");
+  // A reading the server could not refresh is the last good one: shown with its age, and not as live.
+  const asOf = (x: { stale?: boolean } | null, at?: string) => (x?.stale && at ? `; the last good reading, from ${when(at)} your time` : "");
 
-  const readings: { label: string; href: string; value: string | null; note: string; live: boolean }[] = [
+  const readings: { label: string; href: string; value: string | null; note: string; live: boolean; from?: keyof Readings["settled"] }[] = [
     {
       label: "Availability",
       href: "/status",
       value: slo ? uptime(slo.availability) : null,
-      note: slo ? `over ${slo.since ? sloSpan(slo.since, slo.updated) : `${slo.window_days} days`}, from uptime checks in three regions` : "from uptime checks in three regions",
-      live: true,
+      note: slo
+        ? `over ${slo.since ? sloSpan(slo.since, slo.updated) : `${slo.window_days} days`}, from uptime checks in three regions${asOf(slo, slo.updated)}`
+        : "from uptime checks in three regions",
+      live: !slo?.stale,
+      from: "slo",
     },
     {
       label: "Error budget left",
       href: "/status",
       value: slo ? `${tenthDown(Math.max(0, slo.budget_minutes - slo.downtime_minutes))} min` : null,
-      note: slo ? `of ${slo.budget_minutes} min for a 99.9% objective` : "for a 99.9% objective",
-      live: true,
+      note: slo ? `of ${slo.budget_minutes} min for a 99.9% objective${asOf(slo, slo.updated)}` : "for a 99.9% objective",
+      live: !slo?.stale,
+      from: "slo",
     },
     {
       label: "Time in the Go server",
@@ -97,13 +115,15 @@ export function OpsLedger() {
       value: r.mine !== null ? ms(r.mine) : r.status ? ms(r.status.latency_ms.p50) : null,
       note: r.mine !== null ? "spent on your request for this page" : "the median of this instance's recent requests",
       live: true,
+      from: "status",
     },
     {
       label: "This month's bill",
       href: "/cost",
       value: bill ? money(bill.bill, bill.d) : null,
-      note: "to pay so far, estimated from the service's own meters",
-      live: true,
+      note: `to pay so far, estimated from the service's own meters${asOf(cost, cost?.end)}`,
+      live: !cost?.stale,
+      from: "cost",
     },
     {
       label: "Deploys",
@@ -143,7 +163,7 @@ export function OpsLedger() {
   ];
 
   return (
-    <section ref={ref} id="explore" className="scroll-mt-16 border-y border-line bg-surface-2/40">
+    <section ref={ref} id="explore" className="-scroll-mt-10 sm:-scroll-mt-14 border-y border-line bg-surface-2/40">
       <div className="mx-auto max-w-[1320px] px-4 py-20 sm:px-8 sm:py-24">
         <SectionHeading
           title="The service behind this page"
@@ -158,7 +178,7 @@ export function OpsLedger() {
                   <a href={x.href} className="group grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1 py-4">
                     <span className="text-[15px] font-medium text-ink">{x.label}</span>
                     <span className={x.value === null ? "text-sm text-ink-3" : x.live ? "text-xl font-semibold text-live-ink" : "text-xl font-semibold text-ink"}>
-                      {x.value ?? pending}
+                      {x.value ?? (x.from ? pending(x.from) : "")}
                     </span>
                     <span className="col-span-2 text-sm leading-snug text-ink-3">
                       {x.note}

@@ -40,7 +40,7 @@ export function Platform({ chapter = false }: { chapter?: boolean } = {}) {
   }, []);
 
   return (
-    <section id="platform" className="scroll-mt-20 border-t border-line bg-surface-2/40">
+    <section id="platform" className="-scroll-mt-14 sm:-scroll-mt-22 border-t border-line bg-surface-2/40">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
         {!chapter && <ProductTag p="iot" className="mb-5" />}
         <SectionHeading

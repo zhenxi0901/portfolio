@@ -66,9 +66,9 @@ export type MapNode = { id: NodeId; label: string; sub: string; x: number; y: nu
 export const mapNodes: MapNode[] = [
   { id: "people", label: "Facility team", sub: "chat, web, app", x: 95, y: 250 },
   { id: "lb", label: "Load balancer", sub: "Cloud Armor, TLS", x: 285, y: 250, mine: true },
-  { id: "operator", label: "Operations agent", sub: "Agno team, Cloud Run", x: 480, y: 150, mine: true, product: "ai" },
-  { id: "docs-api", label: "Document assistant", sub: "RAG API, Cloud Run", x: 480, y: 290, mine: true, product: "ai" },
-  { id: "worker", label: "Document worker", sub: "Cloud Run Job", x: 480, y: 430, mine: true, product: "ai" },
+  { id: "operator", label: "Operations agent", sub: "Agno team, Cloud Run", x: 480, y: 150, w: 176, mine: true, product: "ai" },
+  { id: "docs-api", label: "Document assistant", sub: "RAG API, Cloud Run", x: 480, y: 290, w: 176, mine: true, product: "ai" },
+  { id: "worker", label: "Document worker", sub: "Cloud Run Job", x: 480, y: 430, w: 176, mine: true, product: "ai" },
   { id: "iot", label: "IoT platform", sub: "live readings, GraphQL", x: 795, y: 60, w: 200, mine: true, product: "iot" },
   { id: "vertex", label: "Vertex AI", sub: "Gemini", x: 795, y: 115, w: 200, product: "ai" },
   { id: "openrouter", label: "OpenRouter", sub: "Gemini, Grok, embeddings", x: 795, y: 170, w: 200 },

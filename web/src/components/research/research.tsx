@@ -20,7 +20,7 @@ export function Research({ chapter = false }: { chapter?: boolean } = {}) {
   // As the page's h1 the section heading moves up a level, and so does everything under it.
   const Sub = chapter ? "h2" : "h3";
   return (
-    <section id="research" className="scroll-mt-20 border-t border-line bg-surface-2/40">
+    <section id="research" className="-scroll-mt-14 sm:-scroll-mt-22 border-t border-line bg-surface-2/40">
       <div className="mx-auto max-w-[1320px] px-4 py-24 sm:px-8 sm:py-32">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">

@@ -53,9 +53,14 @@ const CAPTIONS = [
   { x: 16, y: 556, text: "Delivery and network", anchor: "start" },
 ] as const;
 
+/** Wide enough for the map (Tailwind's xl): below it the journey is a list, and nothing plays. */
+const wide = () => window.matchMedia("(min-width: 80rem)").matches;
+
 /**
  * The AI products as a map: pick a journey and a packet walks it hop by hop, with what happens at each one.
- * "What I own" dims everything that is the platform rather than my work.
+ * "What I own" dims everything that is the platform rather than my work. On a phone or a tablet the journey
+ * is the same hops top to bottom, like the traffic paths on the IoT page: the map is a thousand units across,
+ * and at that size its labels were too small to read and half of it was off the screen.
  */
 export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
   const Step = level === 3 ? "h3" : "h4";
@@ -65,12 +70,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
   const [playing, setPlaying] = useState(false);
   const [lens, setLens] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const panRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
-  const narrow = () => {
-    const el = panRef.current;
-    return !!el && el.scrollWidth > el.clientWidth + 4;
-  };
 
   const journey = journeys.find((j) => j.id === jid)!;
   const steps = journey.steps;
@@ -85,7 +85,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
       ([e]) => {
         if (e.isIntersecting && !started.current) {
           started.current = true;
-          setPlaying(!narrow());
+          setPlaying(wide());
           io.disconnect();
         }
       },
@@ -104,19 +104,11 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
     return () => clearTimeout(t);
   }, [playing, i, last]);
 
-  // On a phone the map is wider than the screen: keep the step being described in view.
-  useEffect(() => {
-    const el = panRef.current;
-    if (!el || el.scrollWidth <= el.clientWidth + 4) return;
-    const x = (byId[steps[i].node].x / 1000) * el.scrollWidth;
-    el.scrollTo({ left: x - el.clientWidth / 2, behavior: reduce ? "auto" : "smooth" });
-  }, [steps, i, reduce]);
-
   const choose = (id: string) => {
     started.current = true;
     setJid(id);
     setI(0);
-    setPlaying(!reduce && !narrow());
+    setPlaying(!reduce && wide());
   };
   const go = (n: number) => {
     setPlaying(false);
@@ -127,7 +119,8 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
   const active = new Set<NodeId>([step.node, ...(step.also ?? [])]);
   const visited = new Set<NodeId>(steps.slice(0, i).flatMap((s) => [s.node, ...(s.also ?? [])]));
   const walked = new Set(steps.slice(0, i).map((_, k) => hopOf(steps, k)).filter((h) => h !== null).map(edgeKey));
-  const owned = step.mine ?? (journey.mine ? "This part is my work." : undefined);
+  const ownedIn = (s: (typeof steps)[number]) => s.mine ?? (journey.mine ? "This part is my work." : undefined);
+  const owned = ownedIn(step);
 
   return (
     <div ref={rootRef} className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -186,16 +179,44 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
           <p className="text-[15px] leading-relaxed text-ink">{journey.about}</p>
         </div>
 
-        {/* Wider than a phone: focusable, so it can be scrolled from the keyboard too. */}
-        <div ref={panRef} tabIndex={0} role="region" aria-label="Map of the AI products (scrolls sideways on small screens)" className="overflow-x-auto px-2 pb-2 pt-3 max-lg:order-2 sm:px-4">
+        <ol className="px-5 pb-6 pt-6 sm:px-7 xl:hidden" aria-label={`${journey.name}, step by step`}>
+          {steps.map((s, k) => {
+            const n = byId[s.node];
+            const mine = ownedIn(s);
+            return (
+              <li key={k} className={cn("relative flex gap-4 pb-7 transition-opacity last:pb-0", lens && !n.mine && !mine && "opacity-45")}>
+                {k < last && <span aria-hidden className="absolute bottom-0 left-4 top-8 w-px bg-line-strong" />}
+                <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full border border-line-strong font-mono text-xs text-ink-2">
+                  {k + 1}
+                </span>
+                <div className="min-w-0 pt-1">
+                  <p className="text-base font-semibold leading-snug">{s.title}</p>
+                  <p className="mt-1 flex items-baseline gap-2 text-[13px] text-ink-3">
+                    {n.product && <span aria-hidden className={cn("h-3 w-1 shrink-0 self-center rounded-full", productTone[n.product].bg)} />}
+                    {n.label} · {n.sub}
+                  </p>
+                  <p className="mt-2 max-w-[70ch] text-[15px] leading-relaxed text-ink-2">{s.text}</p>
+                  {mine && (
+                    <p className="mt-2 flex gap-2 text-sm leading-relaxed text-ink">
+                      <span aria-hidden className="mt-[0.55em] size-1.5 shrink-0 rounded-full bg-accent-ink" />
+                      {mine}
+                    </p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="px-4 pb-2 pt-3 max-xl:hidden">
           <svg
             viewBox="0 0 1000 640"
-            className="block w-full min-w-[720px] font-sans"
+            className="block w-full font-sans"
             role="img"
             aria-label={`Map of the AI products. ${journey.name}, step ${i + 1} of ${steps.length}: ${step.title}.`}
           >
             {CAPTIONS.map((c) => (
-              <text key={c.text} x={c.x} y={c.y} textAnchor={c.anchor} style={{ fill: "var(--ink-3)", fontSize: 12, fontWeight: 500 }}>
+              <text key={c.text} x={c.x} y={c.y} textAnchor={c.anchor} style={{ fill: "var(--ink-3)", fontSize: 13, fontWeight: 500 }}>
                 {c.text}
               </text>
             ))}
@@ -276,10 +297,10 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
                       style={{ fill: `var(--p-${n.product})` }}
                     />
                   )}
-                  <text x={n.x} y={n.y - 3} textAnchor="middle" style={{ fill: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}>
+                  <text x={n.x} y={n.y - 3} textAnchor="middle" style={{ fill: "var(--ink)", fontSize: 14.5, fontWeight: 600 }}>
                     {n.label}
                   </text>
-                  <text x={n.x} y={n.y + 13} textAnchor="middle" style={{ fill: "var(--ink-3)", fontSize: 10.5 }}>
+                  <text x={n.x} y={n.y + 14} textAnchor="middle" style={{ fill: "var(--ink-3)", fontSize: 12 }}>
                     {n.sub}
                   </text>
                 </g>
@@ -287,7 +308,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
             })}
           </svg>
         </div>
-        <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pb-4 text-xs text-ink-2 max-lg:order-3 sm:px-7" aria-label="Colour key">
+        <ul className="flex flex-wrap gap-x-5 gap-y-1.5 px-5 pb-4 text-xs text-ink-2 sm:px-7" aria-label="Colour key">
           {(["ai", "iot"] as const).map((p) => (
             <li key={p} className="flex items-center gap-1.5">
               <span aria-hidden className={cn("h-3 w-1 rounded-full", productTone[p].bg)} />
@@ -300,7 +321,7 @@ export function SystemMap({ level = 4 }: { level?: 3 | 4 }) {
           </li>
         </ul>
 
-        <div className="border-t border-line px-5 py-5 max-lg:order-1 max-lg:border-b sm:px-7">
+        <div className="border-t border-line px-5 py-5 max-xl:hidden sm:px-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-ink-3">
               Step {i + 1} of {steps.length}

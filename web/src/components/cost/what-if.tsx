@@ -222,7 +222,8 @@ export function WhatIf() {
           ) : (
             <>Each visitor is priced as a typical visit: 20 requests, 400 KiB, an instance billed for about {BUSY_PER_VISIT} s.</>
           )}{" "}
-          The Hacker News number is a guess at a front-page day, not a measurement.
+          This month&apos;s pace is every request that was not an uptime check, crawlers, agents and the site&apos;s own tests included, counted in
+          visits like that. The Hacker News number is a guess at a front-page day, not a measurement.
         </p>
       </div>
 
