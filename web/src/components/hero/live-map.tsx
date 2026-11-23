@@ -339,7 +339,10 @@ export function LiveMap() {
       </div>
 
       {/* Phones: the same live numbers as a path, top to bottom. */}
-      <ol className="space-y-2 md:hidden" aria-label="Your request, step by step">
+      <p id="request-path" className="mb-3 text-sm text-ink-3 md:hidden">
+        The request that loaded this page, step by step
+      </p>
+      <ol className="space-y-2 md:hidden" aria-labelledby="request-path">
         {[
           ["You", zone ?? "this browser", visit ? link(visit) : "", "/status#visit-trace"],
           ["Google front end", visit?.protocol ? `${visit.protocol} · ends TLS` : "terminates TLS", visit ? `first byte ${ms(visit.ttfb)}` : "", "/decisions"],

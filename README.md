@@ -105,14 +105,16 @@ docker compose up --build
 The load generator (one `curl` per request) is the bottleneck: the server's own median is 0.03 ms. The
 Ask rate limiter let exactly the per-minute budget through and returned 429 for the rest.
 
-Browser end-to-end tests against the live site (14 Nov 2026): all 27 pages in the sitemap at desktop
+Browser end-to-end tests against the live site (23 Nov 2026): all 27 pages in the sitemap at desktop
 and phone widths with no dead links or horizontal overflow, axe (WCAG 2.2 AA and best practice) clean
-in both themes, and no console warnings or errors; plus 428 checks in eleven more suites, among them
+in both themes, and no console warnings or errors; plus 561 checks in thirteen more suites, among them
 **break it yourself** (25 checks, real faults against the live server: the arrival schedule, each
 client strategy, the comparison, the phone timeline), **what it costs** (25: the receipt adding up,
 the what-if at this month's pace matching it to the cent, the fallbacks), the **capacity lab** (22),
 the **live-map hero** (15: the edge timings, polling only while on screen), the in-page **terminal**
-(109), the **MCP console** (33), the chapters (93) and the earlier review fixes. The deploy pipeline runs `scripts/smoke.sh` against the new revision and the
+(109), the **on-call drill** (50), the **MCP console** (33), the chapters (93) and the earlier review
+fixes. The contact form is tested the same way against a local copy with a stand-in webhook: a browser's
+own autofill, a filled hidden field, and no JavaScript at all. The deploy pipeline runs `scripts/smoke.sh` against the new revision and the
 live URL on every release, and CI holds each release to accessibility and SEO of 100 on a page of
 every kind (and the home and status pages in dark).
 
@@ -167,7 +169,7 @@ terraform apply
 Two scheduled checks keep watching it (`.github/workflows/synthetic.yml`, identity in `infra/watch.tf`): hourly,
 Cloud Run's logs are searched for `contact: undelivered` since the previous search, and twice a day a message
 marked by a secret token goes through the live form and the real webhook, one of the two with the form's hidden
-field filled in: that one must be delivered like any other. A marked message is posted silently and never stored. GitHub can start scheduled runs late, sometimes by hours; because each search starts where the
+field filled in: that one must be delivered like any other. A marked message is posted silently and never stored. GitHub starts scheduled runs late (this one about every four hours); because each search starts where the
 last one stopped, a late run delays an alert but misses nothing.
 A failure fails the workflow, which GitHub emails about. To set up the token, one value in two places:
 
