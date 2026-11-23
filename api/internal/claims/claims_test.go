@@ -30,6 +30,10 @@ const (
 		"false_claim":{"id":"php","verdict":"fails","saw":"The server says it runs go1.27.3."}}`
 )
 
+// What it leaves when everything holds.
+const holding = `{"part":1,"of":1,"commit":"4a87353","tested":"2026-11-23T08:40:36Z","trustworthy":true,
+	"claims":[{"id":"releases","verdict":"holds","saw":"59 of 59"}],"false_claim":{"id":"php","verdict":"fails","saw":"go1.27.3"}}`
+
 // left is the job's annotations: the results, among what the runner adds itself.
 func left(parts ...string) []annotation {
 	notes := []annotation{{Title: "", Message: "Process completed with exit code 1."}}
@@ -112,7 +116,7 @@ func TestReportsTheLastRun(t *testing.T) {
 // answer, and the next read is soon; what that run left is not read again.
 func TestAReleaseNotTestedYet(t *testing.T) {
 	old := strings.NewReplacer(`"commit":"4a87353"`, `"commit":"0000000"`, `"of":2`, `"of":1`).Replace(one)
-	g := &github{runs: []workflowRun{run(1, "success")}, notes: map[int64][]annotation{1: left(old), 2: left(one, two)}}
+	g := &github{runs: []workflowRun{run(1, "success")}, notes: map[int64][]annotation{1: left(old), 2: left(holding)}}
 	clock := tested
 	s := newService(t, g, &clock)
 	if r := s.Report(context.Background()); r.Available || r.Reason != "This release has not been tested yet." || r.Claims == nil {
@@ -127,7 +131,7 @@ func TestAReleaseNotTestedYet(t *testing.T) {
 	if !s.Warm(context.Background(), time.Second) || g.calls.Load() != before+1 {
 		t.Errorf("want one request to see that nothing is new, and there were %d", g.calls.Load()-before)
 	}
-	g.runs = append([]workflowRun{run(2, "failure")}, g.runs...)
+	g.runs = append([]workflowRun{run(2, "success")}, g.runs...)
 	clock = clock.Add(retry)
 	if !s.Warm(context.Background(), time.Second) {
 		t.Error("did not ask again soon")
@@ -135,10 +139,63 @@ func TestAReleaseNotTestedYet(t *testing.T) {
 	if r := s.Report(context.Background()); !r.Available || r.Commit != "4a87353" {
 		t.Errorf("after its first run: %+v", r)
 	}
-	// With results to show, the next read is the usual half an hour away.
+	// With every claim holding, the next read is the usual half an hour away.
 	clock = clock.Add(retry)
 	if s.Warm(context.Background(), time.Second) {
 		t.Error("asked again at once")
+	}
+}
+
+// A claim that fails is being seen to, so it is looked at again soon; and the run it failed in, which says the same
+// however often it is read, is read once.
+func TestAClaimThatFailsIsLookedAtAgainSoon(t *testing.T) {
+	g := &github{runs: []workflowRun{run(1, "failure")}, notes: map[int64][]annotation{1: left(one, two), 2: left(holding)}}
+	clock := tested
+	s := newService(t, g, &clock)
+	if r := s.Report(context.Background()); r.Failing != 1 {
+		t.Fatalf("%+v", r)
+	}
+	before := g.calls.Load()
+	clock = clock.Add(retry)
+	if !s.Warm(context.Background(), time.Second) || g.calls.Load() != before+1 {
+		t.Errorf("want one request to see that nothing is new, and there were %d", g.calls.Load()-before)
+	}
+	if r := s.Report(context.Background()); r.Failing != 1 || r.Stale || !r.Updated.Equal(clock) {
+		t.Errorf("the same run, read again: %+v", r)
+	}
+	g.runs = append([]workflowRun{run(2, "success")}, g.runs...)
+	clock = clock.Add(retry)
+	s.Warm(context.Background(), time.Second)
+	if r := s.Report(context.Background()); r.Failing != 0 || r.Holding != 1 || r.Run != "https://github.com/o/r/actions/runs/2" {
+		t.Errorf("after the run that passed: %+v", r)
+	}
+}
+
+// So is a run that says not to trust it, though none of its claims fails.
+func TestAnUntrustworthyRunIsLookedAtAgainSoon(t *testing.T) {
+	g := &github{runs: []workflowRun{run(1, "failure")}, notes: map[int64][]annotation{1: left(strings.Replace(holding, "true", "false", 1))}}
+	clock := tested
+	s := newService(t, g, &clock)
+	if r := s.Report(context.Background()); r.Failing != 0 || r.Trustworthy {
+		t.Fatalf("%+v", r)
+	}
+	clock = clock.Add(retry)
+	if !s.Warm(context.Background(), time.Second) {
+		t.Error("did not ask again soon")
+	}
+}
+
+func TestARunThatWasRunAgainIsReadAgain(t *testing.T) {
+	g := &github{runs: []workflowRun{run(1, "failure")}, notes: map[int64][]annotation{1: left(one, two)}}
+	clock := tested
+	s := newService(t, g, &clock)
+	s.Report(context.Background())
+	g.runs[0].Attempt, g.runs[0].Conclusion = 2, "success"
+	g.notes[1] = left(holding)
+	clock = clock.Add(retry)
+	s.Warm(context.Background(), time.Second)
+	if r := s.Report(context.Background()); r.Failing != 0 || r.Holding != 1 {
+		t.Errorf("%+v", r)
 	}
 }
 

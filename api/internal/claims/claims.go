@@ -64,8 +64,8 @@ type Report struct {
 }
 
 const (
-	// See fresh.Reading. A release's first results come a few minutes after it, so while there are none the
-	// next read is soon.
+	// See fresh.Reading. A release's first results come a few minutes after it, and a claim that fails is being
+	// seen to: without results, or with one that fails, the next read is soon.
 	due     = 30 * time.Minute
 	limit   = 2 * time.Hour
 	retry   = 3 * time.Minute
@@ -94,8 +94,14 @@ type Service struct {
 	live    bool
 	now     func() time.Time
 	reading *fresh.Reading[Report]
-	// The newest run, once it is known to have tested another release: what is in it need not be read again.
-	other atomic.Int64
+	// The newest run as it was last read. A finished run's record stays as it is, so it is read once.
+	last atomic.Pointer[lastRun]
+}
+
+type lastRun struct {
+	id      int64
+	attempt int
+	report  Report // not available if the run tested another release
 }
 
 // New reads the results of cfg's release from GitHub when live is set, and has none to give otherwise.
@@ -107,7 +113,7 @@ func New(cfg Config, live bool, log *slog.Logger) *Service {
 	s.reading = &fresh.Reading[Report]{
 		Due: due, Limit: limit, Retry: retry, For: readFor,
 		Read:  s.read,
-		Again: func(r Report) bool { return !r.Available },
+		Again: func(r Report) bool { return !r.Trustworthy || r.Failing > 0 }, // nothing is trusted without results
 		Now:   func() time.Time { return s.now() }, Log: log, Failed: "claims: could not read the last run",
 	}
 	return s
@@ -138,6 +144,7 @@ func unavailable(reason string) Report { return Report{Reason: reason, Claims: [
 
 type workflowRun struct {
 	ID         int64  `json:"id"`
+	Attempt    int    `json:"run_attempt"` // more than one if it was run again
 	Conclusion string `json:"conclusion"`
 	URL        string `json:"html_url"`
 }
@@ -162,10 +169,15 @@ func (s *Service) read(ctx context.Context, now time.Time) (Report, error) {
 	}
 	// Newest first. A cancelled run was overtaken by a newer one, and a skipped one had nothing to test.
 	i := slices.IndexFunc(runs.Runs, func(r workflowRun) bool { return r.Conclusion == "success" || r.Conclusion == "failure" })
-	if i < 0 || runs.Runs[i].ID == s.other.Load() {
+	if i < 0 {
 		return notYet, nil
 	}
 	run := runs.Runs[i]
+	if last := s.last.Load(); last != nil && last.id == run.ID && last.attempt == run.Attempt {
+		r := last.report
+		r.Updated = now.UTC()
+		return r, nil
+	}
 
 	var jobs struct {
 		Jobs []struct {
@@ -190,13 +202,12 @@ func (s *Service) read(ctx context.Context, now time.Time) (Report, error) {
 		return Report{}, err
 	}
 	if !strings.HasPrefix(s.cfg.Commit, r.Commit) {
-		s.other.Store(run.ID)
-		return notYet, nil
-	}
-	if onGitHub(run.URL) {
+		r = notYet
+	} else if onGitHub(run.URL) {
 		r.Run = run.URL
 	}
 	r.Updated = now.UTC()
+	s.last.Store(&lastRun{id: run.ID, attempt: run.Attempt, report: r})
 	return r, nil
 }
 
