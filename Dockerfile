@@ -4,7 +4,7 @@
 # the updates).
 
 # 1. Build the static site.
-FROM node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS web
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS web
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
@@ -13,7 +13,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # 2. Build the API as a static binary.
-FROM golang:1.27-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS api
+FROM golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS api
 WORKDIR /src
 COPY api/go.mod api/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
