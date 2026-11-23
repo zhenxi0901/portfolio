@@ -147,7 +147,7 @@ test.describe("asking the live API", () => {
     const terminal = new Terminal(page);
     await terminal.open();
     const cost = await terminal.run("cost");
-    await expect(cost).toContainText(new RegExp(`to pay\\s+${total.replace("$", "\\$")}`));
+    await expect(cost.getByRole("paragraph").filter({ hasText: /^to pay/ })).toContainText(total);
     await expect(cost).toContainText(/list price\s+US\$\d/);
     await expect(cost).toContainText(/\d+% of requests are the site's own uptime checks/);
   });
