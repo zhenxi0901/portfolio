@@ -51,7 +51,7 @@ export default async function PostmortemPage(props: PageProps<"/postmortems/[slu
         <Prose reading paras={[pm.impact]} />
       </Part>
 
-      <Part title="Timeline" aside="Singapore time (UTC+8), 1 Oct 2026 unless marked">
+      <Part title="Timeline" aside={`Singapore time (UTC+8), ${pm.date} unless marked`}>
         {/* A time gutter: the clock down the left, what happened to the right, as an incident log reads. */}
         <ol className="space-y-5">
           {pm.timeline.map((t) => (

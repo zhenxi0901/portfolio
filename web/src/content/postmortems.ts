@@ -1,6 +1,6 @@
-// Blameless write-ups of things that went wrong while building and running this site. Every time
-// is Singapore time (UTC+8) on 1 October 2026 unless it says otherwise. Sources: the repository's
-// commits, the GitHub Actions run history, Cloud Run revisions and Cloud Run request logs.
+// Blameless write-ups of things that went wrong while building and running this site, newest first.
+// Every time is Singapore time (UTC+8) on the postmortem's own date unless it says otherwise. Sources:
+// the repository's commits, the GitHub Actions run history, Cloud Run revisions and Cloud Run logs.
 
 export const REPO = "https://github.com/zhenxi0901/portfolio";
 
@@ -26,6 +26,91 @@ export type Postmortem = {
 };
 
 export const postmortems: Postmortem[] = [
+  {
+    slug: "hidden-field",
+    title: "A trap for bots that a browser could fall into",
+    summary:
+      "The contact form had a hidden field to catch bots. A browser filling in the form could fill it too, and the message was dropped while the page said “Message sent”.",
+    date: "23 Nov 2026",
+    kind: "Near miss",
+    stats: [
+      { value: "53 days", label: "the form could drop a message it said was sent" },
+      { value: "59 / 59", label: "messages accepted in the last 30 days were the scheduled checks" },
+      { value: "0", label: "visitor messages known to be lost" },
+    ],
+    impact:
+      "None that I can find. Cloud Run keeps its logs for 30 days. In them the form accepted 59 messages and all 59 were the scheduled checks, so no visitor used it and nothing was dropped. The weeks before that, from 1 to 24 October, are out of the logs' reach, and I cannot rule out that someone wrote in then. The people most likely to be caught were the ones the form is for: a recruiter's browser often has a company saved, and that is what filled the field.",
+    timeline: [
+      {
+        at: "1 Oct, 11:15",
+        tag: "change",
+        what: "First commit. The form has a field called “company”, moved off the screen, for bots that fill in everything. When it comes back filled in, the API answers 202 and neither stores nor sends the message, so that a bot learns nothing. A test asks for exactly that.",
+      },
+      {
+        at: "1 Oct, 15:32",
+        tag: "change",
+        what: "The first contact-form postmortem's fix: deliver before replying, so that “sent” means delivered. This path replies before that code runs, and is left as it is.",
+      },
+      {
+        at: "19 Oct",
+        tag: "change",
+        what: "Two checks start watching the form: a search of the logs for undelivered messages, and a marked message through the live form twice a day. The search looks for a line this path never writes, and the marked message leaves the hidden field empty.",
+      },
+      {
+        at: "11:53",
+        tag: "detect",
+        what: "A review asks Chrome's own autofill to complete the live form for a test profile that has a company. It fills in the hidden field. Nothing is submitted.",
+      },
+      {
+        at: "12:18",
+        tag: "investigate",
+        what: "The same field in several forms, side by side on a local page. autocomplete=“off” does not stop Chrome, and neither does moving the field off the screen. With a name and a label that mean nothing to a browser, it stays empty.",
+      },
+      {
+        at: "12:51",
+        tag: "investigate",
+        what: "The fix passes on a local copy with a stand-in webhook: autofill leaves the field alone, a message with it filled in is delivered and marked, and the form works with JavaScript off.",
+      },
+      { at: "13:08", tag: "fix", what: "Fix committed, with the test that asked for the old behaviour now asking for the opposite." },
+      { at: "13:19", tag: "resolve", what: "Deployed through the normal pipeline." },
+      {
+        at: "14:09",
+        tag: "resolve",
+        what: "The logs are counted: 59 messages answered with “sent” in 30 days, 59 of them scheduled checks, none dropped.",
+      },
+    ],
+    rootCause: [
+      "The API treated a filled hidden field as proof of a bot. It is only a hint: anything that fills in forms can fill it, and a browser is one of those things.",
+      "Then it answered “sent” for a message it had thrown away. The first contact-form postmortem ended with “only say done after the durable handoff”, and one path through the same handler went on saying done without one.",
+    ],
+    contributing: [
+      "The field was called “company”, a name browsers know how to complete.",
+      "Nothing recorded a drop as one: no line of its own in the logs, and a counter in memory that went away with each instance.",
+      "A test asserted the drop, so changing it would have looked like a regression.",
+      "Both scheduled checks were built after the last incident and covered the path that incident took.",
+    ],
+    detection:
+      "A review, by filling in the form the way a recruiter's browser would. No monitoring could have seen it: from outside, and in everything that was recorded, a dropped message looked the same as a delivered one.",
+    wentWell: [
+      "The proof came before the fix: Chrome's own autofill on the live form, with nothing sent.",
+      "The question that mattered could be answered for 30 days back, because every request and every delivery writes a line.",
+      "From finding to live took 1 h 26 min, through the normal pipeline.",
+    ],
+    lucky: "As far as the logs go back, nobody used the form. That was luck the first time, and it is luck again.",
+    actions: [
+      { what: "Deliver a message whose hidden field is filled in like any other, silently and marked. Answer “sent” only for what was delivered.", done: true, commit: "d6ab135" },
+      { what: "Give the field a name and a label no browser knows how to fill in.", done: true, commit: "d6ab135" },
+      { what: "Fill the hidden field in one of the two daily checks through the live form.", done: true, commit: "d6ab135" },
+      { what: "Log whether a message was marked, so that the next count needs no subtraction.", done: true, commit: "d6ab135" },
+      {
+        what: "Accept the form without JavaScript. It had no method, so a browser that sent it by itself would have put the message in the address bar; found while testing this one.",
+        done: true,
+        commit: "d6ab135",
+      },
+      { what: "Run Chrome's own autofill against the form before every release, with the rest of the browser tests.", done: true, when: "23 Nov" },
+    ],
+    lesson: "Every path that says “sent” has to send, the one for bots too.",
+  },
   {
     slug: "contact-form",
     title: "“Message sent” for messages nobody would read",

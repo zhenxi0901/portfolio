@@ -29,12 +29,12 @@ export function Postmortems() {
         , and get a postmortem of your own response.
       </p>
       {/* Side by side, the cards share five rows (subgrid), so each card's figure and its rule line up across the row. */}
-      <ol className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-[repeat(5,auto)] lg:gap-y-0">
+      <ol className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-y-0">
         {postmortems.map((pm, i) => {
           const done = pm.actions.filter((a) => a.done).length;
           const [lead] = pm.stats;
           return (
-            <Reveal key={pm.slug} as="li" delay={i * 0.06} className="h-full lg:row-span-5 lg:grid lg:grid-rows-subgrid">
+            <Reveal key={pm.slug} as="li" delay={i * 0.06} className="h-full lg:row-span-5 lg:mb-4 lg:grid lg:grid-rows-subgrid">
               <a
                 href={`/postmortems/${pm.slug}`}
                 className="group flex h-full flex-col rounded-3xl border border-line bg-surface p-6 transition-colors hover:border-ink-3 sm:p-7 lg:row-span-5 lg:grid lg:grid-rows-subgrid"
