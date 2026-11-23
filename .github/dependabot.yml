@@ -1,12 +1,12 @@
 # Monthly, grouped updates for everything pinned in this repository: action SHAs, base image
-# digests, npm packages and Go modules. Each arrives as one pull request per ecosystem and goes
+# digests, npm packages and Go modules. Each arrives as one pull request per entry below and goes
 # through CI like any other change. npm and Go majors are left for a deliberate upgrade; base images
 # only get new digests of the same tag; actions take majors too, since their SHAs are reviewed in the
 # pull request (the deploy workflow's steps can only be proven on main, so watch the first deploy).
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: /
+    directories: [/, /.github/actions/*]
     schedule: { interval: monthly }
     groups:
       actions: { patterns: ["*"] }
@@ -25,6 +25,15 @@ updates:
     schedule: { interval: monthly }
     groups:
       web: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule: { interval: monthly }
+    groups:
+      e2e: { patterns: ["*"] }
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]

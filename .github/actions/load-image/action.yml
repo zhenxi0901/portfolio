@@ -1,0 +1,17 @@
+name: Load the image
+description: Loads the image this run built into Docker, and refuses any other.
+inputs:
+  sha256:
+    description: The image file's checksum, from the job that built it.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with: { name: image, path: "${{ runner.temp }}" }
+    # Any job of the run can write an artifact; only the build sets the checksum.
+    - shell: bash
+      env: { SHA256: "${{ inputs.sha256 }}" }
+      run: |
+        echo "$SHA256  $RUNNER_TEMP/image.tar" | sha256sum --check
+        docker load --input "$RUNNER_TEMP/image.tar"

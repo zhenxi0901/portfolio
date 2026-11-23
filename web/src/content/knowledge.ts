@@ -275,7 +275,7 @@ export function buildKnowledge(): Fact[] {
     anchor: "status",
     lead: "Every push to main goes out the same way, and each step can stop it.",
     text:
-      "CI builds the image once, smoke-tests it, holds it to Lighthouse budgets and a critical-CVE gate, then pushes it with an SBOM and signed build provenance. " +
+      "CI builds the image once, smoke-tests it, tests it in a real browser, holds it to Lighthouse budgets and a critical-CVE gate, then pushes it with an SBOM and signed build provenance. " +
       "The deploy releases that exact digest without rebuilding: it verifies the attestations, holds the release if the site's error budget is spent, " +
       "starts the new revision with no traffic and smoke-tests it at its own URL, then moves traffic and checks again, rolling back on its own if that fails. " +
       "A rollback drill rehearses this in production; the first one had traffic back on the old revision 20 seconds after the switch. " +

@@ -12,7 +12,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Actions are pinned to commit SHAs (tag in the comment): a moved tag cannot change what runs here.
+env:
+  PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_REGION != '' }}
+
+# web, api, and build at once; check and browser test the image build made; publish, on main only, needs
+# all five. Actions are pinned to commit SHAs (tag in the comment): a moved tag cannot change what runs here.
 jobs:
   web:
     runs-on: ubuntu-latest
@@ -38,6 +42,9 @@ jobs:
             git status --short -- ../docs/adr
             echo "::error::Run node scripts/gen-adr.mts and commit docs/adr"; exit 1
           fi
+      - name: The tests of the site's claims can fail
+        working-directory: .
+        run: node --test "claims/*.test.mjs"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: site, path: web/out, retention-days: 3 }
 
@@ -53,21 +60,16 @@ jobs:
       - run: go test -race -count=1 -coverpkg=./... -coverprofile=cover.out ./...
       - run: go tool cover -func=cover.out | tail -1
 
-  # Builds the image once. On a push to main, the image that passed every check below is pushed and
-  # attested (SBOM and build provenance), and the deploy workflow releases exactly that digest after
-  # verifying the attestations; nothing is rebuilt for production.
-  image:
-    needs: [web, api]
+  # Builds the image once. The jobs below test that image, and on a push to main the one that passed them
+  # all is pushed and attested (SBOM and build provenance); the deploy workflow releases exactly that
+  # digest after verifying the attestations. Nothing is rebuilt, for a test or for production.
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: read # the delivery metrics read this repository's deploy runs
-      id-token: write # keyless push and signing, on main only
-      attestations: write # SBOM and provenance attestations, on main only
-    env:
-      PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.GCP_PROJECT != '' }}
-      # The project is a secret so that logs mask it.
-      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/portfolio/site
+    outputs:
+      sha256: ${{ steps.image.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # DORA metrics for the status section, baked into the image that gets tested. If the GitHub API
@@ -93,13 +95,26 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          load: true
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
           tags: portfolio:${{ github.sha }}
           build-args: |
             VERSION=${{ github.ref_name }}
             COMMIT=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Its checksum
+        id: image
+        run: echo "sha256=$(sha256sum "$RUNNER_TEMP/image.tar" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: image, path: "${{ runner.temp }}/image.tar", retention-days: 1, compression-level: 0 }
+
+  check:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/load-image
+        with: { sha256: "${{ needs.build.outputs.sha256 }}" }
       - name: Smoke test the container
         run: |
           docker run -d --name site -p 8080:8080 portfolio:${{ github.sha }}
@@ -127,17 +142,57 @@ jobs:
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-      # Only now, with every check passed, does the image leave the runner.
+
+  # The whole site in a real browser, with a stand-in for the webhook behind the contact form, so a
+  # message can be followed to where it would have gone.
+  browser:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults: { run: { working-directory: e2e } }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/load-image
+        with: { sha256: "${{ needs.build.outputs.sha256 }}" }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24, cache: npm, cache-dependency-path: e2e/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - name: Start the site and the stand-in
+        run: bash serve.sh portfolio:${{ github.sha }}
+      - name: Browser tests
+        env: { HOOK_URL: "http://localhost:8098" }
+        run: npx playwright test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with: { name: browser-tests, path: e2e/playwright-report, retention-days: 7, if-no-files-found: ignore }
+
+  # Only here, with every check passed, does the image leave the run.
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_REGION != ''
+    needs: [web, api, build, check, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write # keyless push and signing
+      attestations: write # SBOM and provenance attestations
+    env:
+      # The project is a secret so that logs mask it.
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/portfolio/site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/load-image
+        with: { sha256: "${{ needs.build.outputs.sha256 }}" }
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
-        if: env.PUBLISH == 'true'
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ secrets.DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
-        if: env.PUBLISH == 'true'
       - name: Push the tested image
         id: push
-        if: env.PUBLISH == 'true'
         run: |
           gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
           docker tag portfolio:${{ github.sha }} "$IMAGE:${{ github.sha }}"
@@ -148,7 +203,6 @@ jobs:
       # What is in the image, and proof of where it was built. Attestations on a public repository are
       # public, so the subject is named without the registry path; the digest is what binds it.
       - name: SBOM of the tested image
-        if: env.PUBLISH == 'true'
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           image: portfolio:${{ github.sha }}
@@ -157,14 +211,12 @@ jobs:
           upload-artifact: false
       - name: Attest build provenance
         id: provenance
-        if: env.PUBLISH == 'true'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: portfolio/site
           subject-digest: ${{ steps.push.outputs.digest }}
       - name: Attest the SBOM
         id: sbom
-        if: env.PUBLISH == 'true'
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: portfolio/site
@@ -172,12 +224,10 @@ jobs:
           sbom-path: sbom.spdx.json
       # The deploy's release job attaches these to the GitHub release.
       - name: Collect the release evidence
-        if: env.PUBLISH == 'true'
         run: |
           mkdir evidence
           cp sbom.spdx.json evidence/
           cp "${{ steps.provenance.outputs.bundle-path }}" evidence/provenance.sigstore.json
           cp "${{ steps.sbom.outputs.bundle-path }}" evidence/sbom.sigstore.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: env.PUBLISH == 'true'
         with: { name: release-evidence, path: evidence, retention-days: 30 }
