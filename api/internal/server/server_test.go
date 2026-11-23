@@ -184,8 +184,8 @@ func TestContact(t *testing.T) {
 	if r := post(t, ts.URL+"/api/contact", `{"name":"","email":"x","message":"short"}`); r.StatusCode != 400 {
 		t.Errorf("invalid form = %d, want 400", r.StatusCode)
 	}
-	if r := post(t, ts.URL+"/api/contact", `{"name":"Bot","email":"b@x.io","message":"buy things now please","company":"spam inc"}`); r.StatusCode != 202 {
-		t.Errorf("honeypot = %d, want a silent 202", r.StatusCode)
+	if r := post(t, ts.URL+"/api/contact", `{"name":"Bot","email":"b@x.io","message":"buy things now please","leave_empty":"filled in"}`); r.StatusCode != 202 {
+		t.Errorf("a filled hidden field = %d, want 202", r.StatusCode)
 	}
 	if r := post(t, ts.URL+"/api/contact", `{"name":"Mei Ling","email":"mei@example.sg","message":"We have an SRE role for you."}`); r.StatusCode != 202 {
 		t.Errorf("valid form = %d, want 202", r.StatusCode)
@@ -193,15 +193,16 @@ func TestContact(t *testing.T) {
 	f, err := os.Open(filepath.Join(cfg.DataDir, "messages.jsonl"))
 	must(t, err)
 	defer f.Close()
+	// Both were kept; only the one whose hidden field came filled in is marked.
 	lines := 0
 	for sc := bufio.NewScanner(f); sc.Scan(); {
 		lines++
-		if strings.Contains(sc.Text(), "spam inc") || strings.Contains(sc.Text(), "Bot") {
-			t.Error("honeypot submission was stored")
+		if bot := strings.Contains(sc.Text(), `"Bot"`); bot != strings.Contains(sc.Text(), `"suspect":true`) {
+			t.Errorf("wrongly marked: %s", sc.Text())
 		}
 	}
-	if lines != 1 {
-		t.Errorf("stored %d messages, want 1", lines)
+	if lines != 2 {
+		t.Errorf("stored %d messages, want 2", lines)
 	}
 }
 

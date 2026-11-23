@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, PaperPlaneTilt } from "@phosphor-icons/react";
+import { ArrowUpRight, Copy, PaperPlaneTilt } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { profile } from "@/content/profile";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/motion/reveal";
 
+// 16 px on a phone: iOS zooms the page into any field set smaller.
 const field =
-  "w-full rounded-md border border-line-strong bg-surface px-4 py-3 text-[15px] text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-accent-ink";
+  "w-full rounded-md border border-line-strong bg-surface px-4 py-3 text-base text-ink sm:text-[15px] outline-none transition-colors placeholder:text-ink-3 focus:border-accent-ink";
 
 export function Contact() {
   const [sending, setSending] = useState(false);
@@ -29,13 +30,13 @@ export function Contact() {
 
     setSending(true);
     try {
-      await api.contact({ name: data.name, email: data.email, message: data.message, company: data.company ?? "" });
+      await api.contact({ name: data.name, email: data.email, message: data.message, leave_empty: data.leave_empty ?? "" });
       form.reset();
       toast.success("Message sent", { description: "Thanks. I'll reply from my NTU email." });
     } catch (err) {
       const status = (err as { status?: number }).status;
       toast.error(status === 429 ? "Too many messages" : "Couldn't send right now", {
-        description: status === 429 ? "Please wait a minute and try again." : `Email me directly at ${profile.email}.`,
+        description: status === 429 ? `Please wait a few minutes, or email me directly at ${profile.email}.` : `Email me directly at ${profile.email}.`,
       });
     } finally {
       setSending(false);
@@ -43,7 +44,7 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" className="scroll-mt-20 border-t border-line bg-surface">
+    <section id="contact" className="-scroll-mt-14 sm:-scroll-mt-22 border-t border-line bg-surface">
       <div className="mx-auto grid max-w-[1320px] gap-14 px-4 pb-40 pt-24 sm:px-8 sm:pt-32 lg:grid-cols-12">
         <Reveal className="lg:col-span-6">
           <h2 className="text-[clamp(1.75rem,3.4vw,2.625rem)] font-semibold leading-[1.12] tracking-[-0.022em]">Get in touch</h2>
@@ -51,25 +52,55 @@ export function Contact() {
             I graduate in June 2027 and I&apos;m looking for SRE, DevOps, cloud and AI-infrastructure roles. Write to me about a role, or
             about anything on this site you would have done differently.
           </p>
-          <button
-            type="button"
-            onClick={async () => {
-              await navigator.clipboard.writeText(profile.email);
-              toast.success("Email copied", { description: profile.email });
-            }}
-            className="mt-8 inline-flex items-center gap-2 font-mono text-sm text-ink-2 transition-colors hover:text-ink"
-          >
-            {profile.email} <Copy size={15} />
-          </button>
+          <ul className="mt-8 space-y-2.5 text-sm text-ink-2">
+            <li className="flex items-center gap-1">
+              <a href={`mailto:${profile.email}`} className="font-mono underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink">
+                {profile.email}
+              </a>
+              <button
+                type="button"
+                aria-label="Copy the email address"
+                title="Copy"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(profile.email);
+                    toast.success("Email copied", { description: profile.email });
+                  } catch {
+                    // Refused (permissions, an embedded browser): the address is on the screen, so say so.
+                    toast.error("Couldn't copy it", { description: `Copy it by hand: ${profile.email}` });
+                  }
+                }}
+                className="inline-flex size-9 items-center justify-center rounded-md transition-colors hover:bg-surface-2 hover:text-ink"
+              >
+                <Copy size={15} />
+              </button>
+            </li>
+            <li>
+              <a
+                href={profile.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink"
+              >
+                LinkedIn
+                <ArrowUpRight size={13} aria-hidden />
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </li>
+          </ul>
         </Reveal>
 
         <Reveal className="lg:col-span-6" delay={0.1}>
-          <form onSubmit={onSubmit} noValidate className="grid gap-5">
-            {/* Honeypot: people never see it, bots fill it in. */}
+          {/* method and action: without this page's script the browser sends the form itself, and the server
+              answers with a page. Left out, it would put the message in the address bar. */}
+          <form onSubmit={onSubmit} method="post" action={`${API_BASE}/api/contact`} noValidate className="grid gap-5">
+            {/* For bots, which fill every field. People never see it. It is not called "company" or anything
+                else a browser knows how to fill in, and a message that has it filled in is delivered all the
+                same, marked (contact.go). */}
             <div aria-hidden className="absolute -left-[9999px]">
               <label>
-                Company
-                <input name="company" tabIndex={-1} autoComplete="off" />
+                Leave this empty
+                <input name="leave_empty" tabIndex={-1} autoComplete="off" />
               </label>
             </div>
             <Field id="name" label="Name" error={errors.name}>

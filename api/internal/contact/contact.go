@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/mail"
 	"net/url"
@@ -73,28 +75,60 @@ func NewService(dir, webhook string, requireWebhook bool, m *metrics.Metrics, lo
 }
 
 type Message struct {
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Message   string    `json:"message"`
-	Received  time.Time `json:"received"`
-	Synthetic bool      `json:"-"`
+	Name     string    `json:"name"`
+	Email    string    `json:"email"`
+	Message  string    `json:"message"`
+	Received time.Time `json:"received"`
+	// Suspect marks a message whose hidden field came filled in. Bots fill every field, but a browser
+	// completing the form for someone can fill a hidden one too, so it is delivered like any other,
+	// silently and marked. Only what was delivered is ever answered "sent".
+	Suspect   bool `json:"suspect,omitempty"`
+	Synthetic bool `json:"-"`
+}
+
+// submission is the form as it was sent: JSON from the page's script, or form-encoded by the browser
+// itself where the script has not loaded.
+type submission struct {
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Message string `json:"message"`
+	// The hidden field. It was called company until 23 November 2026, a name browsers fill in by
+	// themselves; a page opened before then still sends that.
+	LeaveEmpty string `json:"leave_empty"`
+	Company    string `json:"company"`
+}
+
+// read decodes a submission, and reports whether the browser sent the form itself.
+func read(r *http.Request) (in submission, native bool, err error) {
+	if t, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); t == "application/x-www-form-urlencoded" {
+		if err := r.ParseForm(); err != nil {
+			return in, true, err
+		}
+		f := r.PostForm
+		return submission{Name: f.Get("name"), Email: f.Get("email"), Message: f.Get("message"), LeaveEmpty: f.Get("leave_empty")}, true, nil
+	}
+	return in, false, json.NewDecoder(r.Body).Decode(&in)
 }
 
 func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		Name    string `json:"name"`
-		Email   string `json:"email"`
-		Message string `json:"message"`
-		Company string `json:"company"` // honeypot, hidden from people
-	}
 	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		s.reply(w, http.StatusBadRequest, "invalid", map[string]any{"error": "Send the form as JSON."})
-		return
+	in, native, err := read(r)
+	reply := func(code int, result string, body map[string]any) {
+		s.m.Contact.WithLabelValues(result).Inc()
+		if native {
+			writePage(w, code, body)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(code)
+		_ = json.NewEncoder(w).Encode(body)
 	}
-	// Bots fill every field. Pretend it worked so they do not adapt.
-	if strings.TrimSpace(in.Company) != "" {
-		s.reply(w, http.StatusAccepted, "spam", map[string]any{"ok": true})
+	if err != nil {
+		problem := "Send the form as JSON."
+		if tooBig := new(http.MaxBytesError); errors.As(err, &tooBig) {
+			problem = "Messages need to be between 10 and 4,000 characters."
+		}
+		reply(http.StatusBadRequest, "invalid", map[string]any{"error": problem})
 		return
 	}
 	msg := Message{
@@ -102,10 +136,11 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 		Email:     strings.TrimSpace(in.Email),
 		Message:   strings.TrimSpace(in.Message),
 		Received:  time.Now().UTC(),
+		Suspect:   strings.TrimSpace(in.LeaveEmpty+in.Company) != "",
 		Synthetic: s.isSynthetic(r),
 	}
 	if problem := validate(msg); problem != "" {
-		s.reply(w, http.StatusBadRequest, "invalid", map[string]any{"error": problem})
+		reply(http.StatusBadRequest, "invalid", map[string]any{"error": problem})
 		return
 	}
 	// Without a webhook the message would only reach this instance's disk. Where that disk is
@@ -113,14 +148,14 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	// A synthetic check exists to prove delivery, so without a webhook it fails wherever it runs.
 	if s.webhook == "" && (s.requireWebhook || msg.Synthetic) {
 		s.undelivered(msg, "no webhook configured", nil)
-		s.reply(w, http.StatusServiceUnavailable, "undelivered", map[string]any{"error": "Messages can't be delivered right now."})
+		reply(http.StatusServiceUnavailable, "undelivered", map[string]any{"error": "Messages can't be delivered right now."})
 		return
 	}
 	// A synthetic check is not a visitor's message: it is delivered, not kept.
 	if !msg.Synthetic {
 		if err := s.store(msg); err != nil {
 			s.log.Error("contact: store failed", "err", err)
-			s.reply(w, http.StatusInternalServerError, "error", map[string]any{"error": "Could not save your message."})
+			reply(http.StatusInternalServerError, "error", map[string]any{"error": "Could not save your message."})
 			return
 		}
 	}
@@ -131,20 +166,60 @@ func (s *Service) Handle(w http.ResponseWriter, r *http.Request) {
 	if s.webhook != "" {
 		if err := s.forward(context.WithoutCancel(r.Context()), msg); err != nil {
 			s.undelivered(msg, "webhook delivery failed", err)
-			s.reply(w, http.StatusBadGateway, "undelivered", map[string]any{"error": "Could not deliver your message."})
+			reply(http.StatusBadGateway, "undelivered", map[string]any{"error": "Could not deliver your message."})
 			return
 		}
 	}
 	if msg.Synthetic {
-		s.log.Info("contact: synthetic check delivered")
+		s.log.Info("contact: synthetic check delivered", "suspect", msg.Suspect)
 		// The check asserts this field, so a token that was not recognised (and so went out as a
 		// visitor's message) fails it instead of passing.
-		s.reply(w, http.StatusAccepted, "synthetic", map[string]any{"ok": true, "synthetic": true})
+		reply(http.StatusAccepted, "synthetic", map[string]any{"ok": true, "synthetic": true})
 		return
 	}
-	s.log.Info("contact: message received", "chars", utf8.RuneCountInString(msg.Message), "forwarded", s.webhook != "")
-	s.reply(w, http.StatusAccepted, "accepted", map[string]any{"ok": true})
+	s.log.Info("contact: message received", "chars", utf8.RuneCountInString(msg.Message), "forwarded", s.webhook != "", "suspect", msg.Suspect)
+	result := "accepted"
+	if msg.Suspect {
+		result = "suspect"
+	}
+	reply(http.StatusAccepted, result, map[string]any{"ok": true})
 }
+
+// writePage answers a form the browser sent by itself, which shows whatever comes back as a page.
+func writePage(w http.ResponseWriter, code int, body map[string]any) {
+	title, text := "Message sent", "Thanks. I'll reply from my NTU email."
+	if problem, failed := body["error"].(string); failed {
+		title, text = "Not sent", problem+" Go back in your browser to try again: what you wrote should still be in the form."
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(code)
+	_, _ = fmt.Fprintf(w, page, html.EscapeString(title), html.EscapeString(title), html.EscapeString(text))
+}
+
+const page = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>%s</title>
+<style>
+:root { color-scheme: light dark }
+body { font: 1.125rem/1.6 "IBM Plex Sans", system-ui, sans-serif; max-width: 34rem; margin: 18vh auto; padding: 0 1rem }
+h1 { font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.02em }
+a { color: inherit; text-underline-offset: 5px }
+</style>
+</head>
+<body>
+<main>
+<h1>%s</h1>
+<p>%s</p>
+<p><a href="/">Back to the site</a></p>
+</main>
+</body>
+</html>
+`
 
 // undelivered logs one line per message the visitor was told to email about instead. The scheduled
 // check in .github/workflows/synthetic.yml searches the logs for exactly this message, so keep it.
@@ -266,6 +341,10 @@ func webhookPayload(webhook string, m Message) any {
 				"timestamp":   m.Received.Format(time.RFC3339),
 			}},
 		}
+		if m.Suspect {
+			p["content"] = suspectNote
+			p["flags"] = discordSuppressNotifications
+		}
 		if m.Synthetic {
 			p["content"] = "Synthetic check of the contact form: delivered, no action needed"
 			p["flags"] = discordSuppressNotifications
@@ -275,10 +354,17 @@ func webhookPayload(webhook string, m Message) any {
 	if m.Synthetic {
 		return map[string]string{"text": "Synthetic check of the contact form: delivered, no action needed"}
 	}
+	from := "New message"
+	if m.Suspect {
+		from = suspectNote + "\nMessage"
+	}
 	// Slack-style text is markup: "<!channel>" pings everyone and "<https://x|label>" disguises a
 	// link. Escaping &, < and > (Slack's own rule) shows a visitor's text exactly as typed.
-	return map[string]string{"text": fmt.Sprintf("New message from %s (%s):\n%s", slackEscape(m.Name), slackEscape(m.Email), slackEscape(m.Message))}
+	return map[string]string{"text": fmt.Sprintf("%s from %s (%s):\n%s", from, slackEscape(m.Name), slackEscape(m.Email), slackEscape(m.Message))}
 }
+
+// suspectNote heads a message whose hidden field was filled in.
+const suspectNote = "Possible spam from the portfolio site: the form's hidden field was filled in"
 
 var slackEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 
@@ -286,10 +372,3 @@ func slackEscape(s string) string { return slackEscaper.Replace(s) }
 
 // Discord's SUPPRESS_NOTIFICATIONS message flag: posted, but nobody is notified.
 const discordSuppressNotifications = 1 << 12
-
-func (s *Service) reply(w http.ResponseWriter, code int, result string, body map[string]any) {
-	s.m.Contact.WithLabelValues(result).Inc()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(body)
-}

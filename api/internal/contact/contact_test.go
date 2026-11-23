@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -90,6 +91,91 @@ func TestReportsUndeliveredMessages(t *testing.T) {
 				t.Errorf("webhook called %d times, want %d", calls.Load(), c.wantCalls)
 			}
 		})
+	}
+}
+
+// A browser can complete the form for someone and fill the hidden field with it. Their message must be
+// delivered, marked, or they are told it failed; it is never dropped behind a "sent".
+func TestAFilledHiddenFieldMarksTheMessageAndDropsNothing(t *testing.T) {
+	for _, field := range []string{"leave_empty", "company"} {
+		body := strings.Replace(valid, "{", `{"`+field+`":"Example Pte Ltd",`, 1)
+		url, calls, bodies := webhook(t, http.StatusNoContent)
+		s := newService(t, url)
+		if rec := send(s, body); rec.Code != http.StatusAccepted || calls.Load() != 1 {
+			t.Fatalf("%s: status %d after %d deliveries, want 202 after 1", field, rec.Code, calls.Load())
+		}
+		if b := <-bodies; !strings.Contains(b, "Possible spam") || !strings.Contains(b, "SRE role") || !strings.Contains(b, "mei@example.sg") {
+			t.Errorf("%s: want the whole message, marked; got %s", field, b)
+		}
+		if !stored(t, s) {
+			t.Errorf("%s: the message was not stored", field)
+		}
+
+		down, _, _ := webhook(t, http.StatusInternalServerError)
+		if rec := send(newService(t, down), body); rec.Code != http.StatusBadGateway {
+			t.Errorf("%s: status %d when it cannot be delivered, want 502", field, rec.Code)
+		}
+		if rec := send(newService(t, url), `{"`+field+`":"x","name":"","email":"x","message":"short"}`); rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: a bad message got %d, want 400", field, rec.Code)
+		}
+	}
+}
+
+func TestSuspectDiscordPayloadIsSilentAndWhole(t *testing.T) {
+	m := Message{Name: "Mei Ling", Email: "mei@example.sg", Message: "We have an SRE role for you.", Suspect: true}
+	raw, _ := json.Marshal(webhookPayload("https://discord.com/api/webhooks/1/token", m))
+	var p struct {
+		Content string `json:"content"`
+		Flags   int    `json:"flags"`
+		Embeds  []struct {
+			Title, Description string
+		} `json:"embeds"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Flags != 4096 || p.Content != suspectNote || len(p.Embeds) != 1 || p.Embeds[0].Description != m.Message {
+		t.Errorf("want a silent, marked post with the whole message; got %s", raw)
+	}
+}
+
+func sendForm(s *Service, values url.Values) *httptest.ResponseRecorder {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(values.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+	s.Handle(rec, req)
+	return rec
+}
+
+// Where the page's script has not loaded, the browser sends the form itself and shows the answer.
+func TestAFormSentByTheBrowserItself(t *testing.T) {
+	hook, calls, bodies := webhook(t, http.StatusNoContent, http.StatusInternalServerError)
+	s := newService(t, hook)
+	form := url.Values{"name": {"Mei Ling"}, "email": {"mei@example.sg"}, "message": {"We have an SRE role for you."}, "leave_empty": {""}}
+
+	rec := sendForm(s, form)
+	if rec.Code != http.StatusAccepted || calls.Load() != 1 || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/html") {
+		t.Fatalf("status %d, %d deliveries, %s", rec.Code, calls.Load(), rec.Header().Get("Content-Type"))
+	}
+	if b := rec.Body.String(); !strings.Contains(b, "<h1>Message sent</h1>") || strings.Contains(b, "%!") {
+		t.Errorf("want a page saying it was sent, got %s", b)
+	}
+	if b := <-bodies; !strings.Contains(b, "SRE role") || strings.Contains(b, "Possible spam") {
+		t.Errorf("delivered %s", b)
+	}
+	// It fails as a page, and never says "sent" when it was not.
+	rec = sendForm(s, form)
+	if b := rec.Body.String(); rec.Code != http.StatusBadGateway || !strings.Contains(b, "<h1>Not sent</h1>") || strings.Contains(b, "Message sent") {
+		t.Errorf("undelivered: status %d, %s", rec.Code, b)
+	}
+	form.Set("email", "nope")
+	if rec = sendForm(s, form); rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "That email address doesn&#39;t look right.") {
+		t.Errorf("bad email: status %d, %s", rec.Code, rec.Body.String())
+	}
+	form.Set("email", "mei@example.sg")
+	form.Set("message", strings.Repeat("x", 20<<10))
+	if rec = sendForm(s, form); rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "4,000 characters") {
+		t.Errorf("a form of 20 KB: status %d, %s", rec.Code, rec.Body.String())
 	}
 }
 

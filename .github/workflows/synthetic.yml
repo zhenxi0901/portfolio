@@ -2,9 +2,11 @@ name: synthetic
 
 # Follow-up to the contact-form postmortem: nothing used to tell me when a visitor's message could not
 # be delivered. Now:
-#   - hourly, Cloud Run's logs are searched for "contact: undelivered" since the previous search
-#     (GitHub can start scheduled runs hours late; each run covers the gap, so nothing is skipped);
+#   - every run searches Cloud Run's logs for "contact: undelivered" since the previous run (GitHub can
+#     start scheduled runs hours late; each run covers the gap, so nothing is skipped);
 #   - twice a day, a marked message goes through the live form and the real webhook (posted silently).
+#     One of the two has the form's hidden field filled in, as a browser completing the form might: such
+#     a message must be delivered like any other, never dropped behind a "sent".
 # Either one failing fails this workflow, and GitHub emails the owner. Read-only identity
 # (infra/watch.tf); the token that marks the synthetic message is a repository secret.
 on:
@@ -20,8 +22,9 @@ env:
   SITE: https://portfolio-emsghin2iq-as.a.run.app
 
 jobs:
+  # On every run, the twice-daily ones too: each search starts where the previous run started, so a run
+  # that did not search would leave a gap that no later one covers.
   undelivered:
-    if: github.event.schedule != '37 1,13 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -70,7 +73,9 @@ jobs:
         env:
           TOKEN: ${{ secrets.CONTACT_SYNTHETIC_TOKEN }}
         run: |
-          body='{"name":"Synthetic check","email":"synthetic-check@example.com","message":"Scheduled end-to-end check of the contact form.","company":""}'
+          hidden=""
+          if [ "$(date -u +%H)" -ge 12 ]; then hidden="filled in by the check"; fi
+          body=$(jq -nc --arg hidden "$hidden" '{name:"Synthetic check",email:"synthetic-check@example.com",message:"Scheduled end-to-end check of the contact form.",leave_empty:$hidden}')
           for attempt in 1 2 3; do
             code=$(curl -sS -o reply.json -w '%{http_code}' --max-time 20 -X POST "$SITE/api/contact" \
               -H 'Content-Type: application/json' -H "X-Synthetic-Check: $TOKEN" -d "$body") || code=000
@@ -87,4 +92,4 @@ jobs:
             echo "::error::Delivered, but not recognised as a synthetic check (token mismatch?); it went out as a visitor's message."
             exit 1
           fi
-          echo "Delivered through the webhook in attempt $attempt (202, recognised as a check)." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Delivered through the webhook in attempt $attempt (202, recognised as a check); hidden field: ${hidden:-empty}." | tee -a "$GITHUB_STEP_SUMMARY"

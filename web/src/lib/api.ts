@@ -123,19 +123,32 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
+type Options = RequestInit & {
+  timeoutMs?: number;
+  /** Fields the answer must have: one without them is a failure, as if it had not come. */
+  needs?: string[];
+};
+
+async function request<T>(path: string, options: Options = {}): Promise<T> {
+  const { timeoutMs: ms = 8000, needs = [], ...init } = options;
   const controller = new AbortController();
-  const ms = init?.timeoutMs ?? 8000;
   // A TimeoutError that names the wait, so messages can say how long it really was (4 s for status).
   const timer = setTimeout(() => controller.abort(new DOMException(`No answer within ${ms / 1000} s`, "TimeoutError")), ms);
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
       signal: controller.signal,
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
     });
-    const body = await res.json().catch(() => ({}));
+    // An error's body may be anything (a proxy's HTML page); failing to parse it only costs the message. A
+    // success whose body never arrives, or is not JSON, is a failure: read as {}, it crashed its reader.
+    const body = await res.json().catch((e: unknown) => {
+      if (res.ok) throw e;
+      return {};
+    });
     if (!res.ok) throw new ApiError(body?.error ?? `Request failed (${res.status})`, res.status);
+    // A page open across a release can meet an API that answers differently. Better no reading than half of one.
+    if (needs.some((k) => body?.[k] === undefined)) throw new ApiError(`${path} answered without ${needs.find((k) => body?.[k] === undefined)}`, res.status);
     return body as T;
   } finally {
     clearTimeout(timer);
@@ -143,16 +156,19 @@ async function request<T>(path: string, init?: RequestInit & { timeoutMs?: numbe
 }
 
 export const api = {
-  status: () => request<Status>("/api/status", { timeoutMs: 4000 }),
-  // The first call after a cold start reads Cloud Monitoring, which can take a few seconds.
-  slo: () => request<SloReport>("/api/slo", { timeoutMs: 15000 }),
-  // Like slo, the first call after a cold start reads Cloud Monitoring (five metrics).
-  cost: () => request<CostReport>("/api/cost", { timeoutMs: 20000 }),
-  // Once an hour, the request that refreshes the list waits on GitHub (8 s at most).
-  activity: () => request<ActivityFeed>("/api/activity", { timeoutMs: 10000 }),
+  status: () =>
+    request<Status>("/api/status", {
+      timeoutMs: 4000,
+      needs: ["status", "commit", "region", "uptime_seconds", "requests_total", "latency_ms", "recent_ms", "heap_mb", "goroutines"],
+    }),
+  // A new instance's first answer waits while it reads Cloud Monitoring, which can take a few seconds. After
+  // that the uptime checks keep the readings fresh, so none of these three waits (api/internal/fresh).
+  slo: () => request<SloReport>("/api/slo", { timeoutMs: 15000, needs: ["available", "target", "days"] }),
+  cost: () => request<CostReport>("/api/cost", { timeoutMs: 20000, needs: ["available", "prices", "lines"] }),
+  activity: () => request<ActivityFeed>("/api/activity", { timeoutMs: 10000, needs: ["items", "updated"] }),
   ask: (question: string) =>
-    request<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }), timeoutMs: 20000 }),
-  contact: (payload: { name: string; email: string; message: string; company: string }) =>
+    request<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }), timeoutMs: 20000, needs: ["answer", "sources"] }),
+  contact: (payload: { name: string; email: string; message: string; leave_empty: string }) =>
     // The server delivers to the webhook (up to 6 s with retries) before it answers.
-    request<{ ok: boolean }>("/api/contact", { method: "POST", body: JSON.stringify(payload), timeoutMs: 12000 }),
+    request<{ ok: boolean }>("/api/contact", { method: "POST", body: JSON.stringify(payload), timeoutMs: 12000, needs: ["ok"] }),
 };
