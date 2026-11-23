@@ -5,10 +5,12 @@ import { MagnifyingGlass, TerminalWindow } from "@phosphor-icons/react";
 import { profile } from "@/content/profile";
 import { usePalette, useTerminal } from "@/components/providers";
 import { ThemeToggle } from "@/components/site/theme-toggle";
+import { UnpluggedStrip } from "@/components/site/unplugged-strip";
 import { pages } from "@/components/site/nav-items";
 import { usePathname } from "next/navigation";
 import { chapterOf } from "@/lib/sections";
 import { api } from "@/lib/api";
+import { useUnplugged } from "@/lib/use-unplugged";
 import { cn } from "@/lib/utils";
 
 // Whether the page has scrolled at all: read from the browser, and "no" on the server and in the
@@ -36,6 +38,7 @@ export function TopBar({ home = false }: { home?: boolean }) {
   const chapter = chapterOf(path);
   const away = useSyncExternalStore(onScroll, scrolled, () => false);
   const [serving, setServing] = useState<Serving>(null);
+  const cut = useUnplugged();
   useEffect(() => {
     let alive = true;
     api
@@ -45,7 +48,7 @@ export function TopBar({ home = false }: { home?: boolean }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [cut]);
   const live = serving?.ok ? serving : null;
 
   return (
@@ -126,6 +129,7 @@ export function TopBar({ home = false }: { home?: boolean }) {
           <ThemeToggle />
         </div>
       </div>
+      <UnpluggedStrip />
     </header>
   );
 }

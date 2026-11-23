@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { pageOf, sectionHref } from "@/lib/sections";
+import { pagesCut, WOULD_NOT_LOAD } from "@/lib/unplug";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -11,6 +12,8 @@ export function cn(...inputs: ClassValue[]) {
  * simplest thing that always works.
  */
 export function goTo(path: string) {
+  // With the server unplugged in this tab, no page comes (lib/unplug).
+  if (pagesCut()) return void window.dispatchEvent(new Event(WOULD_NOT_LOAD));
   window.location.assign(path);
 }
 

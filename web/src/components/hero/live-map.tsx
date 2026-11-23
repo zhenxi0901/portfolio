@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
+import { UnplugEffect, UnplugParts, UnplugToggle } from "@/components/hero/unplug";
 import { api, type SloReport, type Status } from "@/lib/api";
+import type { Part } from "@/lib/unplug";
+import { useUnplugged } from "@/lib/use-unplugged";
 import { cn } from "@/lib/utils";
 import { uptime } from "@/lib/uptime";
 
@@ -75,8 +78,8 @@ const link = (v: Visit) => (v.connect !== null ? `connect ${ms(v.connect)}` : v.
 /** Short commits from /api/status and full ones from delivery.json name the same build. */
 const sameCommit = (a: string, b: string) => !!a && !!b && (a.startsWith(b) || b.startsWith(a));
 
-/** Live data for the map: this visit, the instance, the SLO, the last deploy. */
-function useLive(on: boolean) {
+/** Live data for the map: this visit, the instance, the SLO, the last deploy. Taken again when something is unplugged. */
+function useLive(on: boolean, cut: Part | null) {
   const [visit, setVisit] = useState<Visit | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [slo, setSlo] = useState<SloReport | null>(null);
@@ -95,20 +98,27 @@ function useLive(on: boolean) {
     };
     if (document.readyState === "complete") read();
     else window.addEventListener("load", read, { once: true });
-    api
-      .slo()
-      .then((r) => alive && setSlo(r))
-      .catch(() => {});
-    fetch("/delivery.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => alive && d && setDelivery(d))
-      .catch(() => {});
     return () => {
       alive = false;
       window.removeEventListener("load", read);
       window.clearTimeout(t);
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .slo()
+      .then((r) => alive && setSlo(r))
+      .catch(() => alive && setSlo(null));
+    fetch("/delivery.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && d && setDelivery(d))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [cut]);
 
   useEffect(() => {
     if (!on) return;
@@ -123,7 +133,8 @@ function useLive(on: boolean) {
           setServed((c) => c ?? s.commit);
           setPolls((n) => n + 1);
         })
-        .catch(() => {});
+        // One poll that fails keeps the last answer; with the part unplugged there is none to keep.
+        .catch(() => alive && cut && setStatus(null));
     };
     poll();
     const t = window.setInterval(poll, POLL_MS);
@@ -131,7 +142,7 @@ function useLive(on: boolean) {
       alive = false;
       window.clearInterval(t);
     };
-  }, [on]);
+  }, [on, cut]);
 
   return { visit, status, served, slo, delivery, polls, zone };
 }
@@ -161,6 +172,15 @@ const EDGES: [Node, Node][] = [
   ["probes", "monitoring"],
   ["monitoring", "api"],
 ];
+/** The edges nothing gets through with a part gone: the ones it is an end of, and for the front end the ways past it. */
+const DEAD: Record<Part, string[]> = {
+  gfe: ["you-gfe", "gfe-run", "run-page", "run-api", "probes-gfe"],
+  run: ["gfe-run", "run-page", "run-api"],
+  api: ["run-api", "monitoring-api"],
+  monitoring: ["probes-monitoring", "monitoring-api"],
+  probes: ["probes-gfe", "probes-monitoring"],
+  actions: ["actions-run"],
+};
 const ROUTES = {
   request: path("you", "gfe", "run", "page"),
   poll: path("you", "gfe", "run", "api"),
@@ -170,30 +190,37 @@ const ROUTES = {
 type Route = keyof typeof ROUTES;
 
 /** A node: a link whose name is what it shows, plus where it goes for screen readers. `live`: on the path your request took. */
-function Card({ node, title, sub, href, label, live = false }: { node: Node; title: string; sub: React.ReactNode; href: string; label: string; live?: boolean }) {
+function Card({ node, title, sub, href, label, live = false, cut }: { node: Node; title: string; sub: React.ReactNode; href: string; label: string; live?: boolean; cut: Part | null }) {
   const [x, y] = N[node];
+  const gone = cut === node;
   return (
     <a
       href={href}
       style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }}
       className={cn(
         "absolute z-10 w-max max-w-[min(11rem,30%)] -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-surface px-2 py-1 text-center transition-colors hover:border-ink-3 focus-visible:border-ink-3 @lg:px-2.5 @lg:py-1.5",
-        live ? "border-live-ink" : "border-line-strong",
+        gone ? "border-dashed border-critical" : live ? "border-live-ink" : "border-line-strong",
       )}
     >
-      <span className="block text-[12px] font-semibold leading-tight text-ink @lg:text-[13px] @2xl:text-[14px]">{title}</span>
-      <span className="mt-0.5 block font-mono text-[11px] leading-tight text-ink-2 @lg:text-[12px]">{sub}</span>
-      <span className="sr-only">. {label}</span>
+      <span className={cn("block text-[12px] font-semibold leading-tight @lg:text-[13px] @2xl:text-[14px]", gone ? "text-ink-3" : "text-ink")}>{title}</span>
+      <span className={cn("mt-0.5 block font-mono text-[11px] leading-tight @lg:text-[12px]", gone ? "text-critical" : "text-ink-2")}>{gone ? "unplugged" : sub}</span>
+      <span className="sr-only">. {gone ? "Unplugged, in this tab only. " : ""}{label}</span>
     </a>
   );
 }
 
 // Above the line by default, clear of the cards at either end. The numbers on the path are live readings.
-function EdgeLabel({ from, to, children, dx = 0, dy = -5.5 }: { from: Node; to: Node; children: React.ReactNode; dx?: number; dy?: number }) {
-  const x = (N[from][0] + N[to][0]) / 2 + dx;
-  const y = (N[from][1] + N[to][1]) / 2 + dy;
+function EdgeLabel({ from, to, children, place = "above" }: { from: Node; to: Node; children: React.ReactNode; place?: "above" | "on" | "beside" }) {
+  const x = (N[from][0] + N[to][0]) / 2;
+  const y = ((N[from][1] + N[to][1]) / 2 / 80) * 100;
+  // Pixels, not a share of the map: the boxes and the type keep their size when the map shrinks.
+  const style = {
+    above: { left: `${x}%`, top: `calc(${y}% - 37px)` }, // a level edge, and the boxes at its ends
+    on: { left: `${x}%`, top: `${y}%` },
+    beside: { left: `calc(${x}% + 6px)`, top: `calc(${y}% + 4px)` }, // right of and below one that rises
+  }[place];
   return (
-    <span style={{ left: `${x}%`, top: `${(y / 80) * 100}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[11px] text-live-ink @lg:text-[12px]" aria-hidden>
+    <span style={style} className={cn("absolute whitespace-nowrap font-mono text-[11px] text-live-ink @lg:text-[12px]", place !== "beside" && "-translate-x-1/2 -translate-y-1/2")} aria-hidden>
       {children}
     </span>
   );
@@ -207,7 +234,21 @@ export function LiveMap() {
   // The figure, not the map: on a phone the map is hidden and the list is what is on screen.
   const box = useRef<HTMLElement>(null);
   const [onScreen, setOnScreen] = useState(false);
-  const live = useLive(onScreen);
+  const cut = useUnplugged();
+  const [opened, setOpened] = useState(false);
+  const open = opened || cut !== null;
+  const live = useLive(onScreen, cut);
+  // What is lost is drawn under the map: brought onto the screen when the visitor is the one who chose it.
+  const effect = useRef<HTMLDivElement>(null);
+  const chosen = useRef(false);
+  useEffect(() => {
+    if (!cut || !chosen.current) return;
+    chosen.current = false;
+    // Only as far as it takes: scrolling further would push the map off the top. On a phone the tabs cover the last 72 px.
+    const room = window.matchMedia("(min-width: 64rem)").matches ? 16 : 84;
+    const over = (effect.current?.getBoundingClientRect().bottom ?? 0) + room - window.innerHeight;
+    if (over > 0) window.scrollBy({ top: over, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [cut]);
   const motion = useRef<Record<Route, SVGAnimateMotionElement | null>>({ request: null, poll: null, probe: null, deploy: null });
 
   useEffect(() => {
@@ -240,14 +281,14 @@ export function LiveMap() {
   }, [newRelease, latest]);
   // The uptime checks: three a minute, so one every 20 s.
   useEffect(() => {
-    if (!onScreen) return;
+    if (!onScreen || (cut && DEAD[cut].some((e) => e === "probes-gfe" || e === "gfe-run" || e === "run-api"))) return;
     const t = window.setInterval(() => pulse("probe"), 20_000);
     const first = window.setTimeout(() => pulse("probe"), 4_000);
     return () => {
       window.clearInterval(t);
       window.clearTimeout(first);
     };
-  }, [onScreen]);
+  }, [onScreen, cut]);
 
   const { visit, status, served, slo, delivery, zone } = live;
   // Only a measured figure is shown as one; until there is one, the objective it is measured against.
@@ -263,13 +304,17 @@ export function LiveMap() {
   const instance = status ? `up ${up(status.uptime_seconds)}` : "asia-southeast1";
   const page = visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB · ${ms(visit.total)}${visit.cold ? " · cold" : ""}` : "static export";
 
+  const dead = new Set(cut ? DEAD[cut] : []);
   return (
-    <figure ref={box} className="w-full">
+    <figure ref={box} className="relative w-full">
       {/* A container: in a narrow column (two columns on a 1024 px screen) the type steps down. */}
-      <div className="@container relative hidden aspect-[5/4] w-full md:block">
-        <svg viewBox="0 0 100 80" className="absolute inset-0 size-full" aria-hidden>
+      {/* Flatter while the switches are open: it, they and what is lost then fit a laptop's screen together. The
+          drawing stretches with it (its boxes are placed by percentage), and the dots are kept round. */}
+      <div className={cn("@container relative hidden w-full md:block", open ? "aspect-[2/1]" : "aspect-[5/4]")}>
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="absolute inset-0 size-full" aria-hidden>
           {EDGES.map(([a, b]) => {
-            const onPath = (a === "you" && b === "gfe") || (a === "gfe" && b === "run") || (a === "run" && b === "page");
+            const off = dead.has(`${a}-${b}`);
+            const onPath = !off && ((a === "you" && b === "gfe") || (a === "gfe" && b === "run") || (a === "run" && b === "page"));
             return (
               <line
                 key={`${a}-${b}`}
@@ -277,17 +322,18 @@ export function LiveMap() {
                 y1={N[a][1]}
                 x2={N[b][0]}
                 y2={N[b][1]}
-                stroke={onPath ? "var(--live-ink)" : "var(--line-strong)"}
+                stroke={off ? "var(--critical)" : onPath ? "var(--live-ink)" : "var(--line-strong)"}
                 strokeWidth={1}
+                opacity={off ? 0.45 : 1}
                 vectorEffect="non-scaling-stroke"
-                strokeDasharray={a === "actions" || a === "probes" || a === "monitoring" ? "3 3" : undefined}
+                strokeDasharray={off ? "1 7" : a === "actions" || a === "probes" || a === "monitoring" ? "3 3" : undefined}
                 className={onPath ? "map-flow" : undefined}
               />
             );
           })}
           {(Object.keys(ROUTES) as Route[]).map((r) => (
             // Every dot is something that really happened just now, so every dot is lime.
-            <circle key={r} r={1.3} cx={0} cy={0} className="fill-live-ink" opacity={0}>
+            <ellipse key={r} rx={1.3} ry={open ? 2.08 : 1.3} cx={0} cy={0} className="fill-live-ink" opacity={0}>
               <animateMotion
                 id={`map-${r}`}
                 ref={(el) => {
@@ -300,33 +346,32 @@ export function LiveMap() {
               />
               {/* Visible only while it moves. */}
               <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur={r === "request" ? "1.6s" : r === "deploy" ? "1.2s" : "1.4s"} begin={`map-${r}.begin`} fill="remove" />
-            </circle>
+            </ellipse>
           ))}
         </svg>
-        <Card node="you" title="You" sub={zone ?? "this browser"} href="/status#visit-trace" label={`You${zone ? `, on ${zone}` : ""}. Your visit's trace is on the status page.`} live />
-        <Card node="gfe" title="Google front end" sub={visit?.protocol ?? "TLS · HTTP"} href="/decisions" label="Google's front end terminates TLS. Why the site runs this way: the decision records." live />
-        <Card node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} live />
-        <Card node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} live />
-        <Card node="api" title="/api" sub="status · slo · cost" href="/agents" label="The JSON API and the MCP server: for agents." />
+        <Card cut={cut} node="you" title="You" sub={zone ?? "this browser"} href="/status#visit-trace" label={`You${zone ? `, on ${zone}` : ""}. Your visit's trace is on the status page.`} live />
+        <Card cut={cut} node="gfe" title="Google front end" sub={visit?.protocol ?? "TLS · HTTP"} href="/decisions" label="Google's front end terminates TLS. Why the site runs this way: the decision records." live />
+        <Card cut={cut} node="run" title="Cloud Run" sub={instance} href="/status" label={`Cloud Run in asia-southeast1${status ? `, an instance ${instance}` : ""}. The status page.`} live />
+        <Card cut={cut} node="page" title="This page" sub={page} href="/cost" label={`This page, served from the static export${visit?.cold ? " by an instance that had just started" : ""}. What the site costs.`} live />
+        <Card cut={cut} node="api" title="/api" sub="status · slo · cost" href="/agents" label="The JSON API and the MCP server: for agents." />
         {/* Two lines on purpose: as one line the card's width cap broke "built 27 min ago" mid-phrase at every width. */}
-        <Card node="actions" title="GitHub Actions" sub={deployed ? <>{commit} <span className="block">built {deployed}</span></> : commit} href="/changelog" label={`Built and deployed by GitHub Actions: commit ${commit}${deployed ? `, built ${deployed}` : ""}. The changelog.`} />
-        <Card node="probes" title="Uptime checks" sub="3 regions · 1/min" href="/status" label="Google Cloud uptime checks from Singapore, Belgium and Oregon, every minute. The status page." />
-        <Card node="monitoring" title="Cloud Monitoring" sub={avail} href="/status" label={`Cloud Monitoring: ${avail}. The status page.`} />
+        <Card cut={cut} node="actions" title="GitHub Actions" sub={deployed ? <>{commit} <span className="block">built {deployed}</span></> : commit} href="/changelog" label={`Built and deployed by GitHub Actions: commit ${commit}${deployed ? `, built ${deployed}` : ""}. The changelog.`} />
+        <Card cut={cut} node="probes" title="Uptime checks" sub="3 regions · 1/min" href="/status" label="Google Cloud uptime checks from Singapore, Belgium and Oregon, every minute. The status page." />
+        <Card cut={cut} node="monitoring" title="Cloud Monitoring" sub={avail} href="/status" label={`Cloud Monitoring: ${avail}. The status page.`} />
         {visit && (
           <>
-            <EdgeLabel from="you" to="gfe">{link(visit)}</EdgeLabel>
-            <EdgeLabel from="gfe" to="run">{`1st byte ${ms(visit.ttfb)}`}</EdgeLabel>
-            {visit.server !== null && (
-              // Below and right of the diagonal: centred above it, the label's right end sat on the dashed line,
-              // and above-left is where the "new release" badge appears on the line from GitHub Actions.
-              <EdgeLabel from="run" to="page" dx={4} dy={4}>
+            {!dead.has("you-gfe") && <EdgeLabel from="you" to="gfe">{link(visit)}</EdgeLabel>}
+            {!dead.has("gfe-run") && <EdgeLabel from="gfe" to="run">{`1st byte ${ms(visit.ttfb)}`}</EdgeLabel>}
+            {visit.server !== null && !dead.has("run-page") && (
+              // Above-left is where the "new release" badge appears, on the line from GitHub Actions.
+              <EdgeLabel from="run" to="page" place="beside">
                 {`Go ${ms(visit.server)}`}
               </EdgeLabel>
             )}
           </>
         )}
         {newRelease && (
-          <EdgeLabel from="actions" to="run" dy={0}>
+          <EdgeLabel from="actions" to="run" place="on">
             <span className="rounded bg-live px-1.5 py-0.5 text-[11px] font-medium text-[#0d0d10]">new release</span>
           </EdgeLabel>
         )}
@@ -345,8 +390,8 @@ export function LiveMap() {
       <ol className="space-y-2 md:hidden" aria-labelledby="request-path">
         {[
           ["You", zone ?? "this browser", visit ? link(visit) : "", "/status#visit-trace"],
-          ["Google front end", visit?.protocol ? `${visit.protocol} · ends TLS` : "terminates TLS", visit ? `first byte ${ms(visit.ttfb)}` : "", "/decisions"],
-          ["Cloud Run · Go server", status ? `asia-southeast1 · ${instance}` : "asia-southeast1", visit?.server != null ? `Go ${ms(visit.server)}` : "", "/status"],
+          ["Google front end", cut === "gfe" ? "unplugged" : visit?.protocol ? `${visit.protocol} · ends TLS` : "terminates TLS", visit ? `first byte ${ms(visit.ttfb)}` : "", "/decisions"],
+          ["Cloud Run · Go server", cut === "run" ? "unplugged" : status ? `asia-southeast1 · ${instance}` : "asia-southeast1", visit?.server != null ? `Go ${ms(visit.server)}` : "", "/status"],
           ["This page", visit ? `${Math.max(1, Math.round(visit.bytes / 1024))} KB${visit.cold ? " · cold start" : ""}` : "static export", visit ? `${ms(visit.total)} end to end` : "", "/cost"],
         ].map(([title, sub, time, href], i) => (
           <li key={title}>
@@ -364,35 +409,50 @@ export function LiveMap() {
         ))}
       </ol>
 
-      {/* The request you just made, in a sentence; before its timing is known, what the picture is. */}
-      <figcaption className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-ink-2 md:mt-2">
-        {visit ? (
-          <>
-            You asked, and the first byte came back in <Live>{ms(visit.ttfb)}</Live>
-            {visit.server !== null && (
-              <>
-                , <Live>{ms(visit.server)}</Live> of it in the Go server
-              </>
-            )}
-            , from commit <Live>{from}</Live>
-            {fromBuilt ? `, built ${fromBuilt}` : ""}.{" "}
-          </>
-        ) : (
-          <>Your request to this page, drawn as it happens. </>
-        )}
-        {newRelease && (
-          // Straight after the commit this page came from, which the newer one has replaced on the server.
-          <>
-            Commit <Live>{latest}</Live> went out while you were here.{" "}
-            <button type="button" onClick={() => window.location.reload()} className="font-medium text-ink underline underline-offset-4">
-              Reload for it
-            </button>
-            .{" "}
-          </>
-        )}
-        {/* "Green", not "lime" (the light theme draws it olive), and "dotted", not "dashed" (the request path moves in dashes). */}
-        <span className="hidden md:inline">The green path is the request you just made; the grey dotted lines are what keeps watch over it. Every box opens a page.</span>
-        <span className="md:hidden">Watched by uptime checks from three regions: {avail}.</span>
+      <UnplugToggle cut={cut} open={open} setOpen={setOpened} />
+
+      {/* The request you just made, in a sentence; before its timing is known, what the picture is. With a part
+          unplugged, what is lost without it. */}
+      <figcaption className={cn("md:mt-2", open ? "" : "mt-4")}>
+        <UnplugParts
+          cut={cut}
+          open={open}
+          onChoose={() => {
+            chosen.current = true;
+          }}
+        />
+        <div ref={effect} aria-live="polite" className={cn(cut && "max-md:mt-4")}>
+          {cut && <UnplugEffect part={cut} />}
+        </div>
+        <div className={cn("max-w-[62ch] text-[15px] leading-relaxed text-ink-2", cut && "hidden", open && "max-md:mt-4")}>
+          {visit ? (
+            <>
+              You asked, and the first byte came back in <Live>{ms(visit.ttfb)}</Live>
+              {visit.server !== null && (
+                <>
+                  , <Live>{ms(visit.server)}</Live> of it in the Go server
+                </>
+              )}
+              , from commit <Live>{from}</Live>
+              {fromBuilt ? `, built ${fromBuilt}` : ""}.{" "}
+            </>
+          ) : (
+            <>Your request to this page, drawn as it happens. </>
+          )}
+          {newRelease && (
+            // Straight after the commit this page came from, which the newer one has replaced on the server.
+            <>
+              Commit <Live>{latest}</Live> went out while you were here.{" "}
+              <button type="button" onClick={() => window.location.reload()} className="font-medium text-ink underline underline-offset-4">
+                Reload for it
+              </button>
+              .{" "}
+            </>
+          )}
+          {/* "Green", not "lime" (the light theme draws it olive), and "dotted", not "dashed" (the request path moves in dashes). */}
+          <span className="hidden md:inline">The green path is the request you just made; the grey dotted lines are what keeps watch over it. Every box opens a page.</span>
+          <span className="md:hidden">Watched by uptime checks from three regions: {avail}.</span>
+        </div>
       </figcaption>
     </figure>
   );
