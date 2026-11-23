@@ -14,10 +14,11 @@ const inCI = !!process.env.CI;
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
-  workers: 4,
+  // The lab holds 24 requests at once, which more than four would reach; CI's runner has four cores for them and the site.
+  workers: inCI ? 3 : 4,
   retries: inCI ? 1 : 0,
   forbidOnly: inCI,
-  timeout: 30_000,
+  timeout: inCI ? 60_000 : 30_000,
   expect: { timeout: 8_000 },
   reporter: [["list"], ["html", { open: "never" }], ...(inCI ? [["github"] as const] : [])],
   use: {

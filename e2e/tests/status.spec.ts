@@ -52,6 +52,9 @@ test.describe("the replay of the latest deploy", () => {
 
   /** Scrolls until this much of it shows at the bottom of the screen, once the panels above it have settled. */
   async function showTop(page: Page, pixels: number) {
+    // A press brings what is pressed clear of the page's scroll padding. Here that would bring more than half of the card onto the
+    // screen, it would start by itself, and the press would stop it.
+    await page.addStyleTag({ content: "html { scroll-padding: 0 !important }" });
     await page.getByText("This site's own SLO, measured from outside").scrollIntoViewIfNeeded();
     await expect(page.getByText(/^availability over/)).toBeVisible();
     await card(page).evaluate((el, shown) => window.scrollBy({ top: el.getBoundingClientRect().top - (window.innerHeight - shown), behavior: "instant" }), pixels);

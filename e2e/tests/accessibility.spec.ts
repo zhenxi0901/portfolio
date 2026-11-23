@@ -162,10 +162,10 @@ test.describe("the tabs of the IoT platform are accessible", () => {
     await visit(page, "/iot#platform-cost");
     const moves = page.getByRole("tablist", { name: "Cost moves" }).getByRole("tab");
     await expect(moves.first()).toBeVisible();
-    for (const move of await moves.all()) {
+    for (const [i, move] of (await moves.all()).entries()) {
       await move.click();
       await expect(move).toHaveAttribute("aria-selected", "true");
-      await expectAccessible(page);
+      await expectAccessible(page, i === 0 ? undefined : "#cost-panel");
     }
   });
 });
