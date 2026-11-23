@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { visit } from "../support/site.ts";
+import { LONG_TITLE, sidewaysScroll, visit } from "../support/site.ts";
 import { expect, test } from "../support/test.ts";
 
 const fact = (page: Page, name: string) => page.locator("dl > div").filter({ has: page.getByText(name, { exact: true }) }).getByRole("definition");
@@ -126,6 +126,19 @@ test.describe("the replay of the latest deploy", () => {
       const widths = await bars(page).evaluateAll((all) => all.map((bar) => (bar as HTMLElement).style.width));
       expect(widths.length).toBeGreaterThan(5);
       expect(new Set(widths)).toEqual(new Set(["100%"]));
+    });
+  });
+
+  test.describe("on a narrow phone", () => {
+    test.use({ viewport: { width: 320, height: 700 } });
+
+    test("a title with a word too long for a line breaks inside it", async ({ page }) => {
+      await visit(page, "/status");
+      await card(page)
+        .getByText(/every step of that release/)
+        .evaluate((sentence, title) => sentence.prepend(title), LONG_TITLE);
+      await expect(card(page)).toContainText(LONG_TITLE);
+      expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
     });
   });
 

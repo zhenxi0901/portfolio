@@ -29,6 +29,9 @@ export async function sitemapPaths(): Promise<string[]> {
 export const sidewaysScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
+/** A commit's title with a word no narrow screen has room for, as a merged branch's name can be. */
+export const LONG_TITLE = "Merge pull request #8 from someone/dependabot/npm_and_yarn/web/web-1c3bf8254b-and-then-some-more";
+
 /** The element comes to rest with its top edge this far below the top of the screen, in pixels. */
 export async function expectTop(element: Locator, { from, to }: { from: number; to: number }) {
   await expect(async () => {

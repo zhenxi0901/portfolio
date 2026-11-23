@@ -21,6 +21,8 @@ async function unplug(page: Page, name: string) {
   await expect(strip(page)).toContainText(`${name} is unplugged, in this tab only`);
 }
 
+// A copy that was not built from a commit says so.
+const COMMIT = /[0-9a-f]{7}|unknown/;
 // Which parts every page needs: with one of them gone, the top bar has no commit to show.
 const PARTS = [
   { name: "Google front end", commit: false },
@@ -53,8 +55,8 @@ for (const { name, commit } of PARTS) {
     // All of it on the screen, without the visitor having to look for it.
     await expect(effect(page)).toBeInViewport({ ratio: 1 });
     const running = page.getByRole("banner").locator('a[href="/status"]');
-    if (commit) await expect(running).toContainText(/[0-9a-f]{7}/);
-    else await expect(running).not.toContainText(/[0-9a-f]{7}/);
+    if (commit) await expect(running).toContainText(COMMIT);
+    else await expect(running).not.toContainText(COMMIT);
   });
 }
 

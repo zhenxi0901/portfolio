@@ -118,7 +118,7 @@ export function DeployReplay() {
           commit {last.sha} · {when(last.ended)} SGT · {clock(last.seconds)} end to end
         </p>
       </div>
-      <p className="mt-2 max-w-[75ch] text-sm leading-relaxed text-ink-2">
+      <p className="mt-2 max-w-[75ch] text-sm leading-relaxed text-ink-2 [overflow-wrap:anywhere]">
         &ldquo;{last.title}&rdquo;: every step of that release at its real start and length, played {speed} times faster.
         {last.url && (
           <>

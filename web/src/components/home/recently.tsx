@@ -128,7 +128,8 @@ export function Recently() {
       <h3 id="recently-title" className="text-sm font-medium text-ink-3">
         Recently
       </h3>
-      <ol aria-labelledby="recently-title" className="mt-3 space-y-2.5">
+      {/* Titles come from commits and pull requests, so any word of one may be too long for a line. */}
+      <ol aria-labelledby="recently-title" className="mt-3 space-y-2.5 [overflow-wrap:anywhere]">
         {entries.map((e) => (
           <li key={e.key}>
             <a
@@ -147,7 +148,7 @@ export function Recently() {
                     too long for a line (a 320 px screen), it breaks inside rather than widening the page. */}
                 {(e.where || e.external) && " "}
                 {(e.where || e.external) && (
-                  <span className="inline-block max-w-full text-ink-3 [overflow-wrap:anywhere]">
+                  <span className="inline-block max-w-full text-ink-3">
                     {e.where}
                     {e.external && (
                       <>
@@ -164,7 +165,7 @@ export function Recently() {
       </ol>
       {stale && <p className="mt-3 text-xs text-ink-3">GitHub entries as of {dayTime(feed.updated)} Singapore time</p>}
       {deploy && (
-        <p className="mt-4 border-t border-line pt-3 text-sm text-ink-3">
+        <p className="mt-4 border-t border-line pt-3 text-sm text-ink-3 [overflow-wrap:anywhere]">
           <a
             href={deploy.href}
             {...(deploy.external ? { target: "_blank", rel: "noreferrer" } : {})}

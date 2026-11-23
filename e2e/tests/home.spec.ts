@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { DESKTOP, PHONE } from "../support/screens.ts";
-import { visit } from "../support/site.ts";
+import { LONG_TITLE, sidewaysScroll, visit } from "../support/site.ts";
 import { expect, test } from "../support/test.ts";
 
 for (const { screen, use, screens } of [
@@ -170,6 +170,20 @@ test.describe("Recently", () => {
     readings.activity.change({ updated: new Date(Date.now() - 5 * 3_600_000).toISOString() });
     await visit(page, "/");
     await expect(page.getByText(/GitHub entries as of \d+ \w+ \d{4}, \d\d:\d\d Singapore time/)).toBeVisible();
+  });
+
+  test.describe("on a narrow phone", () => {
+    test.use({ viewport: { width: 320, height: 700 } });
+
+    test("a title with a word too long for a line breaks inside it", async ({ page, readings }) => {
+      readings.activity.change({ items: readings.activity.recording.items.map((item) => ({ ...item, title: LONG_TITLE })) });
+      await visit(page, "/");
+      await expect(list(page)).toContainText(LONG_TITLE);
+      // This one was built in with the page.
+      await latestDeploy(page).evaluate((link, title) => (link.querySelector("span")!.textContent = title), LONG_TITLE);
+      await expect(latestDeploy(page)).toContainText(LONG_TITLE);
+      expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    });
   });
 
   // What the pipeline baked into the build: the commit it was made from, and the deploys before it.
