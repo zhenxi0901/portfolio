@@ -166,6 +166,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             offset={96}
             toastOptions={{
               className: "!rounded-2xl !border !border-line !bg-surface !text-ink !shadow-soft !font-sans",
+              // Left alone, these keep the colours of a light page on a dark one.
+              classNames: { description: "!text-ink-2", actionButton: "!bg-ink !text-bg" },
             }}
           />
         </TerminalContext.Provider>

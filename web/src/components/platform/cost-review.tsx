@@ -70,7 +70,7 @@ export function CostReview() {
 
         {/* Only the move's content is keyed (to replay its entrance); the Previous/Next buttons stay
             mounted so they keep focus, and the live region stays put so the change is announced. */}
-        <article id="cost-panel" role="tabpanel" aria-labelledby={`cost-tab-${i}`} className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-7">
+        <div id="cost-panel" role="tabpanel" aria-labelledby={`cost-tab-${i}`} className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-7">
           <div aria-live="polite">
             <div key={i} className="step-in">
               <div className="flex flex-wrap items-center gap-2">
@@ -84,7 +84,7 @@ export function CostReview() {
                   {l.status}
                 </span>
               </div>
-              <h4 className="mt-2 text-xl font-semibold tracking-[-0.02em]">{l.title}</h4>
+              <h3 className="mt-2 text-xl font-semibold tracking-[-0.02em]">{l.title}</h3>
 
               <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <p className="text-[clamp(2.25rem,4.5vw,3.25rem)] font-semibold leading-none tracking-[-0.045em]">{l.headline}</p>
@@ -127,7 +127,7 @@ export function CostReview() {
               Next move <ArrowRight size={14} />
             </button>
           </div>
-        </article>
+        </div>
       </div>
     </div>
   );
@@ -138,8 +138,8 @@ function Visual({ v }: { v: CostVisual }) {
     case "share": {
       const pct = Math.round((v.part / v.total) * 100);
       return (
-        <figure role="img" aria-label={`${v.partLabel}: ${n(v.part)} of ${n(v.total)} ${v.unit}, ${pct}%`}>
-          <figcaption className="mb-2 text-xs text-ink-3">{n(v.total)} {v.unit}, by source</figcaption>
+        <div role="img" aria-label={`${v.partLabel}: ${n(v.part)} of ${n(v.total)} ${v.unit}, ${pct}%`}>
+          <p className="mb-2 text-xs text-ink-3">{n(v.total)} {v.unit}, by source</p>
           <div className="flex h-7 w-full gap-[2px] overflow-hidden rounded-lg">
             <div className="bar-in h-full rounded-l-lg bg-accent-ink" style={{ width: `${pct}%` }} />
             <div className="bar-in h-full flex-1 rounded-r-lg bg-line-strong" style={{ animationDelay: "0.25s" }} />
@@ -152,13 +152,13 @@ function Visual({ v }: { v: CostVisual }) {
               {v.restLabel} {n(v.total - v.part)}
             </span>
           </div>
-        </figure>
+        </div>
       );
     }
     case "reap": {
       const left = v.total - v.removed;
       return (
-        <figure role="img" aria-label={`${n(v.total)} ${v.unit}, ${n(v.removed)} reaped, ${n(left)} left`}>
+        <div role="img" aria-label={`${n(v.total)} ${v.unit}, ${n(v.removed)} reaped, ${n(left)} left`}>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(7px,1fr))] gap-[3px]">
             {Array.from({ length: v.total }, (_, k) => {
               // A fixed permutation, so the reaped topics are scattered rather than one block.
@@ -172,15 +172,15 @@ function Visual({ v }: { v: CostVisual }) {
               );
             })}
           </div>
-          <figcaption className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-2">
+          <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-2">
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-[2px] bg-accent-ink" /> {n(left)} in use
             </span>
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-[2px] bg-ink-3 opacity-30" /> {n(v.removed)} reaped
             </span>
-          </figcaption>
-        </figure>
+          </p>
+        </div>
       );
     }
     case "bars":
@@ -190,13 +190,13 @@ function Visual({ v }: { v: CostVisual }) {
             const after = (r.after / r.before) * 100;
             const cut = Math.round((1 - r.after / r.before) * 100);
             return (
-              <figure key={r.label} role="img" aria-label={`${r.label}: ${n(r.before)} before, ${n(r.after)} after, ${cut}% less`}>
-                <figcaption className="flex justify-between gap-3 text-sm">
+              <div key={r.label} role="img" aria-label={`${r.label}: ${n(r.before)} before, ${n(r.after)} after, ${cut}% less`}>
+                <p className="flex justify-between gap-3 text-sm">
                   <span className="font-medium">{r.label}</span>
                   <span className="font-mono text-xs text-ink-2">
                     {n(r.before)} → <span className="text-ink">{n(r.after)}</span>, -{cut}%
                   </span>
-                </figcaption>
+                </p>
                 <div className="mt-2 grid gap-[3px]">
                   <div className="bar-in h-4 rounded-r-[4px] bg-line-strong" />
                   <div
@@ -204,7 +204,7 @@ function Visual({ v }: { v: CostVisual }) {
                     style={{ "--from": "100%", "--to": `${after}%`, width: `${after}%` } as React.CSSProperties}
                   />
                 </div>
-              </figure>
+              </div>
             );
           })}
           <p className="flex gap-4 text-xs text-ink-2">

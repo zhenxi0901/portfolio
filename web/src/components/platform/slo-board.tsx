@@ -240,7 +240,7 @@ export function SloBoard() {
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium",
-                        r.state === "firing" ? "bg-critical/15 text-critical" : r.state === "resolved" ? "bg-surface-2 text-ink-2" : "bg-good/12 text-good",
+                        r.state === "firing" ? "bg-critical/10 text-critical" : r.state === "resolved" ? "bg-surface-2 text-ink-2" : "bg-good/12 text-good",
                       )}
                     >
                       {r.state === "firing" && <Siren size={12} weight="fill" />}

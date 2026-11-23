@@ -34,7 +34,7 @@ export function Investigate() {
 
       <div className="grid gap-4">
         <section className="rounded-3xl border border-line bg-surface p-5">
-          <h4 className="font-semibold">Rules I monitor by</h4>
+          <h3 className="font-semibold">Rules I monitor by</h3>
           <ul className="mt-3 grid gap-2">
             {investigation.rules.map((r) => (
               <li key={r} className="rounded-xl bg-surface-2 px-3 py-2 text-sm text-ink">
@@ -44,7 +44,7 @@ export function Investigate() {
           </ul>
         </section>
         <section className="rounded-3xl border border-line bg-surface p-5">
-          <h4 className="font-semibold">Runbook: telemetry is late</h4>
+          <h3 className="font-semibold">Runbook: telemetry is late</h3>
           <ol className="mt-3 grid gap-2.5">
             {investigation.runbook.map((step, k) => (
               <li key={step} className="grid grid-cols-[1.5rem_1fr] gap-2 text-sm leading-relaxed text-ink-2">

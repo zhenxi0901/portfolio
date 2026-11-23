@@ -78,7 +78,7 @@ export function Monitoring() {
             <SloBoard />
             <div className="grid gap-4 lg:grid-cols-2">
               <section className="overflow-x-auto rounded-3xl border border-line bg-surface p-5">
-                <h4 className="font-semibold">The SLIs, as good events over valid events</h4>
+                <h3 className="font-semibold">The SLIs, as good events over valid events</h3>
                 <ul className="mt-3 grid gap-3">
                   {slos.map((s) => (
                     <li key={s.id} className="text-sm leading-relaxed">
@@ -94,7 +94,7 @@ export function Monitoring() {
                 </ul>
               </section>
               <section className="rounded-3xl border border-line bg-surface p-5">
-                <h4 className="font-semibold">When the budget burns</h4>
+                <h3 className="font-semibold">When the budget burns</h3>
                 <ul className="mt-3 grid gap-2 text-sm">
                   {burnRules.map((r) => (
                     <li key={r.name} className="flex flex-wrap items-baseline justify-between gap-x-3 rounded-xl bg-surface-2 px-3 py-2">
@@ -105,7 +105,7 @@ export function Monitoring() {
                     </li>
                   ))}
                 </ul>
-                <h4 className="mt-5 font-semibold">Error budget policy</h4>
+                <h3 className="mt-5 font-semibold">Error budget policy</h3>
                 <ul className="mt-2 grid gap-1.5 text-sm leading-relaxed">
                   {budgetPolicy.map((p) => (
                     <li key={p.when}>

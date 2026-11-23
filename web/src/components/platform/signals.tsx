@@ -144,14 +144,14 @@ export function Signals() {
         <div id="signal-panel" role="tabpanel" aria-labelledby={`signal-tab-${idx}`} className="min-w-0 rounded-3xl border border-line bg-surface p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h4 className="text-lg font-semibold">{signal.question}</h4>
+              <h3 className="text-lg font-semibold">{signal.question}</h3>
               <p className="mt-0.5 text-sm text-ink-2">{sim.metric}</p>
             </div>
             <span
               role="status"
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium",
-                firing ? "bg-critical/15 text-critical" : pendingNow ? "bg-amber-500/15 text-ink" : "bg-good/12 text-good",
+                firing ? "bg-critical/10 text-critical" : pendingNow ? "bg-amber-500/15 text-ink" : "bg-good/12 text-good",
               )}
             >
               {firing ? (
