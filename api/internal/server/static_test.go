@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // The variants hold marker bytes rather than real compressed data, so each test can see
@@ -108,6 +109,51 @@ func TestStaticCompressedHeaders(t *testing.T) {
 		if v := rec.Header().Get("Vary"); v != want {
 			t.Errorf("%s Vary %q, want %q", path, v, want)
 		}
+	}
+}
+
+// A rollback serves older files than the ones a browser holds. Asked by date, the server would say
+// "not modified" and leave it on the release that was rolled back; asked by content, it cannot.
+func TestARollbackReachesABrowserThatHasTheNewerPage(t *testing.T) {
+	site := t.TempDir()
+	write := func(body string, at time.Time) {
+		for name, b := range map[string]string{"about.html": body, "about.html.br": body + "-br"} {
+			p := filepath.Join(site, name)
+			must(t, os.WriteFile(p, []byte(b), 0o644))
+			must(t, os.Chtimes(p, at, at))
+		}
+	}
+	noon := time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC)
+	h := staticHandler(site)
+	br := map[string]string{"Accept-Encoding": "br"}
+	write("bad release", noon)
+	bad := get(t, h, "/about", br)
+	held := map[string]string{"Accept-Encoding": "br", "If-None-Match": bad.Header().Get("ETag"), "If-Modified-Since": bad.Header().Get("Last-Modified")}
+	if bad.Header().Get("ETag") == "" || bad.Header().Get("Last-Modified") == "" {
+		t.Fatalf("no validators: %v", bad.Header())
+	}
+	same := get(t, h, "/about", held)
+	if same.Code != http.StatusNotModified || same.Body.Len() != 0 || same.Header().Get("Content-Encoding") != "" {
+		t.Errorf("unchanged page: %d with %d bytes, want an empty 304", same.Code, same.Body.Len())
+	}
+	write("the good one", noon.Add(-time.Hour)) // the release before, whose files are older
+	if back := get(t, h, "/about", held); back.Code != http.StatusOK || back.Body.String() != "the good one-br" {
+		t.Errorf("after a rollback: %d %q, want the older release's page", back.Code, back.Body.String())
+	}
+	// Each encoding is its own representation, with its own validator.
+	if plain := get(t, h, "/about", nil); plain.Header().Get("ETag") == get(t, h, "/about", br).Header().Get("ETag") {
+		t.Error("the plain and compressed pages share a validator")
+	}
+}
+
+func TestHashedAssetsNeedNoValidator(t *testing.T) {
+	h := newStaticSite(t)
+	if tag := get(t, h, "/_next/static/app.js", nil).Header().Get("ETag"); tag != "" {
+		t.Errorf("an immutable asset has ETag %s", tag)
+	}
+	home, again := get(t, h, "/", nil), get(t, h, "/", nil)
+	if home.Header().Get("ETag") == "" || home.Header().Get("ETag") != again.Header().Get("ETag") {
+		t.Errorf("home page validators %q and %q, want one that stays", home.Header().Get("ETag"), again.Header().Get("ETag"))
 	}
 }
 

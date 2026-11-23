@@ -5,11 +5,11 @@ package cost
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"math"
-	"sync"
 	"time"
+
+	"github.com/zhenxi0901/portfolio/api/internal/fresh"
 )
 
 // List prices in USD, read from Google's pricing pages on PricesAsOf.
@@ -54,7 +54,9 @@ const (
 )
 
 const (
-	cacheFor   = time.Hour // usage metrics arrive minutes late; an hour keeps API reads rare
+	// Usage metrics arrive minutes late, so an hour between reads loses nothing. See fresh.Reading.
+	due        = time.Hour
+	limit      = 2 * time.Hour
 	retryAfter = time.Minute
 	readFor    = 10 * time.Second // well inside the page's own 20 s wait
 	gib        = 1 << 30
@@ -272,93 +274,54 @@ type Source interface {
 }
 
 type Service struct {
-	src Source
-	log *slog.Logger
-	now func() time.Time
-
-	mu      sync.Mutex
-	last    Report
-	next    time.Time
-	reading chan struct{} // set while one request reads the API, closed when the read ends
+	src     Source
+	now     func() time.Time
+	reading *fresh.Reading[Report]
 }
 
 // New returns a service that reads from src; a nil src means there is nothing to measure here
 // (anywhere but Cloud Run), and the report carries only the price list.
 func New(src Source, log *slog.Logger) *Service {
-	return &Service{src: src, log: log, now: time.Now}
+	s := &Service{src: src, now: time.Now}
+	s.reading = &fresh.Reading[Report]{
+		Due: due, Limit: limit, Retry: retryAfter, For: readFor,
+		Read: func(ctx context.Context, now time.Time) (Report, error) {
+			start := MonthStart(now)
+			u, err := src.Usage(ctx, start, now)
+			if err != nil {
+				return Report{}, err
+			}
+			return Estimate(u, start, now), nil
+		},
+		// The receipt is "this month so far": once the month is over it is last month's, never to be
+		// shown as this one's.
+		Current: func(r Report, now time.Time) bool { return r.Start.Equal(MonthStart(now)) },
+		Now:     func() time.Time { return s.now() }, Log: log, Failed: "cost: could not read usage",
+	}
+	return s
 }
 
 func unavailable(reason string) Report {
 	return Report{Reason: reason, Lines: []Line{}, Prices: PriceList()}
 }
 
-// read asks the source for the month's usage. A panic in it becomes an error like any other, so the
-// read is marked finished and retried a minute later: left as it was, the next visitor would wait on
-// a read that never ends.
-func (s *Service) read(ctx context.Context, start, now time.Time) (u Usage, err error) {
-	defer func() {
-		if v := recover(); v != nil {
-			err = fmt.Errorf("reading usage panicked: %v", v)
-		}
-	}()
-	return s.src.Usage(ctx, start, now)
-}
-
-// Report is the month so far. One request at a time reads the API, and does it inside its own
-// request so Cloud Run gives it CPU (with request-based billing, work after a response is
-// throttled). Everyone else gets the last report meanwhile, and waits only when there is none yet.
+// Report is the month so far, as last read.
 func (s *Service) Report(ctx context.Context) Report {
 	if s.src == nil {
 		return unavailable("Measured on the live site only.")
 	}
-	s.mu.Lock()
-	now := s.now()
-	if now.Before(s.next) {
-		defer s.mu.Unlock()
-		return s.last
+	r, ok, failed := s.reading.Get(ctx)
+	switch {
+	case !ok && failed:
+		return unavailable("Usage is unavailable right now.")
+	case !ok:
+		return unavailable("Still reading this month's usage.")
 	}
-	if wait := s.reading; wait != nil {
-		if s.last.Available {
-			defer s.mu.Unlock()
-			return s.last
-		}
-		s.mu.Unlock()
-		select {
-		case <-wait:
-		case <-ctx.Done():
-		}
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		if !s.last.Available && s.last.Reason == "" {
-			return unavailable("Still reading this month's usage.")
-		}
-		return s.last
-	}
-	done := make(chan struct{})
-	s.reading = done
-	s.mu.Unlock()
+	r.Stale = failed
+	return r
+}
 
-	// A deadline of its own: the visitor who started the read may leave while others wait on it.
-	rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), readFor)
-	defer cancel()
-	start := MonthStart(now)
-	u, err := s.read(rctx, start, now)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	defer close(done)
-	s.reading = nil
-	if err != nil {
-		s.log.Warn("cost: could not read usage", "err", err)
-		s.next = now.Add(retryAfter)
-		if s.last.Available {
-			s.last.Stale = true
-			return s.last
-		}
-		s.last = unavailable("Usage is unavailable right now.")
-		return s.last
-	}
-	s.last = Estimate(u, start, now)
-	s.next = now.Add(cacheFor)
-	return s.last
+// Warm reads the month's usage again if that is due, for no longer than limit, and reports whether it did.
+func (s *Service) Warm(ctx context.Context, limit time.Duration) bool {
+	return s.src != nil && s.reading.Warm(ctx, limit)
 }

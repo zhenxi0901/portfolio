@@ -7,17 +7,21 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"sync"
 	"time"
+
+	"github.com/zhenxi0901/portfolio/api/internal/fresh"
 )
 
 const (
 	Target     = 0.999
 	WindowDays = 30
 	day        = 24 * time.Hour
-	cacheFor   = 5 * time.Minute
-	// After a failed fetch, wait this long before asking the Monitoring API again.
-	retryAfter = 30 * time.Second
+	// The measurements move once an hour (see Days), so reading them every half an hour is plenty.
+	// See fresh.Reading.
+	due        = 30 * time.Minute
+	limit      = time.Hour
+	retryAfter = time.Minute
+	readFor    = 10 * time.Second // well inside the page's own 20 s wait
 )
 
 // Day is one 24-hour bucket of uptime-check results, ending at End.
@@ -46,7 +50,7 @@ type Report struct {
 	Since           *time.Time `json:"since,omitempty"`
 	Days            []Day      `json:"days"`
 	Updated         time.Time  `json:"updated"`
-	// Set when the latest fetch failed and this is the last good report.
+	// Set when the latest read failed and this is the last good report.
 	Stale bool `json:"stale,omitempty"`
 	// The error-budget policy for releases, which the deploy pipeline enforces: "open" while budget
 	// is left, "frozen" once it is spent (only commits marked as reliability fixes ship), "unknown"
@@ -67,49 +71,48 @@ type Source interface {
 }
 
 type Service struct {
-	src Source
-	log *slog.Logger
-	now func() time.Time
-
-	mu   sync.Mutex
-	last Report
-	next time.Time // when to fetch again
+	src     Source
+	now     func() time.Time
+	reading *fresh.Reading[Report]
 }
 
 // New returns a service that reads from src; a nil src means there is nothing to measure here
 // (anywhere but Cloud Run).
 func New(src Source, log *slog.Logger) *Service {
-	return &Service{src: src, log: log, now: time.Now}
+	s := &Service{src: src, now: time.Now}
+	s.reading = &fresh.Reading[Report]{
+		Due: due, Limit: limit, Retry: retryAfter, For: readFor,
+		Read: func(ctx context.Context, now time.Time) (Report, error) {
+			days, first, err := src.Days(ctx, now)
+			if err != nil {
+				return Report{}, err
+			}
+			return Summarise(days, first, now), nil
+		},
+		Now: func() time.Time { return s.now() }, Log: log, Failed: "slo: could not read uptime checks",
+	}
+	return s
 }
 
+// Report is the last reading of the uptime checks.
 func (s *Service) Report(ctx context.Context) Report {
 	if s.src == nil {
 		return unavailable("Measured on the live site only.")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	now := s.now()
-	if now.Before(s.next) {
-		return s.last
+	r, ok, failed := s.reading.Get(ctx)
+	switch {
+	case !ok && failed:
+		return unavailable("Measurements are unavailable right now.")
+	case !ok:
+		return unavailable("Still reading the measurements.")
 	}
-	// The fetch is shared by every caller that waits on it, so it must not die with the first
-	// caller's connection; it gets its own deadline instead.
-	fctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
-	defer cancel()
-	days, first, err := s.src.Days(fctx, now)
-	if err != nil {
-		s.log.Warn("slo: could not read uptime checks", "err", err)
-		s.next = now.Add(retryAfter)
-		if s.last.Available {
-			s.last.Stale = true
-			return s.last
-		}
-		s.last = unavailable("Measurements are unavailable right now.")
-		return s.last
-	}
-	s.last = Summarise(days, first, now)
-	s.next = now.Add(cacheFor)
-	return s.last
+	r.Stale = failed && r.Available
+	return r
+}
+
+// Warm reads the checks again if that is due, for no longer than limit, and reports whether it did.
+func (s *Service) Warm(ctx context.Context, limit time.Duration) bool {
+	return s.src != nil && s.reading.Warm(ctx, limit)
 }
 
 // ShieldsBadge is the JSON a shields.io endpoint badge reads (https://shields.io/badges/endpoint-badge).

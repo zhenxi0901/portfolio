@@ -2,7 +2,7 @@
 // GitHub, that is pull requests in public repositories (merged, or open and in review) and releases
 // of their own projects. The build bakes a snapshot into the image (/activity.json, written by
 // web/scripts/activity.mjs, which keeps the same rules); on Cloud Run the server refreshes it from
-// GitHub at most once an hour and keeps the last good list whenever GitHub is slow or refuses.
+// GitHub about once an hour and keeps the last good list whenever GitHub is slow or refuses.
 //
 // GitHub is read without a token, so only public data can ever come back, whatever is searched for.
 // And only from repositories the config names: the list goes on the home page without anyone reading
@@ -21,8 +21,9 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/zhenxi0901/portfolio/api/internal/fresh"
 )
 
 // Item is one entry. Kind is "merged" (a pull request merged), "review" (one open and not a draft)
@@ -48,10 +49,12 @@ type Feed struct {
 const (
 	// Keep is how many entries a feed holds.
 	Keep = 8
-	// Between reads of GitHub, and after a failed one.
-	every = time.Hour
+	// How often GitHub is read, how old a list visitors are given, and the wait after a failed read.
+	// See fresh.Reading.
+	due   = time.Hour
+	limit = 3 * time.Hour
 	retry = 10 * time.Minute
-	// One read's deadline: the visitor whose request reads GitHub waits for it.
+	// One read's deadline.
 	readFor = 8 * time.Second
 	// The most of a response body this reads; GitHub's pages here are a few tens of kilobytes.
 	maxBody = 2 << 20
@@ -80,29 +83,44 @@ func (c Config) Allowed(repo string) bool {
 
 // Service serves the feed.
 type Service struct {
-	cfg    Config
-	base   string // the GitHub API root; tests point it at their own server
-	client *http.Client
-	live   bool
-	log    *slog.Logger
-	now    func() time.Time
-
-	mu      sync.Mutex
-	last    Feed
-	next    time.Time
-	reading bool
+	cfg      Config
+	base     string // the GitHub API root; tests point it at their own server
+	client   *http.Client
+	live     bool
+	now      func() time.Time
+	snapshot Feed
+	reading  *fresh.Reading[Feed]
 }
 
-// New serves snapshot and, when live is set, refreshes it from GitHub at most once an hour.
+// New serves snapshot and, when live is set, refreshes it from GitHub.
 func New(cfg Config, snapshot Feed, live bool, log *slog.Logger) *Service {
 	if snapshot.Items == nil {
 		snapshot.Items = []Item{}
 	}
 	snapshot.Source = "snapshot"
-	return &Service{
+	s := &Service{
 		cfg: cfg, base: "https://api.github.com", client: &http.Client{Timeout: readFor},
-		live: live, log: log, now: time.Now, last: snapshot,
+		live: live, now: time.Now, snapshot: snapshot,
 	}
+	s.reading = &fresh.Reading[Feed]{
+		Due: due, Limit: limit, Retry: retry, For: readFor,
+		Read: func(ctx context.Context, now time.Time) (Feed, error) {
+			items, err := s.read(ctx)
+			if err != nil {
+				return Feed{}, err
+			}
+			return Feed{Items: items, Updated: now.UTC(), Source: "live"}, nil
+		},
+		Now: func() time.Time { return s.now() }, Log: log, Failed: "activity: reading GitHub failed; serving the last list",
+	}
+	// There is always a list to give, so nobody waits on someone else's read of GitHub. One of no known
+	// age is old enough to be read again at once.
+	at := snapshot.Updated
+	if at.IsZero() {
+		at = time.Unix(0, 0)
+	}
+	s.reading.Seed(snapshot, at)
+	return s
 }
 
 // LoadSnapshot reads the feed the build baked in. A missing file is os.ErrNotExist (the feed starts
@@ -119,46 +137,23 @@ func LoadSnapshot(path string) (Feed, error) {
 	return f, nil
 }
 
-// Feed is the list. One request at a time reads GitHub, inside its own request (with request-based
-// billing, Cloud Run throttles the CPU once a response has gone); everyone else gets the last list
-// meanwhile. There is always a list to give, the snapshot, so nobody else waits on a read.
+// Feed is the list: the last one read from GitHub, or the build's.
 func (s *Service) Feed(ctx context.Context) Feed {
-	s.mu.Lock()
-	if !s.live || s.reading || s.now().Before(s.next) {
-		defer s.mu.Unlock()
-		return s.last
+	if !s.live {
+		return s.snapshot
 	}
-	s.reading = true
-	s.mu.Unlock()
-
-	// A deadline of its own: the visitor who started the read may leave before it ends.
-	rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), readFor)
-	defer cancel()
-	items, err := s.read(rctx)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.reading = false
-	now := s.now()
-	if err != nil {
-		s.next = now.Add(retry)
-		s.log.Warn("activity: reading GitHub failed; serving the last list", "err", err, "source", s.last.Source)
-		return s.last
-	}
-	s.next = now.Add(every)
-	s.last = Feed{Items: items, Updated: now.UTC(), Source: "live"}
-	return s.last
+	f, _, _ := s.reading.Get(ctx)
+	return f
 }
 
-// read asks GitHub for the pull requests and releases. A panic in it becomes an error like any
-// other, so the read is marked finished: left as it was, no later visitor would ever read again.
-func (s *Service) read(ctx context.Context) (items []Item, err error) {
-	defer func() {
-		if v := recover(); v != nil {
-			err = fmt.Errorf("reading GitHub panicked: %v", v)
-		}
-	}()
-	items, err = s.pulls(ctx)
+// Warm reads GitHub again if that is due, for no longer than limit, and reports whether it did.
+func (s *Service) Warm(ctx context.Context, limit time.Duration) bool {
+	return s.live && s.reading.Warm(ctx, limit)
+}
+
+// read asks GitHub for the pull requests and releases.
+func (s *Service) read(ctx context.Context) ([]Item, error) {
+	items, err := s.pulls(ctx)
 	if err != nil {
 		return nil, err
 	}

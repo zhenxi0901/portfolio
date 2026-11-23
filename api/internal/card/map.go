@@ -89,6 +89,9 @@ func Map(d Data, l Live, darkTheme bool) []byte {
 	shipped := d.Commit
 	if d.Delivery != nil && d.Delivery.Deploys > 0 {
 		shipped = fmt.Sprintf("%s · %d deploys", d.Commit, d.Delivery.Deploys)
+		if d.Delivery.Deploys == 1 {
+			shipped = d.Commit + " · 1 deploy"
+		}
 	}
 	nodes := map[string]node{
 		"you": {title: "You", sub: "any browser", accent: true},
@@ -111,7 +114,7 @@ func Map(d Data, l Live, darkTheme bool) []byte {
 		"Uptime checks from three regions call it every minute and Cloud Monitoring records them: %s. GitHub Actions deployed commit %s",
 		d.Region, instance, latency, watched, d.Commit)
 	if d.Delivery != nil && d.Delivery.Deploys > 0 {
-		desc += fmt.Sprintf("; %d deploys in %d days", d.Delivery.Deploys, d.Delivery.WindowDays)
+		desc += "; " + d.Delivery.InWindow()
 	}
 	desc += "."
 

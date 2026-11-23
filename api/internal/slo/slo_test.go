@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -93,37 +94,50 @@ func (f *fakeSource) Days(_ context.Context, end time.Time) ([]Day, time.Time, e
 	return []Day{{End: end, Checks: 10, Passed: 10}}, end.Add(-time.Hour), nil
 }
 
-func TestReportCachesAndKeepsLastGood(t *testing.T) {
+func TestReportKeepsTheLastGoodReading(t *testing.T) {
 	src := &fakeSource{}
 	s := New(src, quiet)
 	clock := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
 	s.now = func() time.Time { return clock }
 
-	if r := s.Report(context.Background()); !r.Available || r.Availability != 1 {
+	if r := s.Report(context.Background()); !r.Available || r.Availability != 1 || r.Stale {
 		t.Fatalf("first report: %+v", r)
 	}
-	clock = clock.Add(time.Minute)
-	s.Report(context.Background())
-	if src.calls != 1 {
-		t.Fatalf("fetched %d times inside the cache window, want 1", src.calls)
+	// Due again, but that is the uptime checks' work: a visitor is given the last reading at once.
+	clock = clock.Add(due)
+	if s.Report(context.Background()); src.calls != 1 {
+		t.Fatalf("a visitor's request read again after %v: %d reads", due, src.calls)
+	}
+	if !s.Warm(context.Background(), time.Second) || src.calls != 2 {
+		t.Fatalf("a check did not read what was due: %d reads", src.calls)
 	}
 
-	// After the cache expires a failed fetch serves the last good report, marked stale.
-	clock = clock.Add(cacheFor)
+	// When a read fails, the last good report is served, marked stale, and the API is left alone a while.
+	clock = clock.Add(due)
 	src.err = errors.New("monitoring down")
-	if r := s.Report(context.Background()); !r.Available || !r.Stale {
-		t.Fatalf("want last good report marked stale, got %+v", r)
+	s.Warm(context.Background(), time.Second)
+	if r := s.Report(context.Background()); !r.Available || !r.Stale || !r.Updated.Equal(clock.Add(-due)) {
+		t.Fatalf("want the last good report marked stale, got %+v", r)
 	}
-	// And it does not hammer the API while failing.
-	s.Report(context.Background())
-	if src.calls != 2 {
-		t.Fatalf("fetched %d times, want 2", src.calls)
+	if s.Warm(context.Background(), time.Second); src.calls != 3 {
+		t.Fatalf("%d reads, want 3", src.calls)
 	}
 }
 
 func TestReportWithoutSource(t *testing.T) {
-	if r := New(nil, quiet).Report(context.Background()); r.Available || r.Target != Target {
+	s := New(nil, quiet)
+	if r := s.Report(context.Background()); r.Available || r.Target != Target {
 		t.Errorf("no source: %+v", r)
+	}
+	if s.Warm(context.Background(), time.Second) {
+		t.Error("read without a source")
+	}
+}
+
+func TestReportWhenTheFirstReadFails(t *testing.T) {
+	r := New(&fakeSource{err: errors.New("no")}, quiet).Report(context.Background())
+	if r.Available || r.Stale || r.Reason == "" || r.Days == nil {
+		t.Errorf("first read failed: %+v", r)
 	}
 }
 
@@ -144,6 +158,7 @@ func TestMonitoringReadsCounts(t *testing.T) {
 		}
 	}))
 	defer meta.Close()
+	var mu sync.Mutex // the two reads are made at once
 	var aligners, ends []string
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer tok" || r.URL.Path != "/projects/demo-project/timeSeries" {
@@ -155,8 +170,10 @@ func TestMonitoringReadsCounts(t *testing.T) {
 			http.Error(w, "bad query", http.StatusBadRequest)
 			return
 		}
+		mu.Lock()
 		aligners = append(aligners, q.Get("aggregation.perSeriesAligner"))
 		ends = append(ends, q.Get("interval.endTime"))
+		mu.Unlock()
 		n := map[string]string{"ALIGN_COUNT": "4320", "ALIGN_COUNT_TRUE": "4318"}[q.Get("aggregation.perSeriesAligner")]
 		// Hourly points: one this morning, one yesterday morning.
 		_, _ = io.WriteString(w, `{"timeSeries":[{"points":[

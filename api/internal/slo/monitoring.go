@@ -3,9 +3,11 @@ package slo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/zhenxi0901/portfolio/api/internal/gcp"
@@ -33,8 +35,8 @@ const lateResults = 5 * time.Minute
 // the first hour with a check in it. Counts are read hourly so that start is accurate to the hour,
 // then summed into days.
 //
-// They end at the last whole hour before now, a few minutes back: checks and passes are two reads,
-// one after the other, and an hour still filling up would gain results between them.
+// They end at the last whole hour before now, a few minutes back: checks and passes are two reads, and
+// an hour still filling up would gain results between them.
 func (m *Monitoring) Days(ctx context.Context, now time.Time) ([]Day, time.Time, error) {
 	project, token, err := m.meta.Credentials(ctx)
 	if err != nil {
@@ -42,12 +44,14 @@ func (m *Monitoring) Days(ctx context.Context, now time.Time) ([]Day, time.Time,
 	}
 	end := now.Add(-lateResults).Truncate(time.Hour)
 	start := end.Add(-WindowDays * day)
-	checks, err := m.counts(ctx, project, token, start, end, "ALIGN_COUNT")
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-	passed, err := m.counts(ctx, project, token, start, end, "ALIGN_COUNT_TRUE")
-	if err != nil {
+	// Both at once: each takes the better part of a second, and the request they are made in is billed for it.
+	var checks, passed map[time.Time]int64
+	var errChecks, errPassed error
+	var wg sync.WaitGroup
+	wg.Go(func() { checks, errChecks = m.counts(ctx, project, token, start, end, "ALIGN_COUNT") })
+	wg.Go(func() { passed, errPassed = m.counts(ctx, project, token, start, end, "ALIGN_COUNT_TRUE") })
+	wg.Wait()
+	if err := errors.Join(errChecks, errPassed); err != nil {
 		return nil, time.Time{}, err
 	}
 	var first time.Time

@@ -164,29 +164,30 @@ func (s *Server) Handler() http.Handler {
 
 	// Cloud Run's front end reserves some paths ending in "z" (/healthz, /readyz), so they work for
 	// container probes but never reach the app from outside. External checks use /api/health.
-	get("/api/health", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	get("/api/health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		if s.ask.FactCount() == 0 {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not ready"})
 			return
 		}
+		s.warm(r.Context())
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}))
 	mux.Handle("GET /metrics", promhttp.HandlerFor(s.reg, promhttp.HandlerOpts{}))
 	get("/api/status", http.HandlerFunc(s.handleStatus))
-	// This site's availability as Cloud Monitoring's uptime checks saw it. Cached for 5 minutes.
+	// This site's availability as Cloud Monitoring's uptime checks saw it, read every half an hour (warm).
 	get("/api/slo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		sendJSON(w, r, http.StatusOK, s.slo.Report(r.Context()))
 	}))
 	// What the site has cost this month: its usage from Cloud Monitoring at list prices, and the
-	// price list for the page's what-if. Usage is read at most once an hour.
+	// price list for the page's what-if. Usage is read about once an hour (warm).
 	get("/api/cost", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		sendJSON(w, r, http.StatusOK, s.cost.Report(r.Context()))
 	}))
 	// Recent public work on GitHub for the home page's "Recently" list: pull requests merged or in
-	// review, and releases. GitHub is read at most hourly, on Cloud Run only.
+	// review, and releases. GitHub is read about once an hour (warm), on Cloud Run only.
 	get("/api/activity", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		sendJSON(w, r, http.StatusOK, s.activity.Feed(r.Context()))
@@ -250,6 +251,16 @@ func (s *Server) Handler() http.Handler {
 	h = requestID(h)
 	h = recoverer(s.log, h)
 	return h
+}
+
+// warmFor is the longest a health check spends reading. The uptime checks give it 10 seconds.
+const warmFor = 5 * time.Second
+
+// warm reads one thing that has come due (availability, cost, recent work), so that the uptime checks,
+// three a minute, wait on Google and GitHub and visitors do not. One a check, and its result never
+// changes the check's answer: a reading that fails says so on the pages that show it.
+func (s *Server) warm(ctx context.Context) {
+	_ = s.slo.Warm(ctx, warmFor) || s.cost.Warm(ctx, warmFor) || s.activity.Warm(ctx, warmFor)
 }
 
 type statusResponse struct {

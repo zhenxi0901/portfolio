@@ -66,7 +66,7 @@ func (s *Server) mcpServer() *mcp.Server {
 		{
 			Name:        "get_delivery",
 			Title:       "How this site ships",
-			Description: "DORA metrics for this site over the last 30 days, computed by its pipeline from its own deploy history: deploys, median lead time, change failure rate, and the last rollback drill.",
+			Description: "DORA metrics for this site over the 30 days up to its last build, computed by its pipeline from its own deploy history: deploys, median lead time, change failure rate, and the last rollback drill.",
 			InputSchema: noArgs,
 			Call:        s.toolDelivery,
 		},
@@ -218,13 +218,12 @@ func sloSummary(rep slo.Report) (string, map[string]any) {
 		"error_budget_remaining": rep.BudgetRemaining, "downtime_minutes": rep.DowntimeMinutes, "releases": rep.Releases,
 		"stale": rep.Stale, "updated": rep.Updated.UTC().Format(time.RFC3339),
 	}
-	if rep.Since != nil {
-		sloOut["measured_since"] = rep.Since.Format(time.RFC3339)
-	}
-	// The window is 30 days; until it has filled, say when measuring began.
+	// The window is 30 days; until it has filled, say when measuring began. Once it has, its first hour
+	// is just 30 days ago, not when measuring began.
 	measured := ""
 	if since, ok := strings.CutPrefix(rep.UptimeLabel(), "uptime since "); ok {
 		measured = ", measured since " + since
+		sloOut["measured_since"] = rep.Since.Format(time.RFC3339)
 	}
 	fmt.Fprintf(&b, " Availability %s against a %.1f%% objective over %d days%s; %.1f%% of the error budget is left, and releases are %s.",
 		slo.Uptime(rep.Availability), slo.Target*100, slo.WindowDays, measured, slo.FloorPct(max(rep.BudgetRemaining, 0), 1), rep.Releases)
@@ -242,7 +241,10 @@ func (s *Server) toolDelivery(_ context.Context, base string, _ json.RawMessage)
 	}
 	out := map[string]any{"window_days": d.WindowDays, "deploys": d.Deploys, "changelog": base + "/changelog"}
 	var b strings.Builder
-	fmt.Fprintf(&b, "%d deploys to production in the last %d days.", d.Deploys, d.WindowDays)
+	fmt.Fprintf(&b, "Production: %s.", d.InWindow())
+	if !d.Generated.IsZero() {
+		out["window_ends"] = d.Generated.UTC().Format(time.RFC3339)
+	}
 	if m := d.LeadTimeMinutes.Median; m != nil {
 		out["lead_time_minutes_median"] = *m
 		fmt.Fprintf(&b, " Median lead time from commit to live: %.1f minutes.", *m)

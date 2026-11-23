@@ -170,8 +170,6 @@ func recoverer(log *slog.Logger, next http.Handler) http.Handler {
 	})
 }
 
-// clientIP returns the caller's address. Behind Cloud Run's front end the real client is the
-// last X-Forwarded-For entry (anything to its left can be supplied by the client).
 // methodLabel keeps the method label bounded: Go's server accepts any token as a method, and each
 // new one would otherwise be a metric series that is never freed.
 func methodLabel(m string) string {
@@ -192,6 +190,8 @@ func rateKey(ip string) string {
 	return a.Mask(net.CIDRMask(64, 128)).String() + "/64"
 }
 
+// clientIP returns the caller's address. Behind Cloud Run's front end the real client is the
+// last X-Forwarded-For entry (anything to its left can be supplied by the client).
 func clientIP(r *http.Request, trustProxy bool) string {
 	if trustProxy {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {

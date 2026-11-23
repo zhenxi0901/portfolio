@@ -182,19 +182,46 @@ func TestServiceCachesAndKeepsTheLastGoodReport(t *testing.T) {
 	if !first.Available || first.Usage != november {
 		t.Fatalf("first report: %+v", first)
 	}
-	now = now.Add(30 * time.Minute)
+	// Due again, but that is the uptime checks' work: a visitor is given the last reading at once.
+	now = now.Add(due)
 	if s.Report(context.Background()); src.calls != 1 {
-		t.Errorf("read the API again within the hour: %d calls", src.calls)
+		t.Errorf("a visitor's request read again after %v: %d calls", due, src.calls)
+	}
+	if !s.Warm(context.Background(), time.Second) || src.calls != 2 {
+		t.Errorf("a check did not read what was due: %d calls", src.calls)
 	}
 	src.err = errors.New("monitoring is down")
-	now = now.Add(time.Hour)
+	now = now.Add(due)
+	s.Warm(context.Background(), time.Second)
 	stale := s.Report(context.Background())
-	if src.calls != 2 || !stale.Available || !stale.Stale || stale.Usage != november {
+	if src.calls != 3 || !stale.Available || !stale.Stale || stale.Usage != november {
 		t.Errorf("after a failed read: calls %d, report %+v", src.calls, stale)
 	}
 	// A failed read is retried a minute later, not on every request.
-	if s.Report(context.Background()); src.calls != 2 {
+	if s.Warm(context.Background(), time.Second); src.calls != 3 {
 		t.Errorf("retried at once: %d calls", src.calls)
+	}
+}
+
+// At midnight UTC on the 1st, the last reading is last month's bill. It is never shown as this month's:
+// the next request reads, and while that fails there is no receipt rather than the wrong one.
+func TestServiceNeverShowsLastMonthsBill(t *testing.T) {
+	src := &fakeSource{}
+	s := New(src, quiet)
+	now := time.Date(2026, 11, 30, 23, 59, 0, 0, time.UTC)
+	s.now = func() time.Time { return now }
+	if r := s.Report(context.Background()); !r.Available || !r.Start.Equal(nov1) {
+		t.Fatalf("on 30 November: %+v", r)
+	}
+	now = now.Add(2 * time.Minute)
+	src.err = errors.New("monitoring is down")
+	if r := s.Report(context.Background()); r.Available || r.Reason == "" {
+		t.Errorf("on 1 December with the read failing: %+v", r)
+	}
+	src.err = nil
+	now = now.Add(retryAfter)
+	if r := s.Report(context.Background()); !r.Available || r.Start.Month() != time.December || r.Stale {
+		t.Errorf("on 1 December: %+v", r)
 	}
 }
 
@@ -283,8 +310,8 @@ func TestServiceNeverQueuesVisitorsBehindARead(t *testing.T) {
 	src := newSlowSource()
 	s := New(src, quiet)
 	s.now = func() time.Time { return nov12 }
-	old := Estimate(november, nov1, nov12.Add(-time.Hour))
-	s.last, s.next = old, nov12 // an hour old, so the next visitor reads the API again
+	old := Estimate(november, nov1, nov12.Add(-limit))
+	s.reading.Seed(old, nov12.Add(-limit)) // old enough that the next visitor reads the API again
 
 	reading := make(chan Report, 1)
 	go func() { reading <- s.Report(context.Background()) }()

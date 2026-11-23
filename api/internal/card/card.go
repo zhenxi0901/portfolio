@@ -19,8 +19,10 @@ import (
 
 // Delivery is the part of /delivery.json (web/scripts/delivery-stats.mjs) the card shows.
 type Delivery struct {
-	WindowDays      int `json:"windowDays"`
-	Deploys         int `json:"deploys"`
+	// When the pipeline counted these, which is when it built this release.
+	Generated       time.Time `json:"generated"`
+	WindowDays      int       `json:"windowDays"`
+	Deploys         int       `json:"deploys"`
 	LeadTimeMinutes struct {
 		Median *float64 `json:"median"`
 	} `json:"leadTimeMinutes"`
@@ -41,6 +43,22 @@ type Head struct {
 	SHA       string    `json:"sha"`
 	Title     string    `json:"title"`
 	Committed time.Time `json:"committed"`
+}
+
+// The window's days are Singapore's, as everywhere on the site.
+var singapore = time.FixedZone("SGT", 8*60*60)
+
+// InWindow is the deploys and the days they were counted over, "45 deploys in the 30 days to 23 Nov":
+// the numbers are the release's own, so a count without its end date would go stale as "30 days".
+func (d *Delivery) InWindow() string {
+	n := fmt.Sprintf("%d deploys", d.Deploys)
+	if d.Deploys == 1 {
+		n = "1 deploy"
+	}
+	if d.Generated.IsZero() {
+		return fmt.Sprintf("%s in %d days", n, d.WindowDays)
+	}
+	return fmt.Sprintf("%s in the %d days to %s", n, d.WindowDays, d.Generated.In(singapore).Format("2 Jan"))
 }
 
 // LoadDelivery reads the delivery numbers from the static export.
@@ -152,6 +170,9 @@ func SVG(d Data, darkTheme bool) []byte {
 		if dl.WindowDays > 0 {
 			ms[2].label = fmt.Sprintf("deploys, %d days", dl.WindowDays)
 		}
+		if !dl.Generated.IsZero() {
+			ms[2].label = fmt.Sprintf("deploys, %d d to %s", dl.WindowDays, dl.Generated.In(singapore).Format("2 Jan"))
+		}
 		if m := dl.LeadTimeMinutes.Median; m != nil {
 			ms[3].value = minutes(*m)
 		}
@@ -220,7 +241,7 @@ func summary(d Data) string {
 		s += fmt.Sprintf(" %s%s: %s, error budget left %.1f%%.", strings.ToUpper(label[:1]), label[1:], slo.Uptime(d.Availability), slo.FloorPct(max(d.BudgetRemaining, 0), 1))
 	}
 	if d.Delivery != nil {
-		s += fmt.Sprintf(" %d deploys in %d days.", d.Delivery.Deploys, d.Delivery.WindowDays)
+		s += " " + d.Delivery.InWindow() + "."
 	}
 	return s
 }
@@ -322,7 +343,7 @@ func Terminal(d Data, base string) []byte {
 		row("uptime", reason)
 	}
 	if dl := d.Delivery; dl != nil {
-		line := fmt.Sprintf("%d deploys in %d days", dl.Deploys, dl.WindowDays)
+		line := dl.InWindow()
 		if m := dl.LeadTimeMinutes.Median; m != nil {
 			line += ", lead time " + minutes(*m)
 		}

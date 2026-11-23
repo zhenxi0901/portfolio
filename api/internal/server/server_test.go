@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -19,6 +21,7 @@ import (
 	"time"
 
 	"github.com/zhenxi0901/portfolio/api/internal/ask"
+	"github.com/zhenxi0901/portfolio/api/internal/cost"
 	"github.com/zhenxi0901/portfolio/api/internal/slo"
 )
 
@@ -348,6 +351,54 @@ func TestProbesDoNotCountAsTraffic(t *testing.T) {
 	must(t, json.NewDecoder(resp.Body).Decode(&st))
 	if st.RequestsTotal != 0 {
 		t.Errorf("requests_total %d after only probes, want 0", st.RequestsTotal)
+	}
+}
+
+type fakeUptime struct {
+	calls int
+	err   error
+}
+
+func (f *fakeUptime) Days(_ context.Context, now time.Time) ([]slo.Day, time.Time, error) {
+	f.calls++
+	return []slo.Day{{End: now, Checks: 10, Passed: 10}}, now.Add(-time.Hour), f.err
+}
+
+type fakeUsage struct{ calls int }
+
+func (f *fakeUsage) Usage(context.Context, time.Time, time.Time) (cost.Usage, error) {
+	f.calls++
+	return cost.Usage{Requests: 1000, BillableSeconds: 100}, nil
+}
+
+// The uptime checks do the slow reading, one thing a check, so that visitors' requests do not.
+func TestHealthChecksKeepTheReadingsWarm(t *testing.T) {
+	quiet := slog.New(slog.DiscardHandler)
+	s, err := New(testConfig(t), quiet)
+	must(t, err)
+	up, use := &fakeUptime{}, &fakeUsage{}
+	s.slo, s.cost = slo.New(up, quiet), cost.New(use, quiet)
+	h := s.Handler()
+	for i, want := range [][2]int{{1, 0}, {1, 1}, {1, 1}} {
+		if rec := get(t, h, "/api/health", nil); rec.Code != http.StatusOK || up.calls != want[0] || use.calls != want[1] {
+			t.Errorf("check %d: status %d, %d reads of uptime and %d of usage, want %v", i+1, rec.Code, up.calls, use.calls, want)
+		}
+	}
+	for _, p := range []string{"/api/slo", "/api/cost", "/api/badge/uptime", "/api/card.svg"} {
+		if rec := get(t, h, p, nil); rec.Code != http.StatusOK || up.calls != 1 || use.calls != 1 {
+			t.Errorf("%s: status %d; it read again: %d of uptime, %d of usage", p, rec.Code, up.calls, use.calls)
+		}
+	}
+}
+
+// Cloud Monitoring being down is not this server being down.
+func TestHealthDoesNotDependOnTheReadings(t *testing.T) {
+	quiet := slog.New(slog.DiscardHandler)
+	s, err := New(testConfig(t), quiet)
+	must(t, err)
+	s.slo = slo.New(&fakeUptime{err: errors.New("monitoring is down")}, quiet)
+	if rec := get(t, s.Handler(), "/api/health", nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"ok"`) {
+		t.Errorf("health answered %d %s because a reading failed", rec.Code, rec.Body.String())
 	}
 }
 
@@ -769,6 +820,15 @@ func TestSLOSummary(t *testing.T) {
 	if !strings.Contains(text, "Availability 99.99% against") || strings.Contains(text, "last good") || data["updated"] != "2026-10-19T06:00:00Z" {
 		t.Errorf("fresh: %s %v", text, data)
 	}
+	if data["measured_since"] != "2026-10-17T06:00:00Z" || !strings.Contains(text, "measured since 17 Oct") {
+		t.Errorf("two days in: %s %v", text, data)
+	}
+	// Once 30 days are measured, the window's first hour is no longer when measuring began.
+	full, month := fresh, read.Add(-30*24*time.Hour)
+	full.Since = &month
+	if text, data := sloSummary(full); data["measured_since"] != nil || strings.Contains(text, "measured since") {
+		t.Errorf("a full window: %s %v", text, data)
+	}
 	stale := fresh
 	stale.Stale = true
 	if text, data := sloSummary(stale); !strings.Contains(text, "last good numbers, read 19 Oct 06:00 UTC") || data["stale"] != true {
@@ -804,13 +864,17 @@ func TestSearchFactsLimit(t *testing.T) {
 func TestDeliveryTool(t *testing.T) {
 	for head, wantBuilt := range map[string]bool{"abcdef1": true, "0123456": false} {
 		cfg := testConfig(t)
-		raw := `{"windowDays":30,"deploys":8,"leadTimeMinutes":{"median":4.2,"commits":9},"changeFailureRate":0.125,` +
+		raw := `{"generated":"2026-11-16T08:30:00Z","windowDays":30,"deploys":8,"leadTimeMinutes":{"median":4.2,"commits":9},"changeFailureRate":0.125,` +
 			`"safeguards":{"lastDrill":null},"head":{"sha":"` + head + `","title":"t","committed":"2026-10-19T10:00:00Z"}}`
 		must(t, os.WriteFile(filepath.Join(cfg.StaticDir, "delivery.json"), []byte(raw), 0o644))
 		ts := startServer(t, cfg)
 		text, data, _ := callTool(t, ts.URL, "get_delivery", `{}`)
 		if !strings.Contains(text, "Change failure rate: 13%.") {
 			t.Errorf("rounding: %s", text)
+		}
+		// The count says which days it covers: the build's, however long ago that was.
+		if !strings.Contains(text, "8 deploys in the 30 days to 16 Nov.") || data["window_ends"] != "2026-11-16T08:30:00Z" {
+			t.Errorf("window: %s, %v", text, data["window_ends"])
 		}
 		_, built := data["built_from"]
 		if built != wantBuilt || strings.Contains(text, "when it built this image") != wantBuilt {

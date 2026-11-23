@@ -130,8 +130,9 @@ func TestServesTheSnapshotWhenNotLive(t *testing.T) {
 	}
 }
 
-// GitHub is read at most once an hour; after a failure, ten minutes later, and meanwhile the last
-// good list (the snapshot until the first read succeeds) is what everyone gets.
+// GitHub is read once an hour by the uptime checks (Warm), or by a visitor once the list is three hours
+// old; after a failure, ten minutes later. Meanwhile the last good list (the snapshot until the first
+// read succeeds) is what everyone gets.
 func TestReadsHourlyAndKeepsTheLastListOnFailure(t *testing.T) {
 	var fail atomic.Bool
 	fail.Store(true)
@@ -156,26 +157,53 @@ func TestReadsHourlyAndKeepsTheLastListOnFailure(t *testing.T) {
 		t.Fatalf("after the retry interval: %q with %d items, want live with 4", f.Source, len(f.Items))
 	}
 	afterSuccess := calls.Load()
+	readAt := clock
+	warm := func() bool { return s.Warm(context.Background(), 5*time.Second) }
 	clock = clock.Add(59 * time.Minute)
-	s.Feed(context.Background())
-	if calls.Load() != afterSuccess {
+	if warm() || calls.Load() != afterSuccess {
 		t.Error("read GitHub again within the hour")
 	}
 
-	fail.Store(true)
 	clock = clock.Add(2 * time.Minute)
-	if f := s.Feed(context.Background()); f.Source != "live" || len(f.Items) != 4 {
-		t.Errorf("GitHub down after a good read: %q with %d items, want the last live list", f.Source, len(f.Items))
+	if s.Feed(context.Background()); calls.Load() != afterSuccess {
+		t.Error("a visitor waited on GitHub for a list an hour old")
 	}
-	if calls.Load() == afterSuccess {
+	fail.Store(true)
+	if !warm() || calls.Load() == afterSuccess {
 		t.Error("did not read GitHub again once the hour was up")
+	}
+	if f := s.Feed(context.Background()); f.Source != "live" || len(f.Items) != 4 || !f.Updated.Equal(readAt) {
+		t.Errorf("GitHub down after a good read: %q with %d items, want the last live list", f.Source, len(f.Items))
 	}
 
 	// Ten minutes after that failure GitHub answers again, and the list is the new read's.
 	fail.Store(false)
 	clock = clock.Add(11 * time.Minute)
+	if f := s.Feed(context.Background()); !warm() || f.Updated.Equal(clock) {
+		t.Error("the check did not read after the retry interval, or a visitor did")
+	}
 	if f := s.Feed(context.Background()); f.Source != "live" || !f.Updated.Equal(clock) {
 		t.Errorf("a good read after the hour: %q updated %v, want live at %v", f.Source, f.Updated, clock)
+	}
+
+	// With no checks for three hours, the next visitor's request reads.
+	clock = clock.Add(limit)
+	if f := s.Feed(context.Background()); !f.Updated.Equal(clock) {
+		t.Errorf("a list three hours old was served again: updated %v, want %v", f.Updated, clock)
+	}
+}
+
+// A list the build baked in minutes ago is as good as one just read; the server has no need to ask.
+func TestAFreshSnapshotIsServedAsItIs(t *testing.T) {
+	ts, calls := fakeGitHub(t, nil)
+	clock := at("2026-11-14T03:00:00Z")
+	snap := Feed{Items: []Item{{Kind: "merged", Title: "x", URL: "https://github.com/a/b/pull/1"}}, Updated: clock.Add(-10 * time.Minute)}
+	s := newService(ts.URL, snap, true, &clock)
+	if f := s.Feed(context.Background()); f.Source != "snapshot" || calls.Load() != 0 || s.Warm(context.Background(), time.Second) {
+		t.Errorf("a ten-minute-old snapshot: source %q, %d calls to GitHub", f.Source, calls.Load())
+	}
+	if newService(ts.URL, snap, false, &clock).Warm(context.Background(), time.Second) {
+		t.Error("read GitHub although the server is not live")
 	}
 }
 

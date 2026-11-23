@@ -1,12 +1,16 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"io/fs"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 // encodings are the precompressed variants the web build writes next to each text file
@@ -32,6 +36,7 @@ var contentTypes = map[string]string{
 func staticHandler(dir string) http.Handler {
 	root := os.DirFS(dir)
 	files := http.FileServerFS(root)
+	tags := &etags{root: root, known: map[string]etag{}}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
@@ -64,6 +69,15 @@ func staticHandler(dir string) http.Handler {
 		if varies {
 			w.Header().Add("Vary", "Accept-Encoding")
 		}
+		if !strings.HasPrefix(name, "_next/static/") { // those are never asked for twice
+			served := name
+			if variant != "" {
+				served = variant
+			}
+			if tag := tags.of(served); tag != "" {
+				w.Header().Set("ETag", tag)
+			}
+		}
 		if variant != "" {
 			// Type comes from the original file; the variant only supplies the bytes.
 			w.Header().Set("Content-Type", contentTypes[path.Ext(name)])
@@ -91,6 +105,43 @@ func staticHandler(dir string) http.Handler {
 		r2.URL.Path = "/" + name
 		files.ServeHTTP(w, r2)
 	})
+}
+
+// etags are hashes of the files' contents, worked out on first use. With only a date to go by, a browser
+// asks for what changed since then, and a rollback brings back files older than the ones it holds: it was
+// told "not modified" and kept the release that had been rolled back.
+type etags struct {
+	root  fs.FS
+	mu    sync.Mutex
+	known map[string]etag
+}
+
+type etag struct {
+	size int64
+	mod  time.Time
+	tag  string
+}
+
+// of is the file's validator, or "" if it cannot be read. A file that changes on disk (a local rebuild)
+// gets a new one.
+func (e *etags) of(name string) string {
+	st, err := fs.Stat(e.root, name)
+	if err != nil {
+		return ""
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if k, ok := e.known[name]; ok && k.size == st.Size() && k.mod.Equal(st.ModTime()) {
+		return k.tag
+	}
+	body, err := fs.ReadFile(e.root, name)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(body)
+	tag := `"` + base64.RawURLEncoding.EncodeToString(sum[:15]) + `"`
+	e.known[name] = etag{st.Size(), st.ModTime(), tag}
+	return tag
 }
 
 // variantWriter drops the variant's encoding and length when ServeFileFS answers without its body

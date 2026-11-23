@@ -18,7 +18,7 @@ var now = time.Date(2026, 10, 19, 12, 0, 0, 0, time.UTC)
 func delivery(t *testing.T) *Delivery {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "delivery.json")
-	raw := `{"windowDays":30,"deploys":32,"leadTimeMinutes":{"median":4.4,"commits":40},"changeFailureRate":0,
+	raw := `{"generated":"2026-10-19T16:30:00Z","windowDays":30,"deploys":32,"leadTimeMinutes":{"median":4.4,"commits":40},"changeFailureRate":0,
 	  "safeguards":{"lastDrill":{"ended":"2026-10-19T10:03:20Z","restoreSeconds":20,"url":"x"}},
 	  "head":{"sha":"9dfbfb6","title":"Close the <contact-form> postmortem's last two action items & more","committed":"2026-10-19T10:08:45Z"}}`
 	if err := os.WriteFile(path, []byte(raw), 0o600); err != nil {
@@ -56,7 +56,7 @@ func TestCardShowsTheLiveNumbers(t *testing.T) {
 		s := string(svg)
 		for _, want := range []string{
 			"99.99%", // floored, never rounded up to a 100.00% it is not
-			"97.0%", ">32<", "4.4 min", ">0%<", "deploys, 30 days",
+			"97.0%", ">32<", "4.4 min", ">0%<", "deploys, 30 d to 20 Oct",
 			"committed 1 h ago", "releases open", "traffic back in 20 s, 19 Oct", "uptime to 11:00 UTC",
 		} {
 			if !strings.Contains(s, want) {
@@ -180,7 +180,7 @@ func TestTerminalCard(t *testing.T) {
 		Releases: "open", UptimeLabel: "uptime since 19 Oct", Delivery: delivery(t), Now: now}
 	s := plain(Terminal(d, "https://example.test"))
 	for _, want := range []string{"Li ZhenXi", "you asked from a terminal", "commit 9dfbfb6 on Cloud Run", "99.99% since 19 Oct, measured from outside",
-		"97.0% of the error budget left, releases open", "32 deploys in 30 days, lead time 4.4 min, change failure rate 0%",
+		"97.0% of the error budget left, releases open", "32 deploys in the 30 days to 20 Oct, lead time 4.4 min, change failure rate 0%",
 		"https://example.test/mcp", "https://example.test/llms.txt"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("terminal card lacks %q:\n%s", want, s)
