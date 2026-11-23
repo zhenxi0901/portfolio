@@ -90,7 +90,7 @@ test("the terminal lists them, the false one among them", async ({ page, reading
   await terminal.open();
   const printed = await terminal.run("claims");
   await expect(printed).toContainText(`${total} of ${total} hold`);
-  for (const { id } of all) await expect(printed).toContainText(`holds    ${id}`);
+  for (const { id } of all) await expect(printed).toContainText(new RegExp(`holds +${id} +Seen by the test of ${id}\\.`));
   await expect(printed).toContainText("as it has to: it is false on purpose.");
 });
 

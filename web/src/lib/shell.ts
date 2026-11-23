@@ -555,14 +555,17 @@ const commands: Record<string, Command> = {
     run: async () => {
       const r = await api.claims();
       if (!r.available) return [dim(`No results here: ${r.reason ?? "no reason given"}`), line(t("What is claimed, and where it comes from: ", DIM), cmd("open evidence"))];
-      const word = { holds: t("holds  ", GOOD), fails: t("fails  ", ERR), unknown: t("unknown", DIM) };
+      // Hanging, so that a long answer keeps its column.
+      const result = (verdict: string, colour: string, id: string, saw: string) => line({ text: verdict.padEnd(8), cls: colour, hang: 21 }, t(id.padEnd(13), DIM), saw);
+      const colour = { holds: GOOD, fails: ERR, unknown: DIM };
       const lie = r.false_claim;
       return [
         row("tested", `${r.tested?.slice(0, 16).replace("T", " ")} UTC, on commit ${r.commit}${r.stale ? "; GitHub is not answering, so a newer run may exist" : ""}`),
         row("result", r.trustworthy ? t(`${r.holding} of ${r.total} hold`, r.failing ? ERR : ACCENT) : t("not to be trusted: the claim that is false on purpose passed", ERR)),
         line(""),
-        ...r.claims.map((c) => line(word[c.verdict], t(`  ${c.id.padEnd(13)}`, DIM), c.saw)),
-        ...(lie ? [line(lie.verdict === "fails" ? t("fails  ", GOOD) : word[lie.verdict], t(`  ${lie.id.padEnd(13)}`, DIM), lie.verdict === "fails" ? "as it has to: it is false on purpose. " : "", lie.saw)] : []),
+        ...r.claims.map((c) => result(c.verdict, colour[c.verdict], c.id, c.saw)),
+        // The one that has to fail: failing is good, and anything else is not.
+        ...(lie ? [result(lie.verdict, lie.verdict === "fails" ? GOOD : ERR, lie.id, `${lie.verdict === "fails" ? "as it has to: it is false on purpose. " : ""}${lie.saw}`)] : []),
         line(""),
         line(t("What each one claims: ", DIM), cmd("open evidence")),
       ];
