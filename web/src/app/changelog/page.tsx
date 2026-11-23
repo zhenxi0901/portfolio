@@ -10,7 +10,7 @@ type Commit = { sha: string; title: string; linked?: boolean };
 // url is null for runs from before the content cleanup: listed, not linked (see delivery-stats.mjs).
 type Base = { at: string; sha: string; url: string | null };
 type Entry =
-  | (Base & { kind: "deploy"; release: string | null; minutes: number; commits: Commit[] })
+  | (Base & { kind: "deploy"; release: string | null; minutes: number | null; commits: Commit[] })
   | (Base & { kind: "failed" | "drill" | "stopped" | "held"; title: string; restoreSeconds: number | null });
 const changelog = generated as {
   generated: string;
@@ -142,7 +142,7 @@ export default function ChangelogPage() {
                             <span className="font-mono text-xs text-ink-3">no GitHub release</span>
                           )}
                           <span className="font-mono text-xs text-ink-3">
-                            {e.commits.length ? `${e.commits.length} commit${e.commits.length === 1 ? "" : "s"}` : "redeploy"} · deploy {e.minutes} min
+                            {e.commits.length ? `${e.commits.length} commit${e.commits.length === 1 ? "" : "s"}` : "redeploy"}{e.minutes === null ? "" : ` · deploy ${e.minutes} min`}
                           </span>
                         </p>
                         <ul className="mt-2 space-y-1.5">

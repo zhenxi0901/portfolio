@@ -25,7 +25,7 @@ type Delivery = {
   };
   perDay: { date: string; deploys: number }[];
   // url is null for runs from before the content cleanup: listed, not linked.
-  recent: { sha: string; title: string; ended: string; minutes: number; leadMinutes: number | null; url: string | null }[];
+  recent: { sha: string; title: string; ended: string; minutes: number | null; leadMinutes: number | null; url: string | null }[];
 };
 const delivery = generated as Delivery;
 
@@ -40,7 +40,7 @@ const dayLabel = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 const asOf = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
 
 /** DORA's four keys for this site itself, plus the deploy timeline behind them. */
 const count = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
@@ -75,7 +75,7 @@ export function DeliveryPanel() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="font-semibold">How this site ships, measured</p>
         <p className="text-sm text-ink-2">
-          DORA metrics, last {d.windowDays} days, as of {asOf(d.generated)} SGT
+          DORA metrics, the {d.windowDays} days to {asOf(d.generated)} SGT
         </p>
       </div>
 
@@ -112,7 +112,7 @@ export function DeliveryPanel() {
         <div
           className="flex h-14 items-end gap-[3px]"
           role="img"
-          aria-label={`Deploys per day for the last ${d.windowDays} days: ${d.deploys} in total, at most ${peak} in a day.`}
+          aria-label={`Deploys per day for the ${d.windowDays} days to ${dayLabel(d.perDay[d.perDay.length - 1].date)}: ${d.deploys} in total, at most ${peak} in a day.`}
         >
           {d.perDay.map((day) => (
             <span
@@ -124,9 +124,10 @@ export function DeliveryPanel() {
           ))}
         </div>
         <p className="mt-2 flex justify-between text-xs text-ink-3">
-          <span>{d.windowDays} days ago</span>
+          {/* The dates, not "30 days ago" and "today": the snapshot is as old as the last deploy. */}
+          <span>{dayLabel(d.perDay[0].date)}</span>
           <span>deploys per day, Singapore time</span>
-          <span>today</span>
+          <span>{dayLabel(d.perDay[d.perDay.length - 1].date)}</span>
         </p>
       </div>
 
@@ -143,7 +144,7 @@ export function DeliveryPanel() {
             {/* One line from sm up; on a phone that cut most titles to a few words, so there they wrap. */}
             <span className="min-w-0 flex-1 [overflow-wrap:anywhere] sm:truncate">{r.title}</span>
             <span className="font-mono text-xs text-ink-3">
-              {r.leadMinutes !== null && `lead ${duration(r.leadMinutes)} · `}deploy {duration(r.minutes)}
+              {[r.leadMinutes !== null && `lead ${duration(r.leadMinutes)}`, r.minutes !== null && `deploy ${duration(r.minutes)}`].filter(Boolean).join(" · ")}
             </span>
           </li>
         ))}

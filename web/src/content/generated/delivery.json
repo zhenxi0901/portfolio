@@ -1,11 +1,11 @@
 {
-  "generated": "2026-11-16T08:24:24.976Z",
+  "generated": "2026-11-23T04:10:37.060Z",
   "windowDays": 30,
-  "deploys": 66,
-  "daysWithDeploys": 6,
+  "deploys": 45,
+  "daysWithDeploys": 5,
   "leadTimeMinutes": {
-    "median": 9.6,
-    "commits": 88
+    "median": 10.4,
+    "commits": 57
   },
   "changeFailureRate": 0,
   "failedDeploys": 0,
@@ -27,120 +27,92 @@
     }
   },
   "head": {
-    "sha": "c621e38",
-    "title": "The home page's Now says what I'm working on, and Recently leads with my work",
-    "committed": "2026-11-16T08:00:47.000Z"
+    "sha": "7c14f92",
+    "title": "Changelog, deploy history and postmortem links follow the current commit ids",
+    "committed": "2026-11-16T08:27:11.000Z"
   },
   "lastDeploy": {
-    "sha": "c621e38",
-    "title": "The home page's Now says what I'm working on, and Recently leads with my work",
-    "ended": "2026-11-16T08:11:18.000Z",
-    "seconds": 100,
-    "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43829014005",
+    "sha": "7c14f92",
+    "title": "Changelog, deploy history and postmortem links follow the current commit ids",
+    "ended": "2026-11-16T08:38:05.000Z",
+    "seconds": 125,
+    "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43832536670",
     "steps": [
       {
         "name": "Release only main's head",
         "start": 3,
-        "end": 5,
+        "end": 4,
         "result": "success"
       },
       {
         "name": "Sign in to Google Cloud, keyless",
         "start": 11,
-        "end": 17,
+        "end": 16,
         "result": "success"
       },
       {
         "name": "Find the image CI tested",
-        "start": 17,
+        "start": 16,
         "end": 19,
         "result": "success"
       },
       {
         "name": "Check the image's provenance and SBOM",
         "start": 19,
-        "end": 32,
+        "end": 34,
         "result": "success"
       },
       {
         "name": "Check the error budget",
-        "start": 32,
-        "end": 37,
-        "result": "success"
-      },
-      {
-        "name": "Note the revision serving now",
-        "start": 37,
+        "start": 34,
         "end": 39,
         "result": "success"
       },
       {
-        "name": "Start the new revision with no traffic",
+        "name": "Note the revision serving now",
         "start": 39,
-        "end": 57,
+        "end": 41,
+        "result": "success"
+      },
+      {
+        "name": "Start the new revision with no traffic",
+        "start": 41,
+        "end": 64,
         "result": "success"
       },
       {
         "name": "Check the new revision before it takes traffic",
-        "start": 57,
-        "end": 69,
+        "start": 64,
+        "end": 77,
         "result": "success"
       },
       {
         "name": "Send traffic to the new revision",
-        "start": 69,
-        "end": 75,
+        "start": 77,
+        "end": 84,
         "result": "success"
       },
       {
         "name": "Verify",
-        "start": 75,
-        "end": 85,
+        "start": 84,
+        "end": 94,
         "result": "success"
       },
       {
         "name": "Roll back to the previous revision",
-        "start": 85,
-        "end": 85,
+        "start": 94,
+        "end": 94,
         "result": "skipped"
       },
       {
         "name": "Publish the release",
-        "start": 91,
-        "end": 97,
+        "start": 113,
+        "end": 122,
         "result": "success"
       }
     ]
   },
   "perDay": [
-    {
-      "date": "2026-10-18",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-19",
-      "deploys": 22
-    },
-    {
-      "date": "2026-10-20",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-21",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-22",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-23",
-      "deploys": 0
-    },
-    {
-      "date": "2026-10-24",
-      "deploys": 0
-    },
     {
       "date": "2026-10-25",
       "deploys": 0
@@ -231,10 +203,46 @@
     },
     {
       "date": "2026-11-16",
-      "deploys": 5
+      "deploys": 6
+    },
+    {
+      "date": "2026-11-17",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-18",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-19",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-20",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-21",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-22",
+      "deploys": 0
+    },
+    {
+      "date": "2026-11-23",
+      "deploys": 0
     }
   ],
   "recent": [
+    {
+      "sha": "7c14f92",
+      "title": "Changelog, deploy history and postmortem links follow the current commit ids",
+      "ended": "2026-11-16T08:38:05.000Z",
+      "minutes": 2.1,
+      "leadMinutes": 10.9,
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43832536670"
+    },
     {
       "sha": "c621e38",
       "title": "The home page's Now says what I'm working on, and Recently leads with my work",
@@ -274,14 +282,6 @@
       "minutes": 1.8,
       "leadMinutes": 11.5,
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43807177764"
-    },
-    {
-      "sha": "306eb7d",
-      "title": "README: the status page's deploy list, with its release-note titles",
-      "ended": "2026-11-14T08:39:54.000Z",
-      "minutes": 1.7,
-      "leadMinutes": 10.8,
-      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43576755967"
     }
   ]
 }

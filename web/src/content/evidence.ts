@@ -36,8 +36,14 @@ export type ClaimGroup = { id: string; title: string; lead: string; claims: Clai
 
 const REPO = `${profile.github}/portfolio`;
 const ARIES_MERGED = `${fyp.aries}/pulls?q=is%3Apr+author%3Azhenxi0901+is%3Amerged`;
-const drill = delivery.safeguards.lastDrill;
-const failureRate = delivery.changeFailureRate == null ? "" : `, with a change failure rate of ${Math.round(delivery.changeFailureRate * 100)}%`;
+// Typed by hand: inferred from the snapshot, a build whose snapshot has no drill (GitHub keeps run records for
+// 90 days) would not compile.
+const built = delivery as unknown as {
+  safeguards: { lastDrill: { ended: string; restoreSeconds: number | null; url: string | null } | null };
+  changeFailureRate: number | null;
+};
+const drill = built.safeguards.lastDrill;
+const failureRate = built.changeFailureRate == null ? "" : `, with a change failure rate of ${Math.round(built.changeFailureRate * 100)}%`;
 const stat = (value: number) => stats.find((s) => s.value === value);
 if (!stat(169) || !stat(320)) throw new Error("evidence.ts quotes headline numbers that profile.ts no longer has");
 
@@ -107,8 +113,10 @@ export const claimGroups: ClaimGroup[] = [
               claim: `A rollback drill in production had traffic back on the previous revision ${drill.restoreSeconds} seconds after the switch.`,
               seen: { label: "How this site ships", href: "/status" },
               kind: "public" as const,
-              proof: "The drill is a workflow run that fails its own live check on purpose and passes only if the rollback then works. Its log has the timestamps.",
-              links: [{ label: "The drill's run", href: drill.url }],
+              proof: `The drill is a workflow run that fails its own live check on purpose and passes only if the rollback then works. ${
+                drill.url ? "Its log has the timestamps." : "GitHub kept its log for 90 days; the changelog keeps the result."
+              }`,
+              links: drill.url ? [{ label: "The drill's run", href: drill.url }] : [{ label: "Changelog", href: "/changelog" }],
             },
           ]
         : []),

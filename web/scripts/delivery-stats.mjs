@@ -56,7 +56,12 @@ const round1 = (x) => (x == null ? null : Math.round(x * 10) / 10);
 const seconds = (ms) => (ms == null ? null : Math.round(ms / 1000));
 
 const now = new Date();
-const since = new Date(now.getTime() - WINDOW_DAYS * 864e5);
+// The window is the last 30 Singapore days (UTC+8), today included: the same days the bars on /status
+// draw, so the number of deploys is always the bars' sum.
+const SGT = 8 * 36e5;
+const dayOf = (t) => new Date(t.getTime() + SGT).toISOString().slice(0, 10);
+const today = Date.parse(dayOf(now));
+const since = new Date(today - (WINDOW_DAYS - 1) * 864e5 - SGT);
 
 // Release-note titles for commits whose subject line was a note to self (release-titles.json says
 // which and why). Every title this script writes goes through display(); the commits keep their messages.
@@ -66,6 +71,17 @@ const display = (sha, subject) => RELEASE_TITLES[sha.slice(0, 7)] ?? subject;
 // old ids in its run records. A run's commit goes through this map, so deploys are compared and dated
 // on main as it is now (comparing an old id with a new one fails: the two histories share no commit).
 const REWRITTEN = JSON.parse(await readFile(new URL("./rewritten-commits.json", import.meta.url), "utf8")).commits;
+const commitOf = (sha) => REWRITTEN[sha] ?? sha;
+// GitHub deletes workflow run records after 90 days, so what they said is kept here: a run by hand (not CI)
+// rewrites this file from the records GitHub still has and the ones already kept. A deploy that is in
+// neither is taken from its GitHub release, which does not expire.
+const HISTORY_FILE = new URL("./deploy-history.json", import.meta.url);
+const kept = await readFile(HISTORY_FILE, "utf8")
+  .then((t) => JSON.parse(t).events.map((e) => ({ ...e, started: e.started ? new Date(e.started) : null, ended: new Date(e.ended) })))
+  .catch((err) => {
+    if (err.code === "ENOENT") return [];
+    throw err;
+  });
 const toCommit = (c) => ({ sha: c.sha, at: new Date(c.commit.committer.date), title: display(c.sha, c.commit.message.split("\n")[0]) });
 // Every commit reachable from main, newest first by date. Date order is not ancestry order once
 // pull requests merge (a branch's commits can be older than main's latest), so what each deploy
@@ -80,7 +96,7 @@ const candidates = (await all(`/actions/workflows/deploy.yml/runs`, "workflow_ru
   .map((r) => ({
     id: r.id,
     attempt: r.run_attempt ?? 1,
-    sha: REWRITTEN[r.head_sha] ?? r.head_sha,
+    sha: commitOf(r.head_sha),
     ok: r.conclusion === "success",
     started: new Date(r.run_started_at ?? r.created_at),
     ended: new Date(r.updated_at),
@@ -136,7 +152,38 @@ for (const r of candidates) {
     await record(attempt, `/actions/runs/${r.id}/attempts/${n}/jobs`, true);
   }
 }
+// The records GitHub still has win; older ones come from the archive.
+const recorded = new Set(candidates.map((r) => r.id));
+// Its page on GitHub went with the record, so an archived run has no link; its commits keep theirs.
+events.push(...kept.filter((e) => !recorded.has(e.id)).map((e) => ({ ...e, url: null })));
+const releases = (await all(`/releases`))
+  .filter((r) => /^[0-9a-f]{40}$/.test(r.target_commitish) && r.published_at)
+  .map((r) => ({ tag: r.tag_name, sha: commitOf(r.target_commitish), at: new Date(r.published_at) }));
+const deployed = new Set(events.filter((e) => e.kind === "deploy").map((e) => e.sha));
+for (const r of releases) {
+  if (!deployed.has(r.sha)) events.push({ id: null, kind: "deploy", sha: r.sha, started: null, ended: r.at, url: null, linked: false });
+}
 events.sort((a, b) => a.ended - b.ended);
+if (process.env.GITHUB_ACTIONS === "true") {
+  const age = kept.length ? (now - Math.max(...kept.map((e) => e.ended))) / 864e5 : Infinity;
+  if (age > 60) console.log(`::warning::web/scripts/deploy-history.json is ${Math.round(age)} days old and GitHub keeps run records for 90: run delivery-stats.mjs by hand and commit it.`);
+} else {
+  const keep = events.filter((e) => e.id !== null).map((e) => ({
+    id: e.id,
+    kind: e.kind,
+    sha: e.sha,
+    started: e.started?.toISOString() ?? null,
+    ended: e.ended.toISOString(),
+    url: e.url,
+    linked: e.linked,
+    ...(e.drill ? { drill: true } : {}),
+    ...(e.rolledBack ? { rolledBack: true } : {}),
+    ...(e.restoreMs != null ? { restoreMs: e.restoreMs } : {}),
+  }));
+  const about =
+    "What each deploy run did to production, kept because GitHub deletes run records after 90 days. Written by delivery-stats.mjs when it is run by hand; CI only reads it.";
+  await writeFile(HISTORY_FILE, JSON.stringify({ about, events: keep }, null, 1) + "\n");
+}
 
 const allDeploys = events.filter((e) => e.kind === "deploy");
 const recent = events.filter((e) => e.ended >= since);
@@ -185,10 +232,7 @@ const restoreMinutes = failed
   })
   .filter((m) => m !== null);
 
-// Calendar days in Singapore time (UTC+8), the oldest first, ending today.
-const SGT = 8 * 36e5;
-const dayOf = (t) => new Date(t.getTime() + SGT).toISOString().slice(0, 10);
-const today = Date.parse(dayOf(now));
+// The window's days, the oldest first, ending today.
 const perDay = Array.from({ length: WINDOW_DAYS }, (_, k) => {
   const date = new Date(today - (WINDOW_DAYS - 1 - k) * 864e5).toISOString().slice(0, 10);
   return { date, deploys: deploys.filter((d) => dayOf(d.ended) === date).length };
@@ -237,8 +281,8 @@ async function stepsOf(run) {
   return { t0, steps: out };
 }
 const lastRun = allDeploys.at(-1);
-const replay = lastRun ? await stepsOf(lastRun) : null;
-const lastDeploy = lastRun
+const replay = lastRun && recorded.has(lastRun.id) ? await stepsOf(lastRun) : null;
+const lastDeploy = lastRun && replay
   ? {
       sha: lastRun.sha.slice(0, 7),
       title: await titleOf(lastRun.sha),
@@ -259,7 +303,7 @@ const delivery = {
   changeFailureRate: tookTraffic ? failed.length / tookTraffic : null,
   failedDeploys: failed.length,
   restoreMinutes: { median: round1(median(restoreMinutes)), count: restoreMinutes.length },
-  deployMinutes: { median: round1(median(deploys.map((d) => (d.ended - d.started) / 6e4))) },
+  deployMinutes: { median: round1(median(deploys.filter((d) => d.started).map((d) => (d.ended - d.started) / 6e4))) },
   safeguards: {
     stoppedBeforeTraffic: recent.filter((e) => e.kind === "stopped").length,
     heldByBudget: recent.filter((e) => e.kind === "held").length,
@@ -279,7 +323,7 @@ const delivery = {
         sha: d.sha.slice(0, 7),
         title: await titleOf(d.sha),
         ended: d.ended.toISOString(),
-        minutes: round1((d.ended - d.started) / 6e4),
+        minutes: d.started ? round1((d.ended - d.started) / 6e4) : null,
         leadMinutes: leadBySha.has(d.sha) ? round1(leadBySha.get(d.sha)) : null,
         url: d.linked ? d.url : null,
       })),
@@ -289,10 +333,7 @@ const delivery = {
 // The changelog: what each deploy shipped and the GitHub release it became, plus every run that
 // stopped, was held, rolled back or was a drill. Only the latest deploys are listed; the others,
 // and every non-deploy event, are kept, so failed releases never drop out of /status.
-const tagBySha = new Map();
-for (const r of await all(`/releases`)) {
-  if (/^[0-9a-f]{40}$/.test(r.target_commitish)) tagBySha.set(r.target_commitish, r.tag_name);
-}
+const tagBySha = new Map(releases.map((r) => [r.sha, r.tag]));
 const listed = new Set(allDeploys.slice(-CHANGELOG_LIMIT));
 const entries = [];
 for (const e of events) {
@@ -305,7 +346,7 @@ for (const e of events) {
   entries.push({
     ...base,
     release: tagBySha.get(e.sha) ?? null,
-    minutes: round1((e.ended - e.started) / 6e4),
+    minutes: e.started ? round1((e.ended - e.started) / 6e4) : null,
     commits: (e.shipped ?? []).map((c) => ({ sha: c.sha.slice(0, 7), title: c.title, linked: e.linked })),
   });
 }

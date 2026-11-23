@@ -20,6 +20,7 @@ const LONGEST = 10;
 /** What a step did, in a sentence a visitor who has never seen the pipeline can follow. */
 const ABOUT: Record<string, string> = {
   "Release only main's head": "A run for an older commit stops here, so only main's head ships.",
+  "Still main's head": "Asked again, in case main moved on while this run waited its turn.",
   "Sign in to Google Cloud, keyless": "Workload Identity Federation: GitHub's token is exchanged for a short-lived one; no key is stored.",
   "Find the image CI tested": "The exact image CI built and tested, by digest. Nothing is rebuilt for production.",
   "Check the image's provenance and SBOM": "The image's build provenance and SBOM attestations must verify, or it is refused.",
@@ -44,7 +45,7 @@ const OUTCOME: Record<string, string> = { failure: "failed", cancelled: "cancell
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
 
 /**
  * The latest deploy to production replayed from its own run: every step at its real start and length,
@@ -110,7 +111,7 @@ export function DeployReplay() {
   const explained = last.steps.filter((s) => about(s));
 
   return (
-    <div ref={root} id="replay" className="mt-4 scroll-mt-28 rounded-3xl border border-line bg-surface p-6">
+    <div ref={root} id="replay" className="mt-4 scroll-mt-4 rounded-3xl border border-line bg-surface p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="font-semibold">Replay the latest deploy</p>
         <p className="font-mono text-xs text-ink-2">

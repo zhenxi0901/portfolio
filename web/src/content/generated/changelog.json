@@ -1,18 +1,33 @@
 {
-  "generated": "2026-11-16T08:24:24.976Z",
+  "generated": "2026-11-23T04:10:37.060Z",
   "totals": {
-    "releases": 84,
-    "commits": 106,
+    "releases": 85,
+    "commits": 107,
     "drills": 2
   },
   "serving": null,
   "entries": [
     {
       "kind": "deploy",
+      "at": "2026-11-16T08:38:05.000Z",
+      "sha": "7c14f92",
+      "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43832536670",
+      "release": "v2026.11.16.103",
+      "minutes": 2.1,
+      "commits": [
+        {
+          "sha": "7c14f92",
+          "title": "Changelog, deploy history and postmortem links follow the current commit ids",
+          "linked": true
+        }
+      ]
+    },
+    {
+      "kind": "deploy",
       "at": "2026-11-16T08:11:18.000Z",
       "sha": "c621e38",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43829014005",
-      "release": null,
+      "release": "v2026.11.16.101",
       "minutes": 1.7,
       "commits": [
         {
@@ -27,7 +42,7 @@
       "at": "2026-11-16T07:42:26.000Z",
       "sha": "92cba09",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43825479562",
-      "release": null,
+      "release": "v2026.11.16.100",
       "minutes": 1.9,
       "commits": [
         {
@@ -42,7 +57,7 @@
       "at": "2026-11-16T07:22:03.000Z",
       "sha": "39e6af9",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43823103309",
-      "release": null,
+      "release": "v2026.11.16.99",
       "minutes": 1.9,
       "commits": [
         {
@@ -57,7 +72,7 @@
       "at": "2026-11-16T05:19:07.000Z",
       "sha": "847f5be",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43809254543",
-      "release": null,
+      "release": "v2026.11.16.98",
       "minutes": 1.7,
       "commits": [
         {
@@ -72,7 +87,7 @@
       "at": "2026-11-16T04:59:18.000Z",
       "sha": "c99a161",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43807177764",
-      "release": null,
+      "release": "v2026.11.16.97",
       "minutes": 1.8,
       "commits": [
         {
@@ -87,7 +102,7 @@
       "at": "2026-11-14T08:39:54.000Z",
       "sha": "306eb7d",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43576755967",
-      "release": null,
+      "release": "v2026.11.14.96",
       "minutes": 1.7,
       "commits": [
         {
@@ -102,7 +117,7 @@
       "at": "2026-11-14T08:18:58.000Z",
       "sha": "310896f",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43575091698",
-      "release": null,
+      "release": "v2026.11.14.95",
       "minutes": 1.7,
       "commits": [
         {
@@ -122,7 +137,7 @@
       "at": "2026-11-14T07:44:09.000Z",
       "sha": "1979732",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43572342146",
-      "release": null,
+      "release": "v2026.11.14.93",
       "minutes": 1.8,
       "commits": [
         {
@@ -137,7 +152,7 @@
       "at": "2026-11-14T07:22:18.000Z",
       "sha": "3492e4f",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43570636474",
-      "release": null,
+      "release": "v2026.11.14.92",
       "minutes": 1.9,
       "commits": [
         {
@@ -152,7 +167,7 @@
       "at": "2026-11-14T04:53:45.000Z",
       "sha": "fd22103",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43558728795",
-      "release": null,
+      "release": "v2026.11.14.91",
       "minutes": 1.8,
       "commits": [
         {
@@ -167,7 +182,7 @@
       "at": "2026-11-14T04:38:52.000Z",
       "sha": "0777286",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43557551375",
-      "release": null,
+      "release": "v2026.11.14.90",
       "minutes": 1.7,
       "commits": [
         {
@@ -182,7 +197,7 @@
       "at": "2026-11-14T04:02:17.000Z",
       "sha": "4628bb0",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43554461817",
-      "release": null,
+      "release": "v2026.11.14.89",
       "minutes": 1.8,
       "commits": [
         {
@@ -197,7 +212,7 @@
       "at": "2026-11-14T03:22:30.000Z",
       "sha": "9f58bb8",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43551153708",
-      "release": null,
+      "release": "v2026.11.14.88",
       "minutes": 1.7,
       "commits": [
         {
@@ -212,7 +227,7 @@
       "at": "2026-11-14T03:11:18.000Z",
       "sha": "069ba8d",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43550139639",
-      "release": null,
+      "release": "v2026.11.14.87",
       "minutes": 1.8,
       "commits": [
         {
@@ -227,7 +242,7 @@
       "at": "2026-11-14T02:34:12.000Z",
       "sha": "8cf8d16",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43546864199",
-      "release": null,
+      "release": "v2026.11.14.86",
       "minutes": 1.9,
       "commits": [
         {
@@ -242,7 +257,7 @@
       "at": "2026-11-13T09:26:18.000Z",
       "sha": "4670fc6",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43401060872",
-      "release": null,
+      "release": "v2026.11.13.85",
       "minutes": 1.8,
       "commits": [
         {
@@ -257,7 +272,7 @@
       "at": "2026-11-13T06:45:57.000Z",
       "sha": "ed1e8ab",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43380655690",
-      "release": null,
+      "release": "v2026.11.13.84",
       "minutes": 2.7,
       "commits": [
         {
@@ -272,7 +287,7 @@
       "at": "2026-11-13T05:57:40.000Z",
       "sha": "07472a4",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43375203648",
-      "release": null,
+      "release": "v2026.11.13.83",
       "minutes": 1.9,
       "commits": [
         {
@@ -287,7 +302,7 @@
       "at": "2026-11-13T04:23:21.000Z",
       "sha": "711cb72",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43364984500",
-      "release": null,
+      "release": "v2026.11.13.82",
       "minutes": 1.9,
       "commits": [
         {
@@ -302,7 +317,7 @@
       "at": "2026-11-13T04:12:04.000Z",
       "sha": "96e5ceb",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43363751957",
-      "release": null,
+      "release": "v2026.11.13.81",
       "minutes": 1.7,
       "commits": [
         {
@@ -317,7 +332,7 @@
       "at": "2026-11-13T03:00:09.000Z",
       "sha": "d82a04e",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43355762741",
-      "release": null,
+      "release": "v2026.11.13.80",
       "minutes": 1.9,
       "commits": [
         {
@@ -332,7 +347,7 @@
       "at": "2026-11-13T02:37:14.000Z",
       "sha": "1f06206",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43353240483",
-      "release": null,
+      "release": "v2026.11.13.79",
       "minutes": 1.7,
       "commits": [
         {
@@ -347,7 +362,7 @@
       "at": "2026-11-13T02:21:03.000Z",
       "sha": "43fae12",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43351315320",
-      "release": null,
+      "release": "v2026.11.13.78",
       "minutes": 1.8,
       "commits": [
         {
@@ -367,7 +382,7 @@
       "at": "2026-11-12T11:10:06.000Z",
       "sha": "c269a0f",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43206526839",
-      "release": null,
+      "release": "v2026.11.12.76",
       "minutes": 1.8,
       "commits": [
         {
@@ -382,7 +397,7 @@
       "at": "2026-11-12T10:45:39.000Z",
       "sha": "cb24360",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43202936235",
-      "release": null,
+      "release": "v2026.11.12.75",
       "minutes": 1.7,
       "commits": [
         {
@@ -397,7 +412,7 @@
       "at": "2026-11-12T10:26:44.000Z",
       "sha": "71734dd",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43200179437",
-      "release": null,
+      "release": "v2026.11.12.74",
       "minutes": 1.7,
       "commits": [
         {
@@ -412,7 +427,7 @@
       "at": "2026-11-12T10:13:30.000Z",
       "sha": "6ba542d",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43198179147",
-      "release": null,
+      "release": "v2026.11.12.73",
       "minutes": 1.8,
       "commits": [
         {
@@ -427,7 +442,7 @@
       "at": "2026-11-12T09:56:58.000Z",
       "sha": "5e07e1c",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43195690606",
-      "release": null,
+      "release": "v2026.11.12.72",
       "minutes": 1.9,
       "commits": [
         {
@@ -442,7 +457,7 @@
       "at": "2026-11-12T07:44:24.000Z",
       "sha": "2a5c851",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43177254534",
-      "release": null,
+      "release": "v2026.11.12.71",
       "minutes": 1.8,
       "commits": [
         {
@@ -482,7 +497,7 @@
       "at": "2026-11-12T03:58:43.000Z",
       "sha": "65f01f6",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43151557398",
-      "release": null,
+      "release": "v2026.11.12.68",
       "minutes": 1.7,
       "commits": [
         {
@@ -497,7 +512,7 @@
       "at": "2026-11-12T03:48:36.000Z",
       "sha": "3b5ccaf",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43150456511",
-      "release": null,
+      "release": "v2026.11.12.67",
       "minutes": 1.8,
       "commits": [
         {
@@ -512,7 +527,7 @@
       "at": "2026-11-12T02:27:23.000Z",
       "sha": "1e15103",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/43141330564",
-      "release": null,
+      "release": "v2026.11.12.66",
       "minutes": 1.7,
       "commits": [
         {
@@ -527,7 +542,7 @@
       "at": "2026-11-11T08:34:48.000Z",
       "sha": "d81a0ad",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42987919138",
-      "release": null,
+      "release": "v2026.11.11.65",
       "minutes": 1.8,
       "commits": [
         {
@@ -542,7 +557,7 @@
       "at": "2026-11-11T08:02:36.000Z",
       "sha": "9794e92",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42983687200",
-      "release": null,
+      "release": "v2026.11.11.64",
       "minutes": 1.8,
       "commits": [
         {
@@ -557,7 +572,7 @@
       "at": "2026-11-11T07:43:47.000Z",
       "sha": "12cc58f",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42981392391",
-      "release": null,
+      "release": "v2026.11.11.63",
       "minutes": 1.8,
       "commits": [
         {
@@ -577,7 +592,7 @@
       "at": "2026-11-11T07:09:52.000Z",
       "sha": "50475a8",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42977289885",
-      "release": null,
+      "release": "v2026.11.11.62",
       "minutes": 1.7,
       "commits": [
         {
@@ -597,7 +612,7 @@
       "at": "2026-11-11T06:23:20.000Z",
       "sha": "81be6bf",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42971864077",
-      "release": null,
+      "release": "v2026.11.11.61",
       "minutes": 1.8,
       "commits": [
         {
@@ -617,7 +632,7 @@
       "at": "2026-11-11T05:29:40.000Z",
       "sha": "71a7d89",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42965926261",
-      "release": null,
+      "release": "v2026.11.11.59",
       "minutes": 1.8,
       "commits": [
         {
@@ -637,7 +652,7 @@
       "at": "2026-11-11T04:48:49.000Z",
       "sha": "bb5d620",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42961464005",
-      "release": null,
+      "release": "v2026.11.11.57",
       "minutes": 1.8,
       "commits": [
         {
@@ -652,7 +667,7 @@
       "at": "2026-11-11T04:24:05.000Z",
       "sha": "0f0b93a",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42958802228",
-      "release": null,
+      "release": "v2026.11.11.56",
       "minutes": 1.6,
       "commits": [
         {
@@ -667,7 +682,7 @@
       "at": "2026-11-11T03:55:09.000Z",
       "sha": "2df24d8",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42955661803",
-      "release": null,
+      "release": "v2026.11.11.55",
       "minutes": 1.8,
       "commits": [
         {
@@ -687,7 +702,7 @@
       "at": "2026-11-11T03:44:34.000Z",
       "sha": "8edd8cd",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42954551617",
-      "release": null,
+      "release": "v2026.11.11.53",
       "minutes": 1.7,
       "commits": [
         {
@@ -702,7 +717,7 @@
       "at": "2026-11-11T03:30:39.000Z",
       "sha": "9fa2e4e",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42953028785",
-      "release": null,
+      "release": "v2026.11.11.52",
       "minutes": 1.8,
       "commits": [
         {
@@ -717,7 +732,7 @@
       "at": "2026-11-11T03:18:06.000Z",
       "sha": "c8aa1bd",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/42951645082",
-      "release": null,
+      "release": "v2026.11.11.51",
       "minutes": 1.7,
       "commits": [
         {
@@ -732,7 +747,7 @@
       "at": "2026-10-19T12:29:49.000Z",
       "sha": "cd89054",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39252255724",
-      "release": null,
+      "release": "v2026.10.19.50",
       "minutes": 1.9,
       "commits": [
         {
@@ -747,7 +762,7 @@
       "at": "2026-10-19T12:15:42.000Z",
       "sha": "a519bd8",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39250447901",
-      "release": null,
+      "release": "v2026.10.19.49",
       "minutes": 1.7,
       "commits": [
         {
@@ -770,7 +785,7 @@
       "at": "2026-10-19T12:03:39.000Z",
       "sha": "f3a7cf2",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39248925939",
-      "release": null,
+      "release": "v2026.10.19.47",
       "minutes": 1.7,
       "commits": [
         {
@@ -785,7 +800,7 @@
       "at": "2026-10-19T11:24:07.000Z",
       "sha": "2c3d3a7",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39244188283",
-      "release": null,
+      "release": "v2026.10.19.46",
       "minutes": 1.5,
       "commits": [
         {
@@ -800,7 +815,7 @@
       "at": "2026-10-19T11:08:16.000Z",
       "sha": "400cf43",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39242243666",
-      "release": null,
+      "release": "v2026.10.19.45",
       "minutes": 1.6,
       "commits": [
         {
@@ -840,7 +855,7 @@
       "at": "2026-10-19T10:52:20.000Z",
       "sha": "f2ef949",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39240340244",
-      "release": null,
+      "release": "v2026.10.19.42",
       "minutes": 1.7,
       "commits": [
         {
@@ -855,7 +870,7 @@
       "at": "2026-10-19T10:35:10.000Z",
       "sha": "ef6bf5b",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39238277221",
-      "release": null,
+      "release": "v2026.10.19.41",
       "minutes": 1.9,
       "commits": [
         {
@@ -870,7 +885,7 @@
       "at": "2026-10-19T10:15:15.000Z",
       "sha": "069e50e",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39235917460",
-      "release": null,
+      "release": "v2026.10.19.40",
       "minutes": 1.6,
       "commits": [
         {
@@ -893,7 +908,7 @@
       "at": "2026-10-19T10:00:30.000Z",
       "sha": "0042d43",
       "url": "https://github.com/zhenxi0901/portfolio/actions/runs/39234070054",
-      "release": null,
+      "release": "v2026.10.19.38",
       "minutes": 1.8,
       "commits": [
         {
