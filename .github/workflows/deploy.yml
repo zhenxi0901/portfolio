@@ -7,7 +7,7 @@ run-name: ${{ inputs.rollback_drill && 'Rollback drill' || '' }}
 #      verify as made by this repository's CI on main.
 #   2. Hold the release if the site's own error budget is spent (scripts/budget-gate.sh).
 #   3. Start the new revision with no traffic and smoke-test it at its own URL.
-#   4. Move all traffic to it and check again; if the live checks fail, move traffic back.
+#   4. Move all traffic to it and check again; unless the live checks pass, move traffic back.
 # Keyless: GitHub OIDC -> Workload Identity Federation. Needs repository variables GCP_REGION and
 # WIF_PROVIDER, and secrets GCP_PROJECT and DEPLOYER_SA (secrets, so logs mask them).
 on:
@@ -70,6 +70,7 @@ jobs:
   deploy:
     needs: current
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     environment: production
     # Job-level, so a run that is skipped or cancelled never displaces a release waiting its turn.
     concurrency:
@@ -87,6 +88,17 @@ jobs:
       IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/portfolio/site
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
+      # "Re-run failed jobs" runs this job without the one above, and it may have waited its turn while
+      # main moved on: ask again.
+      - name: Still main's head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$head" != "$SHA" ]; then
+            echo "::error::${SHA:0:7} is no longer the head of main (${head:0:7}); that commit's own run releases it."
+            exit 1
+          fi
       # The default branch's scripts, never the triggering ref's: this job holds deploy credentials.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -153,6 +165,7 @@ jobs:
           echo "url=$(jq -r '.status.traffic[] | select(.tag == "candidate") | .url' <<<"$desc")" >> "$GITHUB_OUTPUT"
 
       - name: Check the new revision before it takes traffic
+        timeout-minutes: 8
         env:
           URL: ${{ steps.candidate.outputs.url }}
         run: |
@@ -170,6 +183,7 @@ jobs:
       # In a drill this step fails on purpose; the run then passes only if the rollback works.
       - name: Verify
         id: verify
+        timeout-minutes: 8
         continue-on-error: ${{ inputs.rollback_drill == true }}
         env:
           DRILL: ${{ inputs.rollback_drill }}
@@ -184,10 +198,12 @@ jobs:
             exit 1
           fi
 
-      # Mitigate first: put traffic back on the revision that was serving, then confirm it answers.
+      # Mitigate first: put traffic back on the revision that was serving, then confirm it answers. Anything
+      # but a passed verification counts: one that failed, hung or was cancelled, or a switch that stopped
+      # part-way. A revision nobody verified does not keep the traffic.
       - name: Roll back to the previous revision
         id: rollback
-        if: (failure() || steps.verify.outcome == 'failure') && steps.switch.outcome == 'success'
+        if: always() && steps.switch.outcome != 'skipped' && steps.verify.outcome != 'success' && steps.before.outputs.revision != ''
         env:
           PREV: ${{ steps.before.outputs.revision }}
           DRILL: ${{ inputs.rollback_drill }}
@@ -208,7 +224,7 @@ jobs:
           fi
 
       - name: Take the candidate tag off a revision that failed
-        if: (failure() || steps.verify.outcome == 'failure') && steps.candidate.outcome == 'success'
+        if: always() && steps.candidate.outcome == 'success' && steps.verify.outcome != 'success'
         run: gcloud run services update-traffic "$SERVICE" --region "$REGION" --remove-tags candidate --quiet
 
       # Verify may fail in a drill (continue-on-error); the drill itself passes only if the rollback did.
@@ -224,6 +240,7 @@ jobs:
     needs: deploy
     if: inputs.rollback_drill != true
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     concurrency:
       group: deploy-production
       cancel-in-progress: false
@@ -233,6 +250,7 @@ jobs:
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       DIGEST: ${{ needs.deploy.outputs.digest }}
+      CI_RUN: ${{ github.event.workflow_run.id }} # empty on a manual run
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
@@ -265,9 +283,19 @@ jobs:
             echo "provenance bundle below are the ones CI attested; check the image with"
             echo "\`gh attestation verify oci://<image>@$DIGEST --repo $GH_REPO\`."
           } > notes.md
-          ci=$(gh run list --workflow ci.yml --commit "$SHA" --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
-          assets=()
-          if [ -n "$ci" ] && gh run download "$ci" --name release-evidence --dir evidence; then
-            assets=(evidence/*)
+          # The notes promise an SBOM and a provenance bundle, so without them there is no release: the job
+          # fails, and re-running it once GitHub answers again publishes it.
+          ci=$CI_RUN
+          if [ -z "$ci" ]; then
+            ci=$(gh run list --workflow ci.yml --commit "$SHA" --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
           fi
-          gh release create "$tag" --target "$SHA" --title "$tag" --notes-file notes.md "${assets[@]}"
+          for attempt in 1 2 3; do
+            if [ -n "$ci" ] && gh run download "$ci" --name release-evidence --dir evidence; then break; fi
+            rm -rf evidence
+            sleep $((attempt * 10))
+          done
+          if [ ! -s evidence/sbom.spdx.json ] || [ ! -s evidence/provenance.sigstore.json ]; then
+            echo "::error::CI's evidence (SBOM and provenance) could not be fetched from run ${ci:-unknown}. Production is already on ${SHA:0:7}; re-run this job to publish its release."
+            exit 1
+          fi
+          gh release create "$tag" --target "$SHA" --title "$tag" --notes-file notes.md evidence/*

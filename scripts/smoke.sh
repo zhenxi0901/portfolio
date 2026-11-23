@@ -4,6 +4,8 @@ set -uo pipefail
 # Checks pipe into grep without -q: grep -q exits at the first match, curl then fails
 # writing the rest of the body, and pipefail would report a passing check as FAIL.
 BASE="${1:-http://localhost:8080}"
+# A server that hangs fails its checks rather than the whole run's patience.
+curl() { command curl --max-time 20 "$@"; }
 # The home page answers curl with a text card unless HTML is asked for, so checks of the page itself
 # say so, as a script that scrapes it would.
 HTML="-H 'Accept: text/html'"
