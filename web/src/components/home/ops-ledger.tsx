@@ -4,17 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
 import delivery from "@/content/generated/delivery.json";
 import { decisions } from "@/content/decisions";
-import { proofCounts } from "@/content/evidence";
 import { useTerminal } from "@/components/providers";
 import { SectionHeading } from "@/components/site/section-heading";
+import { ago } from "@/components/evidence/claims";
 import { sloSpan } from "@/components/sections/slo-panel";
-import { api, type CostReport, type SloReport, type Status } from "@/lib/api";
+import { api, type ClaimsReport, type CostReport, type SloReport, type Status } from "@/lib/api";
 import { money, printed } from "@/lib/money";
 import { uptime } from "@/lib/uptime";
+import { useUnplugged } from "@/lib/use-unplugged";
+import { cn } from "@/lib/utils";
 
 type Built = { windowDays: number; deploys: number; changeFailureRate: number | null };
 const built = delivery as unknown as Built;
-const claims = proofCounts.live + proofCounts.public + proofCounts.private;
 
 /** Rounded down to a tenth: a budget left is never shown as more than it is. */
 const tenthDown = (x: number) => (Math.floor(x * 10) / 10).toFixed(1);
@@ -25,9 +26,10 @@ type Readings = {
   slo: SloReport | null;
   cost: CostReport | null;
   status: Status | null;
+  claims: ClaimsReport | null;
   mine: number | null;
   /** Which readings have answered, one way or the other. */
-  settled: { slo: boolean; cost: boolean; status: boolean };
+  settled: { slo: boolean; cost: boolean; status: boolean; claims: boolean };
 };
 
 /** When a reading that could not be refreshed was taken, in the visitor's own time. */
@@ -52,7 +54,16 @@ function myServerTime(): number | null {
 export function OpsLedger() {
   const { setOpen } = useTerminal();
   const ref = useRef<HTMLElement>(null);
-  const [r, setR] = useState<Readings>({ slo: null, cost: null, status: null, mine: null, settled: { slo: false, cost: false, status: false } });
+  // Something unplugged on the map above, or plugged back in: the readings are taken again.
+  const cut = useUnplugged();
+  const [r, setR] = useState<Readings>({
+    slo: null,
+    cost: null,
+    status: null,
+    claims: null,
+    mine: null,
+    settled: { slo: false, cost: false, status: false, claims: false },
+  });
 
   // Read once, when the ledger is near the screen: the first visitor after a cold start would
   // otherwise wait on Cloud Monitoring for a section they may never scroll to.
@@ -65,13 +76,14 @@ export function OpsLedger() {
         if (!e.isIntersecting) return;
         io.disconnect();
         // Each on its own: a reading that is slow to answer must not hold back the others.
-        const land = <K extends "slo" | "cost" | "status">(key: K, reading: Promise<NonNullable<Readings[K]>>) =>
+        const land = <K extends "slo" | "cost" | "status" | "claims">(key: K, reading: Promise<NonNullable<Readings[K]>>) =>
           reading
             .catch(() => null)
             .then((v) => alive && setR((old) => ({ ...old, [key]: v, mine: myServerTime(), settled: { ...old.settled, [key]: true } })));
         land("slo", api.slo());
         land("cost", api.cost());
         land("status", api.status());
+        land("claims", api.claims());
       },
       { rootMargin: "300px 0px" },
     );
@@ -80,17 +92,18 @@ export function OpsLedger() {
       alive = false;
       io.disconnect();
     };
-  }, []);
+  }, [cut]);
 
   const slo = r.slo?.available ? r.slo : null;
   const cost = r.cost?.available ? r.cost : null;
   const bill = cost ? printed(cost) : null;
+  const tests = r.claims?.available ? r.claims : null;
   // Until a reading arrives, a quiet placeholder; if it never does, say so rather than show a number it isn't.
   const pending = (of: keyof Readings["settled"]) => (r.settled[of] ? "not available" : "reading…");
   // A reading the server could not refresh is the last good one: shown with its age, and not as live.
   const asOf = (x: { stale?: boolean } | null, at?: string) => (x?.stale && at ? `; the last good reading, from ${when(at)} your time` : "");
 
-  const readings: { label: string; href: string; value: string | null; note: string; live: boolean; from?: keyof Readings["settled"] }[] = [
+  const readings: { label: string; href: string; value: string | null; note: string; live: boolean; bad?: boolean; from?: keyof Readings["settled"] }[] = [
     {
       label: "Availability",
       href: "/status",
@@ -133,11 +146,17 @@ export function OpsLedger() {
       live: false,
     },
     {
-      label: "Claims you can check",
+      label: "Claims that hold",
       href: "/evidence",
-      value: `${proofCounts.live + proofCounts.public} of ${claims}`,
-      note: `${proofCounts.live} live on this site, ${proofCounts.public} on public record; the rest are private and say so`,
-      live: false,
+      value: tests ? (tests.trustworthy ? `${tests.holding} of ${tests.total}` : "not to be trusted") : null,
+      note: !tests
+        ? (r.claims?.reason ?? "the claims on the evidence page that can be checked from outside, tested by a public workflow")
+        : tests.trustworthy
+          ? `tested ${ago(tests.tested!)} by a public workflow; one more is false on purpose, and failed as it has to`
+          : "the claim that is false on purpose passed its test, so the others prove nothing",
+      live: !tests?.stale,
+      bad: !!tests && (!tests.trustworthy || tests.failing > 0),
+      from: "claims",
     },
   ];
 
@@ -177,12 +196,12 @@ export function OpsLedger() {
                 <li key={x.label} className="border-b border-line">
                   <a href={x.href} className="group grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1 py-4">
                     <span className="text-[15px] font-medium text-ink">{x.label}</span>
-                    <span className={x.value === null ? "text-sm text-ink-3" : x.live ? "text-xl font-semibold text-live-ink" : "text-xl font-semibold text-ink"}>
+                    <span className={cn(x.value === null ? "text-sm text-ink-3" : "text-xl font-semibold", x.value !== null && (x.bad ? "text-critical" : x.live ? "text-live-ink" : "text-ink"))}>
                       {x.value ?? (x.from ? pending(x.from) : "")}
                     </span>
                     <span className="col-span-2 text-sm leading-snug text-ink-3">
                       {x.note}
-                      {x.live && <span className="sr-only">. A live reading</span>}
+                      {x.live && x.value !== null && <span className="sr-only">. A live reading</span>}
                     </span>
                   </a>
                 </li>

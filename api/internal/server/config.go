@@ -33,10 +33,13 @@ type Config struct {
 	// Export the Ask API's OpenTelemetry spans to Cloud Trace. On by default on Cloud Run.
 	TraceExport bool
 
-	// Refresh the home page's "Recently" list (/api/activity) from GitHub's public API, at most
+	// Refresh the home page's "Recently" list (/api/activity) from GitHub's public API, about
 	// hourly. On by default on Cloud Run; elsewhere the build's snapshot is served as it is, so
 	// tests and local runs never call GitHub.
 	ActivityFromGitHub bool
+	// Read the results of the claims' tests (/api/claims) from GitHub's public API. On by default on
+	// Cloud Run; elsewhere there are none, since the tests test the live site.
+	ClaimsFromGitHub bool
 
 	LLMBaseURL string
 	LLMAPIKey  string
@@ -68,6 +71,8 @@ func ConfigFromEnv() Config {
 			(os.Getenv("K_SERVICE") != "" && os.Getenv("SLO_SOURCE") != "none"),
 		ActivityFromGitHub: os.Getenv("ACTIVITY_SOURCE") == "github" ||
 			(os.Getenv("K_SERVICE") != "" && os.Getenv("ACTIVITY_SOURCE") != "none"),
+		ClaimsFromGitHub: os.Getenv("CLAIMS_SOURCE") == "github" ||
+			(os.Getenv("K_SERVICE") != "" && os.Getenv("CLAIMS_SOURCE") != "none"),
 		LLMBaseURL: strings.TrimRight(os.Getenv("LLM_BASE_URL"), "/"),
 		LLMAPIKey:  os.Getenv("LLM_API_KEY"),
 		LLMModel:   os.Getenv("LLM_MODEL"),

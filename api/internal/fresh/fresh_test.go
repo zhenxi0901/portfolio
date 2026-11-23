@@ -95,6 +95,28 @@ func TestWarmReadsWhatIsDue(t *testing.T) {
 	check(t, r, 2, true, false)
 }
 
+// "Not yet" is an answer, but one to ask about again soon.
+func TestAReadingWorthTakingAgainIsTakenSoon(t *testing.T) {
+	src := &source{}
+	r, clock := newReading(src)
+	r.Again = func(v int) bool { return v == 1 }
+	check(t, r, 1, true, false)
+	*clock = clock.Add(r.Retry - time.Second)
+	if r.Warm(context.Background(), time.Second) {
+		t.Error("read again at once")
+	}
+	*clock = clock.Add(time.Second)
+	if !r.Warm(context.Background(), time.Second) {
+		t.Error("not read again after the retry wait")
+	}
+	// The second reading is not worth it, so the next is when it is due.
+	*clock = clock.Add(r.Retry)
+	if r.Warm(context.Background(), time.Second) {
+		t.Error("read again before it was due")
+	}
+	check(t, r, 2, true, false)
+}
+
 func TestReadsHaveADeadline(t *testing.T) {
 	src := &source{}
 	r, _ := newReading(src)

@@ -1,25 +1,20 @@
 // Where the site's claims come from. Three kinds of proof, said plainly: something anyone can
 // check right now, something on public record, or work in a private repository that this page
-// cannot link to. The /evidence page renders this.
+// cannot link to. The /evidence page renders this, and /evidence.json publishes the first two kinds with
+// the numbers in them, which the tests in /claims compare with the world.
 import delivery from "@/content/generated/delivery.json";
+import type { LiveCheck } from "@/content/live-checks";
+import { postmortems } from "@/content/postmortems";
 import { fyp, profile, publication, stats } from "@/content/profile";
 import { SITE_URL } from "@/lib/site";
 
 export type ProofKind = "live" | "public" | "private";
 
-/** A check the page can run from the visitor's browser against this site's own API. */
-export type LiveCheck = "slo" | "status" | "mcp" | "cost" | "lab";
-
-/** What each check reads, for the accessible names of its buttons: the page has several of each. */
-export const checkName: Record<LiveCheck, string> = {
-  slo: "the availability",
-  status: "the running commit",
-  mcp: "the MCP server",
-  cost: "this month's bill",
-  lab: "the fault-injection lab",
-};
-
 export type Claim = {
+  /** On every claim that can be checked from outside: its test in /claims/tests.mjs has the same id. */
+  id?: string;
+  /** The claim's own numbers, for its test. */
+  facts?: Record<string, string | number | string[]>;
   claim: string;
   /** Where the site makes the claim. */
   seen: { label: string; href: string };
@@ -44,6 +39,7 @@ const built = delivery as unknown as {
 };
 const drill = built.safeguards.lastDrill;
 const failureRate = built.changeFailureRate == null ? "" : `, with a change failure rate of ${Math.round(built.changeFailureRate * 100)}%`;
+const inWords = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
 const stat = (value: number) => stats.find((s) => s.value === value);
 if (!stat(169) || !stat(320)) throw new Error("evidence.ts quotes headline numbers that profile.ts no longer has");
 
@@ -54,6 +50,8 @@ export const claimGroups: ClaimGroup[] = [
     lead: "The site is the one system here that I can open up completely, so most of what it says about itself can be checked from where you are sitting.",
     claims: [
       {
+        id: "availability",
+        facts: { objective: 0.999, windowDays: 30, regions: 3 },
         claim: "Availability is measured from outside against a 99.9% objective.",
         seen: { label: "Status", href: "/status" },
         kind: "live",
@@ -63,6 +61,7 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "infra/slo.tf: the uptime check", href: `${REPO}/blob/main/infra/slo.tf` }],
       },
       {
+        id: "commit",
         claim: "The commit shown on the page is the commit that is running.",
         seen: { label: "Live status", href: "/status" },
         kind: "live",
@@ -72,6 +71,7 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "Commits on main", href: `${REPO}/commits/main` }],
       },
       {
+        id: "mcp",
         claim: "The site is an MCP server that an AI agent can call.",
         seen: { label: "For agents", href: "/agents" },
         kind: "live",
@@ -80,6 +80,7 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "api/internal/mcp/mcp.go", href: `${REPO}/blob/main/api/internal/mcp/mcp.go` }],
       },
       {
+        id: "cost",
         claim: "The cost page prints this month's bill from the service's own meters.",
         seen: { label: "What it costs", href: "/cost" },
         kind: "live",
@@ -89,6 +90,7 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "api/internal/cost/cost.go", href: `${REPO}/blob/main/api/internal/cost/cost.go` }],
       },
       {
+        id: "lab",
         claim: "The fault-injection lab makes the live server hold requests and answer real 503s.",
         seen: { label: "Break it yourself", href: "/break" },
         kind: "live",
@@ -98,6 +100,8 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "api/internal/lab/lab.go", href: `${REPO}/blob/main/api/internal/lab/lab.go` }],
       },
       {
+        id: "deploys",
+        facts: { deploys: delivery.deploys, windowDays: delivery.windowDays, generated: delivery.generated, failed: delivery.failedDeploys },
         claim: `${delivery.deploys} deploys in the ${delivery.windowDays} days to ${delivery.generated.slice(0, 10)}${failureRate}.`,
         seen: { label: "How this site ships", href: "/status" },
         kind: "public",
@@ -110,6 +114,8 @@ export const claimGroups: ClaimGroup[] = [
       ...(drill?.restoreSeconds != null
         ? [
             {
+              id: "drill",
+              facts: { seconds: drill.restoreSeconds, run: drill.url?.split("/").pop() ?? "" },
               claim: `A rollback drill in production had traffic back on the previous revision ${drill.restoreSeconds} seconds after the switch.`,
               seen: { label: "How this site ships", href: "/status" },
               kind: "public" as const,
@@ -121,6 +127,7 @@ export const claimGroups: ClaimGroup[] = [
           ]
         : []),
       {
+        id: "releases",
         claim: "Every release is one image, built once, with an SBOM and signed build provenance.",
         seen: { label: "Decisions, ADR 3", href: "/decisions#build-once-check-before-traffic" },
         kind: "public",
@@ -131,6 +138,8 @@ export const claimGroups: ClaimGroup[] = [
         ],
       },
       {
+        id: "lighthouse",
+        facts: { score: 100 },
         claim: "Accessibility and SEO score 100 on every release.",
         seen: { label: "The footer of every page", href: "/" },
         kind: "public",
@@ -138,7 +147,12 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "CI runs", href: `${REPO}/actions/workflows/ci.yml` }],
       },
       {
-        claim: "Three things went wrong while building it, and each has a postmortem.",
+        id: "postmortems",
+        facts: {
+          pages: postmortems.map((p) => `/postmortems/${p.slug}`),
+          commits: [...new Set(postmortems.flatMap((p) => p.actions.flatMap((a) => a.commit ?? [])))],
+        },
+        claim: `${inWords[postmortems.length]} things went wrong while building and running it, and each has a postmortem.`,
         seen: { label: "Postmortems", href: "/writing#postmortems" },
         kind: "public",
         proof: "The write-ups cite the commits that caused and fixed each problem. The commits are in the repository's history.",
@@ -152,6 +166,8 @@ export const claimGroups: ClaimGroup[] = [
     lead: "Code I wrote in other people's public repositories. The pull requests are the record: what changed, who reviewed it, when it merged.",
     claims: [
       {
+        id: "toolathlon",
+        facts: { pr: "hyscale-lab/ARIES#55", merged: "2026-10" },
         claim: "I wrote the Toolathlon adapter for ARIES, the lab's agent-serving framework.",
         seen: { label: "Research", href: "/research" },
         kind: "public",
@@ -162,6 +178,8 @@ export const claimGroups: ClaimGroup[] = [
         ],
       },
       {
+        id: "apptainer",
+        facts: { pr: "hyscale-lab/ARIES#92", lines: fyp.apptainer.lines, files: fyp.apptainer.files, merged: fyp.apptainer.merged },
         claim: `An Apptainer backend runs the whole stack on a supercomputer without root: ${fyp.apptainer.lines.toLocaleString("en-GB")} lines across ${fyp.apptainer.files} files.`,
         seen: { label: "Running an agent benchmark without root", href: "/writing/agents-without-root" },
         kind: "public",
@@ -169,6 +187,8 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "ARIES #92", href: fyp.apptainer.pr }],
       },
       {
+        id: "plugins",
+        facts: { pr: "hyscale-lab/ARIES#96" },
         claim: "Portable plugins (skills and MCP servers) that work in both of ARIES's agent harnesses.",
         seen: { label: "Research", href: "/research" },
         kind: "public",
@@ -176,13 +196,20 @@ export const claimGroups: ClaimGroup[] = [
         links: [{ label: "ARIES #96", href: fyp.plugins.pr }],
       },
       {
+        id: "iccv",
+        facts: { paper: publication.paper, author: "Li, Zhenxi", venue: "ICCV", year: 2025 },
         claim: "Co-author of a paper at ICCV 2025.",
         seen: { label: "Research", href: "/research" },
         kind: "public",
-        proof: `${publication.title}. The code is public and the paper lists its authors.`,
-        links: [{ label: "PVChat code", href: publication.code }],
+        proof: `${publication.title}. The paper lists its authors, and the code is public.`,
+        links: [
+          { label: "The paper at ICCV 2025", href: publication.paper },
+          { label: "PVChat code", href: publication.code },
+        ],
       },
       {
+        id: "android",
+        facts: { repo: "whupdido/mdp", merged: 21 },
         claim: "21 merged pull requests on a robot car's Android controller.",
         seen: { label: "Experience", href: "/about#experience" },
         kind: "public",
@@ -204,7 +231,7 @@ export const claimGroups: ClaimGroup[] = [
     claims: [
       {
         claim: "169 of my pull requests merged into a production IoT platform's repository.",
-        seen: { label: "The IoT platform's card on the home page", href: "/#chapters" },
+        seen: { label: "The top of the home page", href: "/" },
         kind: "private",
         proof: "Counted from the private repository's pull request history under my GitHub account.",
       },
@@ -230,6 +257,20 @@ export const claimGroups: ClaimGroup[] = [
   },
 ];
 
+const allClaims = claimGroups.flatMap((g) => g.claims);
+for (const c of allClaims) {
+  if ((c.kind === "private") === Boolean(c.id)) throw new Error(`evidence.ts: "${c.claim}" ${c.id ? "is private, so it cannot have a test" : "can be checked, so it needs an id and a test in /claims"}`);
+}
+
+/** The claims a machine can check from outside, as /evidence.json publishes them. */
+export const testedClaims = allClaims.flatMap(({ id, claim, kind, facts }) => (id ? [{ id, claim, kind, facts: facts ?? {} }] : []));
+
+/**
+ * A claim that is false, with a test like any other. The test must fail: one that passed would mean the tests
+ * cannot tell true from false, and then none of the others would be worth anything.
+ */
+export const falseClaim = { id: "php", claim: "The server behind this page is written in PHP." };
+
 export const proofKinds: Record<ProofKind, { label: string; meaning: string }> = {
   live: { label: "Check it now", meaning: "This site answers for itself. Press the button or run the command." },
   public: { label: "Public record", meaning: "A pull request, workflow run or file that anyone can open." },
@@ -237,5 +278,5 @@ export const proofKinds: Record<ProofKind, { label: string; meaning: string }> =
 };
 
 export const proofCounts = Object.fromEntries(
-  (Object.keys(proofKinds) as ProofKind[]).map((k) => [k, claimGroups.flatMap((g) => g.claims).filter((c) => c.kind === k).length]),
+  (Object.keys(proofKinds) as ProofKind[]).map((k) => [k, allClaims.filter((c) => c.kind === k).length]),
 ) as Record<ProofKind, number>;

@@ -17,3 +17,4 @@ Why this site is built the way it is: each record gives the context, the decisio
 | 9 | [No long-lived credentials anywhere](0009-no-long-lived-credentials.md) | 2026-10-01 | Accepted |
 | 10 | [An MCP server with no sessions and no model](0010-mcp-without-sessions-or-a-model.md) | 2026-11-11 | Accepted |
 | 11 | [Chapters, not one long page](0011-chapters-not-one-page.md) | 2026-11-12 | Accepted |
+| 12 | [Claims are tests, and one is false on purpose](0012-claims-are-tests.md) | 2026-11-23 | Accepted |

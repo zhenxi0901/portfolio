@@ -402,6 +402,23 @@ func TestHealthDoesNotDependOnTheReadings(t *testing.T) {
 	}
 }
 
+// Off Cloud Run there are no results to show, and the answer says so in the shape the pages read.
+func TestClaimsWithoutResults(t *testing.T) {
+	ts, _ := newTestServer(t)
+	resp, err := http.Get(ts.URL + "/api/claims")
+	must(t, err)
+	defer resp.Body.Close()
+	var got struct {
+		Available *bool
+		Reason    string
+		Claims    []any
+	}
+	must(t, json.NewDecoder(resp.Body).Decode(&got))
+	if resp.StatusCode != http.StatusOK || got.Available == nil || *got.Available || got.Reason == "" || got.Claims == nil {
+		t.Errorf("/api/claims: %d %+v", resp.StatusCode, got)
+	}
+}
+
 func TestWrongMethodOnAKnownAPIPathIs405(t *testing.T) {
 	ts, _ := newTestServer(t)
 	resp, err := http.Get(ts.URL + "/api/ask")
@@ -417,7 +434,7 @@ func TestWrongMethodOnAKnownAPIPathIs405(t *testing.T) {
 		t.Errorf("unknown API path = %d, want 404", resp.StatusCode)
 	}
 	// Every GET endpoint, /api/activity included (it once answered 404 here).
-	for _, path := range []string{"/api/health", "/api/status", "/api/slo", "/api/cost", "/api/activity", "/api/badge/uptime", "/api/card.svg", "/api/card.txt", "/api/map.svg", labRoute} {
+	for _, path := range []string{"/api/health", "/api/status", "/api/slo", "/api/cost", "/api/activity", "/api/claims", "/api/badge/uptime", "/api/card.svg", "/api/card.txt", "/api/map.svg", labRoute} {
 		resp, err := http.Post(ts.URL+path, "application/json", strings.NewReader("{}"))
 		must(t, err)
 		resp.Body.Close()

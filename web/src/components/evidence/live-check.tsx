@@ -5,7 +5,7 @@ import { ArrowClockwise, CircleNotch, Play } from "@phosphor-icons/react";
 import { API_BASE, api, ApiError } from "@/lib/api";
 import { mcpRequest } from "@/lib/mcp-client";
 import { isTimeout, noAnswer, withTimeout } from "@/lib/signal";
-import { checkName, type LiveCheck as Kind } from "@/content/evidence";
+import { checkName, type LiveCheck as Kind } from "@/content/live-checks";
 import { uptime } from "@/lib/uptime";
 import { money, printed } from "@/lib/money";
 

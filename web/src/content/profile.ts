@@ -451,6 +451,7 @@ export const publication = {
   venue: "ICCV 2025",
   role: "Co-author",
   code: "https://github.com/DavidYan2001/PVChat",
+  paper: "https://openaccess.thecvf.com/content/ICCV2025/html/Shi_PVChat_Personalized_Video_Chat_with_One-Shot_Learning_ICCV_2025_paper.html",
   summary:
     "The first video LLM that learns a person from a single reference video, so it can answer identity-aware questions about them.",
 };

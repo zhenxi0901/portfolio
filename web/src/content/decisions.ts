@@ -315,4 +315,35 @@ export const decisions: Decision[] = [
       { label: "web/src/app/v1/page.tsx: the one-page version", path: "web/src/app/v1/page.tsx" },
     ],
   },
+  {
+    id: 12,
+    slug: "claims-are-tests",
+    title: "Claims are tests, and one is false on purpose",
+    date: "2026-11-23",
+    status: "Accepted",
+    context: [
+      "A portfolio is a list of claims, and /evidence says where each comes from. Nothing checked that they stayed true. In one week of November the changelog said no release had a GitHub release, the deploys \"in the last 30 days\" were counted a week before, and one of 56 releases had shipped without the SBOM every release is said to have; nothing failed.",
+      "Most of what is claimed can be checked against a record somebody else keeps: GitHub's runs and releases, other people's repositories, a conference's page, the API as any visitor gets it.",
+    ],
+    decision: [
+      "Each claim on /evidence that can be checked from outside has a test in /claims, under the claim's id, which is given the claim's own numbers as the live site publishes them. A checkable claim without an id fails the build, and a claim without a test, or a test without a claim, fails the run.",
+      "A GitHub workflow runs them against the live site after every deploy and on a schedule, and puts the results on the tested commit as a check run. The server reads that back over GitHub's public API, so the results the site shows are GitHub's record.",
+      "One more claim is false on purpose, and its test has to fail. If it passes, the tests cannot tell true from false, and the site says not to trust the rest.",
+    ],
+    good: [
+      "What stops being true shows on the page that claims it, within hours, with what the test saw.",
+      "Adding a claim means writing down what would make it false.",
+    ],
+    bad: [
+      "A test says only what it tests. That a name is on a paper's page says nothing of what the work was.",
+      "GitHub starts scheduled runs late, and stops them after 60 days without activity in the repository, so the site always says how old the results are.",
+      "The claims about private work cannot be tested, and say so.",
+    ],
+    evidence: [
+      { label: "claims/tests.mjs: one test per claim", path: "claims/tests.mjs" },
+      { label: "claims/harness.test.mjs: the tests can fail", path: "claims/harness.test.mjs" },
+      { label: ".github/workflows/claims.yml", path: ".github/workflows/claims.yml" },
+      { label: "api/internal/claims/claims.go: reading GitHub's record back", path: "api/internal/claims/claims.go" },
+    ],
+  },
 ];

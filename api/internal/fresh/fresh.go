@@ -31,6 +31,9 @@ type Reading[T any] struct {
 	// Current, if set, says whether a reading still holds, whatever its age: a month's bill stops being
 	// this month's at midnight. One that does not hold counts as no reading.
 	Current func(v T, now time.Time) bool
+	// Again, if set, says whether a reading is worth taking again as soon as after a failure: an answer that
+	// is about to change, like "not yet".
+	Again func(v T) bool
 	// Now is the clock; time.Now if nil.
 	Now func() time.Time
 	// Log takes a warning, Failed, each time a read fails.
@@ -87,7 +90,11 @@ func (r *Reading[T]) Warm(ctx context.Context, limit time.Duration) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := r.now()
-	if r.reading != nil || now.Before(r.retryAt) || r.holds(now) && now.Sub(r.at) < r.Due {
+	due := r.Due
+	if r.Again != nil && r.Again(r.value) {
+		due = r.Retry
+	}
+	if r.reading != nil || now.Before(r.retryAt) || r.holds(now) && now.Sub(r.at) < due {
 		return false
 	}
 	r.read(ctx, now, min(limit, r.For))

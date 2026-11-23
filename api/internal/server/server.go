@@ -25,6 +25,7 @@ import (
 	"github.com/zhenxi0901/portfolio/api/internal/activity"
 	"github.com/zhenxi0901/portfolio/api/internal/ask"
 	"github.com/zhenxi0901/portfolio/api/internal/card"
+	"github.com/zhenxi0901/portfolio/api/internal/claims"
 	"github.com/zhenxi0901/portfolio/api/internal/contact"
 	"github.com/zhenxi0901/portfolio/api/internal/cost"
 	"github.com/zhenxi0901/portfolio/api/internal/gcp"
@@ -51,6 +52,9 @@ var activityConfig = activity.Config{
 	Releases: []string{"zhenxi0901/dora-card"},
 }
 
+// repository is this site's own, where its claims are tested.
+const repository = "zhenxi0901/portfolio"
+
 type Server struct {
 	cfg     Config
 	log     *slog.Logger
@@ -62,6 +66,8 @@ type Server struct {
 	cost    *cost.Service
 	// The home page's "Recently" list: the build's snapshot, refreshed from GitHub on Cloud Run.
 	activity *activity.Service
+	// What became of the site's claims when they were last tested (/claims in the repository).
+	claims *claims.Service
 	// Delivery numbers baked into the image (/delivery.json) for the profile card; nil if absent.
 	delivery *card.Delivery
 	started  time.Time
@@ -118,6 +124,7 @@ func New(cfg Config, log *slog.Logger) (*Server, error) {
 
 	return &Server{
 		activity: activity.New(activityConfig, recent, cfg.ActivityFromGitHub, log),
+		claims:   claims.New(claims.Config{Repo: repository, Commit: cfg.Commit}, cfg.ClaimsFromGitHub, log),
 		delivery: delivery,
 		cfg:      cfg,
 		log:      log,
@@ -192,6 +199,12 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		sendJSON(w, r, http.StatusOK, s.activity.Feed(r.Context()))
 	}))
+	// Each claim the site makes that can be checked from outside, and whether it held when it was last tested,
+	// by a workflow on GitHub. Its record there is read about every half an hour (warm), on Cloud Run only.
+	get("/api/claims", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		sendJSON(w, r, http.StatusOK, s.claims.Report(r.Context()))
+	}))
 	// The same availability as a shields.io endpoint badge, for the GitHub profile.
 	get("/api/badge/uptime", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
@@ -256,11 +269,11 @@ func (s *Server) Handler() http.Handler {
 // warmFor is the longest a health check spends reading. The uptime checks give it 10 seconds.
 const warmFor = 5 * time.Second
 
-// warm reads one thing that has come due (availability, cost, recent work), so that the uptime checks,
+// warm reads one thing that has come due (availability, cost, recent work, claims), so that the uptime checks,
 // three a minute, wait on Google and GitHub and visitors do not. One a check, and its result never
 // changes the check's answer: a reading that fails says so on the pages that show it.
 func (s *Server) warm(ctx context.Context) {
-	_ = s.slo.Warm(ctx, warmFor) || s.cost.Warm(ctx, warmFor) || s.activity.Warm(ctx, warmFor)
+	_ = s.slo.Warm(ctx, warmFor) || s.cost.Warm(ctx, warmFor) || s.activity.Warm(ctx, warmFor) || s.claims.Warm(ctx, warmFor)
 }
 
 type statusResponse struct {

@@ -96,7 +96,7 @@ const PAGES: Record<string, string> = {
   oncall: "/oncall",
   break: "/break",
 };
-const CURL_PATHS = ["/", "/api/status", "/api/slo", "/api/cost", "/api/card.txt", "/llms.txt", "/llms-full.txt", "/knowledge.json", "/delivery.json", "/.well-known/security.txt"];
+const CURL_PATHS = ["/", "/api/status", "/api/slo", "/api/cost", "/api/claims", "/api/card.txt", "/llms.txt", "/llms-full.txt", "/knowledge.json", "/delivery.json", "/.well-known/security.txt"];
 
 const stripMd = (name: string) => name.replace(/\.md$/, "");
 
@@ -371,7 +371,7 @@ const commands: Record<string, Command> = {
       ...["whoami", "ls", "cat", "cd", "open"].map(helpRow),
       line(""),
       line(t("Live, from this site's API", BOLD)),
-      ...["status", "slo", "cost", "deploys", "ask", "mcp", "curl", "neofetch"].map(helpRow),
+      ...["status", "slo", "cost", "deploys", "claims", "ask", "mcp", "curl", "neofetch"].map(helpRow),
       line(""),
       line(t("Practice", BOLD)),
       helpRow("oncall"),
@@ -547,6 +547,24 @@ const commands: Record<string, Command> = {
         ...(d.head ? [row("built from", t(d.head.sha, ACCENT), `  ${d.head.title}`)] : []),
         line(""),
         line(t("Every release: ", DIM), cmd("open changelog")),
+      ];
+    },
+  },
+  claims: {
+    summary: "what this site claims, and what held when it was last tested",
+    run: async () => {
+      const r = await api.claims();
+      if (!r.available) return [dim(`No results here: ${r.reason ?? "no reason given"}`), line(t("What is claimed, and where it comes from: ", DIM), cmd("open evidence"))];
+      const word = { holds: t("holds  ", GOOD), fails: t("fails  ", ERR), unknown: t("unknown", DIM) };
+      const lie = r.false_claim;
+      return [
+        row("tested", `${r.tested?.slice(0, 16).replace("T", " ")} UTC, on commit ${r.commit}${r.stale ? "; GitHub is not answering, so a newer run may exist" : ""}`),
+        row("result", r.trustworthy ? t(`${r.holding} of ${r.total} hold`, r.failing ? ERR : ACCENT) : t("not to be trusted: the claim that is false on purpose passed", ERR)),
+        line(""),
+        ...r.claims.map((c) => line(word[c.verdict], t(`  ${c.id.padEnd(13)}`, DIM), c.saw)),
+        ...(lie ? [line(lie.verdict === "fails" ? t("fails  ", GOOD) : word[lie.verdict], t(`  ${lie.id.padEnd(13)}`, DIM), lie.verdict === "fails" ? "as it has to: it is false on purpose. " : "", lie.saw)] : []),
+        line(""),
+        line(t("What each one claims: ", DIM), cmd("open evidence")),
       ];
     },
   },

@@ -117,6 +117,27 @@ export type ActivityItem = {
 };
 export type ActivityFeed = { items: ActivityItem[]; updated: string; source: "live" | "snapshot" };
 
+/** One claim's result when it was last tested (see /claims in the repository). */
+export type ClaimResult = { id: string; verdict: "holds" | "fails" | "unknown"; saw: string };
+
+/** What became of the site's claims when they were last tested, from GitHub's record (see api/internal/claims). */
+export type ClaimsReport = {
+  available: boolean;
+  reason?: string;
+  commit?: string;
+  tested?: string;
+  run?: string;
+  total: number;
+  holding: number;
+  failing: number;
+  unknown: number;
+  /** Whether the claim that is false on purpose failed its test, as it has to. */
+  trustworthy: boolean;
+  false_claim?: ClaimResult;
+  claims: ClaimResult[];
+  stale?: boolean;
+};
+
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
@@ -162,10 +183,11 @@ export const api = {
       needs: ["status", "commit", "region", "uptime_seconds", "requests_total", "latency_ms", "recent_ms", "heap_mb", "goroutines"],
     }),
   // A new instance's first answer waits while it reads Cloud Monitoring, which can take a few seconds. After
-  // that the uptime checks keep the readings fresh, so none of these three waits (api/internal/fresh).
+  // that the uptime checks keep the readings fresh, so none of these four waits (api/internal/fresh).
   slo: () => request<SloReport>("/api/slo", { timeoutMs: 15000, needs: ["available", "target", "days"] }),
   cost: () => request<CostReport>("/api/cost", { timeoutMs: 20000, needs: ["available", "prices", "lines"] }),
   activity: () => request<ActivityFeed>("/api/activity", { timeoutMs: 10000, needs: ["items", "updated"] }),
+  claims: () => request<ClaimsReport>("/api/claims", { timeoutMs: 10000, needs: ["available", "claims", "total"] }),
   ask: (question: string) =>
     request<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }), timeoutMs: 20000, needs: ["answer", "sources"] }),
   contact: (payload: { name: string; email: string; message: string; leave_empty: string }) =>

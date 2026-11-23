@@ -1,0 +1,53 @@
+name: claims
+
+# Tests what the live site claims (/evidence), against records the site does not keep: its API as any visitor gets
+# it, GitHub's record of the runs and releases, other people's repositories. One claim is false on purpose, and the
+# run fails if its test passes. The results go on the tested release's commit as a check named "claims", which is
+# where the site reads them from (api/internal/claims).
+on:
+  workflow_run:
+    workflows: [deploy]
+    branches: [main]
+    types: [completed]
+  # GitHub starts scheduled runs late, and turns them off after 60 days without activity in the repository.
+  schedule:
+    - cron: "23 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claims
+  cancel-in-progress: true
+
+jobs:
+  # Not called "claims": GitHub gives a job a check of its own, under the job's name.
+  test:
+    # After a deploy that released something: a skipped or failed one changed nothing the claims are about.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read # the deploy runs and their steps
+      attestations: read # the newest releases' attestations
+      checks: write # the check the results go in
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24 }
+      - name: The tests can fail
+        run: node --test "claims/*.test.mjs"
+      - name: Test the claims
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node claims/run.mjs
+      # Also when a claim fails: that is when the results matter most.
+      - name: Put the results on the release
+        if: always() && hashFiles('check.json') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/check-runs" --input check.json --jq '"\(.conclusion): \(.output.title) \(.html_url)"'

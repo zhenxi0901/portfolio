@@ -1,8 +1,11 @@
 import { ArrowUpRight, Globe, Lightning, Lock } from "@phosphor-icons/react/dist/ssr";
 import { ArticleShell, Part } from "@/components/article/article-shell";
 import { CopyButton } from "@/components/agents/copy-button";
+import { ClaimsTested, ClaimVerdict } from "@/components/evidence/claims";
 import { LiveCheck } from "@/components/evidence/live-check";
-import { checkName, claimGroups, proofCounts, proofKinds, type Claim, type ProofKind } from "@/content/evidence";
+import { claimGroups, falseClaim, proofCounts, proofKinds, testedClaims, type Claim, type ProofKind } from "@/content/evidence";
+import { checkName } from "@/content/live-checks";
+import { REPO } from "@/content/postmortems";
 import { pageMetadata } from "@/lib/page-metadata";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +48,8 @@ function ClaimCard({ c, id }: { c: Claim; id: string }) {
       </h3>
       <p className="mt-2 max-w-[70ch] text-[15px] leading-relaxed text-ink-2">{c.proof}</p>
 
+      {c.id && <ClaimVerdict id={c.id} />}
+
       {c.check && <LiveCheck kind={c.check} describedBy={id} />}
 
       {c.command && (
@@ -83,7 +88,8 @@ export default function EvidencePage() {
       <h1 className="mt-10 max-w-[20ch] text-[clamp(2.25rem,4.6vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.028em]">Where each claim on this site comes from</h1>
       <p className="mt-6 max-w-[64ch] text-lg leading-relaxed text-ink-2">
         A portfolio is a list of claims. This page takes the main ones, {total} of them, and says where each comes from: something you can check from your browser
-        right now, something on public record, or work in a private repository that I cannot show you. The third kind is labelled as such.
+        right now, something on public record, or work in a private repository that I cannot show you. The third kind is labelled as such. The first
+        two are tested.
       </p>
 
       {/* Three counts, not three buttons: figures under a rule, as on the case pages, with no boxes. */}
@@ -104,6 +110,8 @@ export default function EvidencePage() {
           );
         })}
       </dl>
+
+      <ClaimsTested falseClaim={falseClaim.claim} total={testedClaims.length} repo={REPO} />
 
       {claimGroups.map((g) => (
         <Part key={g.id} title={g.title} aside={`${g.claims.length} claims`}>
